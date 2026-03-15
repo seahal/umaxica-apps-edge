@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
+<<<<<<< HEAD
   run: {
     cache: {
       scripts: true,
@@ -9,6 +10,10 @@ export default defineConfig({
   },
   staged: {
     '*': 'vp test && vp check',
+=======
+  staged: {
+    '*': 'vp check --fix',
+>>>>>>> f779cd0 ([update] began to use Vite+.)
   },
   fmt: {
     printWidth: 100,
@@ -44,11 +49,16 @@ export default defineConfig({
       '**/dist/**',
       '**/node_modules/**',
       '**/build/**',
+<<<<<<< HEAD
+=======
+      '**/.react-router/**',
+>>>>>>> f779cd0 ([update] began to use Vite+.)
       '**/+types/**',
       'pnpm-lock.yaml',
     ],
   },
   lint: {
+<<<<<<< HEAD
     plugins: [
       'eslint',
       'typescript',
@@ -61,6 +71,9 @@ export default defineConfig({
       'react-perf',
       'vitest',
     ],
+=======
+    plugins: ['typescript', 'react', 'import', 'jsx-a11y'],
+>>>>>>> f779cd0 ([update] began to use Vite+.)
     env: {
       browser: true,
       es2024: true,
@@ -70,6 +83,7 @@ export default defineConfig({
       react: {
         version: '19',
       },
+<<<<<<< HEAD
       vitest: {
         typecheck: true,
       },
@@ -77,11 +91,18 @@ export default defineConfig({
     rules: {
       'no-unused-vars': 'error',
       'no-console': 'error',
+=======
+    },
+    rules: {
+      'no-unused-vars': 'error',
+      'no-console': 'warn',
+>>>>>>> f779cd0 ([update] began to use Vite+.)
       'no-var': 'error',
       'prefer-const': 'error',
       eqeqeq: 'error',
       'no-eval': 'error',
       'no-implied-eval': 'error',
+<<<<<<< HEAD
       'no-debugger': 'error',
       'no-alert': 'error',
       'no-empty': 'error',
@@ -107,12 +128,20 @@ export default defineConfig({
         },
       },
     ],
+=======
+      'react/no-danger': 'warn',
+      'typescript/no-explicit-any': 'error',
+      'typescript/no-non-null-assertion': 'warn',
+      'typescript/consistent-type-imports': 'error',
+    },
+>>>>>>> f779cd0 ([update] began to use Vite+.)
     ignorePatterns: [
       '**/.wrangler/**',
       '**/dist/**',
       '**/node_modules/**',
       'worker-configuration.d.ts',
       '**/+types/**',
+<<<<<<< HEAD
       '**/build/**',
       'app/news/**',
       'app/docs/**',
@@ -127,6 +156,12 @@ export default defineConfig({
     ],
     options: {
       reportUnusedDisableDirectives: 'warn',
+=======
+      '**/.react-router/**',
+      '**/build/**',
+    ],
+    options: {
+>>>>>>> f779cd0 ([update] began to use Vite+.)
       typeAware: true,
       typeCheck: true,
     },

@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { GET } from '../../src/app/health/route';
+=======
+import { loader, meta, default as Health } from '../../src/routes/health';
+import { render, screen } from '@testing-library/react';
+>>>>>>> f779cd0 ([update] began to use Vite+.)
 
 describe('dev/core health route', () => {
   beforeEach(() => {
@@ -41,5 +46,25 @@ describe('dev/core health route', () => {
       status: 'error',
       timestamp: expect.any(String),
     });
+  });
+
+  it('renders health page with ok status', () => {
+    render(<Health loaderData={{ status: 'ok', timestamp: '2024-01-01T00:00:00.000Z' }} />);
+
+    expect(screen.getByText(/status:/)).toBeInTheDocument();
+    expect(screen.getByText(/ok/)).toBeInTheDocument();
+  });
+
+  it('renders health page with error status', () => {
+    render(<Health loaderData={{ status: 'error', timestamp: '2024-01-01T00:00:00.000Z' }} />);
+
+    expect(screen.getByText(/status:/)).toBeInTheDocument();
+    expect(screen.getByText(/error/)).toBeInTheDocument();
+  });
+
+  it('renders timestamp', () => {
+    render(<Health loaderData={{ status: 'ok', timestamp: '2024-01-01T00:00:00.000Z' }} />);
+
+    expect(screen.getByText(/2024-01-01T00:00:00.000Z/)).toBeInTheDocument();
   });
 });

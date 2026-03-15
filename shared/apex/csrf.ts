@@ -3,7 +3,11 @@ import { csrf } from 'hono/csrf';
 
 const PRODUCTION_APEX_ORIGIN = /^https:\/\/umaxica\.(com|org|app|net)$/;
 const LOCAL_APEX_ORIGIN = /^http:\/\/(com|org|app|net)\.localhost(?::\d+)?$/;
+<<<<<<< HEAD
 const PREVIEW_APEX_ORIGIN = /^https:\/\/.*\.workers\.dev$/;
+=======
+const PREVIEW_APEX_ORIGIN = /^https:\/\/[\w-]+\.[\w-]+\.workers\.dev$/;
+>>>>>>> f779cd0 ([update] began to use Vite+.)
 
 export const isAllowedApexOrigin = (origin?: string): boolean => {
   if (!origin) {

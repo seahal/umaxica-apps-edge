@@ -21,6 +21,7 @@ packages:
   - net/apex
 
 catalog:
+<<<<<<< HEAD
   '@cloudflare/vite-plugin': ^1.37.1
   '@cloudflare/workers-types': ^4.20260516.1
   '@hono/structured-logger': ^0.1.0
@@ -41,6 +42,11 @@ catalog:
   vite-plus: ^0.1.20
   vitest: npm:@voidzero-dev/vite-plus-test@^0.1.20
   wrangler: ^4.92.0
+=======
+  vite: npm:@voidzero-dev/vite-plus-core@latest
+  vite-plus: ^0.1.11
+  vitest: npm:@voidzero-dev/vite-plus-test@^0.1.11
+>>>>>>> f779cd0 ([update] began to use Vite+.)
 
 ignoredBuiltDependencies:
   - '@sentry/cli'
@@ -49,6 +55,7 @@ ignoredBuiltDependencies:
   - unrs-resolver
   - workerd
 
+<<<<<<< HEAD
 minimumReleaseAge: 10080
 
 minimumReleaseAgeExclude:
@@ -77,6 +84,23 @@ minimumReleaseAgeExclude:
   - react-dom
   - workerd
   - wrangler
+=======
+minimumReleaseAge: 4320
+
+minimumReleaseAgeExclude:
+  - vite-plus
+  - '@voidzero-dev/*'
+  - oxlint
+  - '@oxlint/*'
+  - oxlint-tsgolint
+  - '@oxlint-tsgolint/*'
+  - oxfmt
+  - '@oxfmt/*'
+
+overrides:
+  vite: 'catalog:'
+  vitest: 'catalog:'
+>>>>>>> f779cd0 ([update] began to use Vite+.)
 
 peerDependencyRules:
   allowAny:
