@@ -92,4 +92,18 @@ describe('Header component', () => {
     const exploreLink = screen.getByRole('link', { name: /Explore/ });
     expect(exploreLink.className).toContain('bg-blue-600');
   });
+
+  it('applies active styles to configuration link when active', () => {
+    renderHeader({}, '/configuration');
+
+    const configLink = screen.getByRole('link', { name: '⚙️' });
+    expect(configLink.className).toContain('scale-110');
+  });
+
+  it('applies active styles to authentication link when active', () => {
+    renderHeader({}, '/authentication');
+
+    const authLink = screen.getByRole('link', { name: /Login/ });
+    expect(authLink.className).toContain('bg-blue-600');
+  });
 });

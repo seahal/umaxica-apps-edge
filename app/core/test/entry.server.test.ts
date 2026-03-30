@@ -128,6 +128,23 @@ describe('app entry.server handleRequest', () => {
 
     expect(response).toBeInstanceOf(Response);
   });
+
+  it('handles requests with empty nonce object', async () => {
+    const request = new Request('https://app.umaxica.com', {
+      headers: { 'user-agent': 'Mozilla/5.0' },
+    });
+    const routerContext = { isSpaMode: false } as unknown as EntryContext;
+
+    const contextMap = new Map<unknown, unknown>([[CloudflareContext, { security: {} }]]);
+
+    const loadContext = {
+      get: (key: unknown) => contextMap.get(key),
+    } as unknown as AppLoadContext;
+
+    const response = await handleRequest(request, 200, headers, routerContext, loadContext);
+
+    expect(response).toBeInstanceOf(Response);
+  });
 });
 
 afterAll(() => {
