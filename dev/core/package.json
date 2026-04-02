@@ -9,7 +9,7 @@
     "type": "vp exec tsc --noEmit"
   },
   "dependencies": {
-    "next": "16.1.5",
+    "next": "16.1.7",
     "nuqs": "^2.8.9",
     "react": "19.1.5",
     "react-dom": "19.1.5"
