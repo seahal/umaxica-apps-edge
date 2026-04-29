@@ -13,7 +13,9 @@
     "DEBUGGER_DISABLE": "1"
   },
 
-  "forwardPorts": [5173, 8780, 8781, 8782],
+  "forwardPorts": [
+    5173, 8780, 8781, 8782, 5102, 5103, 5104, 5105, 5302, 5303, 5304, 5305, 5402, 5403, 5404, 5405
+  ],
   "portsAttributes": {
     "8781": {
       "label": "App Domain (app)",
@@ -30,6 +32,54 @@
     "5173": {
       "label": "Net Domain (net)",
       "onAutoForward": "notify"
+    },
+    "5102": {
+      "label": "Com Core JIT",
+      "onAutoForward": "silent"
+    },
+    "5103": {
+      "label": "Com Docs JIT",
+      "onAutoForward": "silent"
+    },
+    "5104": {
+      "label": "Com Help JIT",
+      "onAutoForward": "silent"
+    },
+    "5105": {
+      "label": "Com News JIT",
+      "onAutoForward": "silent"
+    },
+    "5302": {
+      "label": "Org Core JIT",
+      "onAutoForward": "silent"
+    },
+    "5303": {
+      "label": "Org Docs JIT",
+      "onAutoForward": "silent"
+    },
+    "5304": {
+      "label": "Org Help JIT",
+      "onAutoForward": "silent"
+    },
+    "5305": {
+      "label": "Org News JIT",
+      "onAutoForward": "silent"
+    },
+    "5402": {
+      "label": "App Core JIT",
+      "onAutoForward": "silent"
+    },
+    "5403": {
+      "label": "App Docs JIT",
+      "onAutoForward": "silent"
+    },
+    "5404": {
+      "label": "App Help JIT",
+      "onAutoForward": "silent"
+    },
+    "5405": {
+      "label": "App News JIT",
+      "onAutoForward": "silent"
     }
   },
 

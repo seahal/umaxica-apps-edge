@@ -46,9 +46,10 @@ function renderHealthResponse(
 ): Response {
   const timestampIso = new Date().toISOString();
   const html = buildHealthPageHtml(brandName, timestampIso, railsResult, revision);
+  const status = railsResult?.ok === false ? 503 : 200;
 
   return new Response(html, {
-    status: 200,
+    status,
     headers: {
       'content-type': 'text/html; charset=UTF-8',
       'X-Robots-Tag': HEALTH_ROBOTS_HEADER,

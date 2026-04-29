@@ -71,8 +71,8 @@ describe('shared/apex/routes/health.ts', () => {
           expect.anything(),
         );
         expect(body).toContain('Status:</strong> OK (HTTP 200)');
-        expect(body).toContain('"status": "ok"');
-        expect(body).toContain('"uptime": 100');
+        expect(body).toContain('&quot;status&quot;: &quot;ok&quot;');
+        expect(body).toContain('&quot;uptime&quot;: 100');
       });
 
       it('displays error status and raw body when Rails returns non-2xx', async () => {
@@ -87,8 +87,10 @@ describe('shared/apex/routes/health.ts', () => {
         const res = await route.request('/health', {}, { RAILS_API_URL: 'http://localhost:3000' });
         const body = await res.text();
 
+        expect(res.status).toBe(503);
         expect(body).toContain('Status:</strong> Error (HTTP 503)');
         expect(body).toContain('Service Unavailable');
+        expect(body).toContain('<strong>Status:</strong> Error');
       });
 
       it('displays unreachable error message when fetch throws', async () => {
@@ -99,6 +101,7 @@ describe('shared/apex/routes/health.ts', () => {
         const res = await route.request('/health', {}, { RAILS_API_URL: 'http://localhost:3000' });
         const body = await res.text();
 
+        expect(res.status).toBe(503);
         expect(body).toContain('Status:</strong> Unreachable');
         expect(body).toContain('Error: <code>Network failure</code>');
       });
@@ -111,8 +114,26 @@ describe('shared/apex/routes/health.ts', () => {
         const res = await route.request('/health', {}, { RAILS_API_URL: 'http://localhost:3000' });
         const body = await res.text();
 
+        expect(res.status).toBe(503);
         expect(body).toContain('Status:</strong> Unreachable');
         expect(body).toContain('Error: <code>String error</code>');
+      });
+
+      it('escapes Rails response body and fetch errors before rendering', async () => {
+        const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+          new Response('<script>alert("xss")</script>', {
+            status: 503,
+          }),
+        );
+        vi.stubGlobal('fetch', fetchMock);
+
+        const route = createHealthRoute();
+        const res = await route.request('/health', {}, { RAILS_API_URL: 'http://localhost:3000' });
+        const body = await res.text();
+
+        expect(res.status).toBe(503);
+        expect(body).toContain('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
+        expect(body).not.toContain('<script>alert("xss")</script>');
       });
     });
 
