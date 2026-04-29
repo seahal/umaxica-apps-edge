@@ -10,7 +10,7 @@ describe('GET /health', () => {
 
     const body = await response.text();
 
-    expect(body).toContain('<title>UMAXICA (app) - Apex</title>');
+    expect(body).toContain('<title>UMAXICA</title>');
     expect(body).toContain('<meta name="robots" content="noindex, nofollow" />');
     expect(body).toContain('<strong>Status:</strong> OK');
     expect(body).toContain('Timestamp:');
@@ -22,7 +22,7 @@ describe('GET /health', () => {
     const response = await requestFromApp('/health');
     const body = await response.text();
     expect(body).toContain('UMAXICA');
-    expect(body).toContain('<title>UMAXICA (app) - Apex</title>');
+    expect(body).toContain('<title>UMAXICA</title>');
   });
 
   it('applies security headers to HTML responses', async () => {
