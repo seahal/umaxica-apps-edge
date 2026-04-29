@@ -12,12 +12,12 @@ packages:
   - net/apex
 
 catalog:
-  '@cloudflare/vite-plugin': ^1.32.3
-  '@cloudflare/workers-types': ^4.20260420.1
+  '@cloudflare/vite-plugin': ^1.33.1
+  '@cloudflare/workers-types': ^4.20260422.1
   '@hono/structured-logger': ^0.1.0
   '@opennextjs/cloudflare': ^1.19.0
   '@tailwindcss/postcss': ^4.2.2
-  '@tailwindcss/vite': ^4.2.2
+  '@tailwindcss/vite': ^4.2.4
   '@types/node': ^20.19.39
   '@types/react': ^19.2.14
   '@types/react-dom': ^19.2.3
@@ -26,12 +26,12 @@ catalog:
   nuqs: ^2.8.9
   react: 19.1.5
   react-dom: 19.1.5
-  tailwindcss: ^4.2.2
+  tailwindcss: ^4.2.4
   typescript: ^5.9.3
   vite: npm:@voidzero-dev/vite-plus-core@^0.1.18
-  vite-plus: ^0.1.18
-  vitest: npm:@voidzero-dev/vite-plus-test@^0.1.18
-  wrangler: ^4.83.0
+  vite-plus: ^0.1.19
+  vitest: npm:@voidzero-dev/vite-plus-test@^0.1.19
+  wrangler: ^4.84.1
 
 ignoredBuiltDependencies:
   - '@sentry/cli'

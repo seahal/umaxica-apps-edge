@@ -7,6 +7,7 @@ export interface AssetEnv {
     fetch: (request: Request) => Promise<Response>;
   };
   BRAND_NAME?: string;
+  RAILS_API_URL?: string;
   RATE_LIMITER?: RateLimiter;
   REVISION?: {
     id: string;

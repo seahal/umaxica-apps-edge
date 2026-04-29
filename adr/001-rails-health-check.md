@@ -210,3 +210,13 @@ Add `RAILS_API_URL?: string` to `HealthBindings.Bindings`.
 - The Worker must remain healthy (200) even when the Rails backend is unreachable; the Rails status is informational only.
 - Timeout is 2000 ms, consistent with the existing `hono/timeout` on the route.
 - Do not use `hono/timeout` for the Rails sub-fetch; use `AbortSignal.timeout(2000)` to avoid conflating timeouts.
+
+## Outcome
+
+**Implemented.**
+
+- Migrated `app/apex`, `com/apex`, `org/apex`, and `net/apex` to use a unified `createHealthRoute` from `shared/apex/routes/health.ts`.
+- Integrated `RAILS_API_URL` fetching for Rails backend status visibility in the unified HTML status page.
+- Added `RAILS_API_URL` environment variables to the respective `wrangler.jsonc` configurations.
+- Handled non-2xx responses and unhandled fetch exceptions properly as per the plan's UI requirements.
+- Updated `vp check` and `vp test` to ensure robust type checking and correct DOM assertions across the updated workspaces.

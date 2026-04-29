@@ -59,13 +59,6 @@ services:
       - VITE_GIT_HOOKS=0
       - NODE_OPTIONS=--max-old-space-size=4096
     restart: unless-stopped
-    networks:
-      outer:
-        aliases:
-          - edge
-networks:
-  outer:
-    external: true
 volumes:
   node-volume:
     driver: local

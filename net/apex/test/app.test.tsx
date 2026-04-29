@@ -6,7 +6,7 @@ describe('Net Hono app', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('x-robots-tag')).toBe('noindex, nofollow');
     const body = await res.text();
-    expect(body).toContain('<title>UMAXICA (net) - Apex</title>');
+    expect(body).toContain('<title>UMAXICA</title>');
     expect(body).toContain('<strong>Status:</strong> OK');
     expect(body).toContain('Timestamp');
     expect(body).toContain('<meta name="robots" content="noindex, nofollow" />');

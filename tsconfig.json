@@ -34,7 +34,6 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"],
     // Best practices
     "strict": true,
     "skipLibCheck": true,
