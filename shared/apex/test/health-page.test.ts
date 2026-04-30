@@ -1,4 +1,4 @@
-import { renderHealthPage } from './health-page';
+import { renderHealthPage } from '../health-page';
 
 describe('health-page', () => {
   const mockEnv = {

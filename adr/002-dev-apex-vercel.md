@@ -133,6 +133,10 @@ No test files added for `dev/apex`. Consider adding smoke tests if the workspace
 - `pnpm dlx vercel build --yes`: blocked locally because the Vercel token is not valid in this environment
 - `vp check` / `vp test`: not rerun here because the local `vp` wrapper currently fails to resolve `vite-plus/bin/vp`
 
+### Note on Deletion
+
+After implementation, it was decided that this workspace was no longer necessary, and it has been intentionally removed from the repository.
+
 ### Closes
 
 https://github.com/seahal/umaxica-apps-edge/issues/248

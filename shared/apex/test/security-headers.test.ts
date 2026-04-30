@@ -1,4 +1,3 @@
-// TODO: move to test folder
 import { Hono } from 'hono';
 import { applySecurityHeaders, buildCspHeader } from '../security-headers';
 
