@@ -8,6 +8,7 @@ const HEALTH_ROBOTS_HEADER = 'noindex, nofollow';
 export interface HealthBindings {
   Bindings: {
     BRAND_NAME?: string;
+    RAILS_API_URL?: string;
     REVISION?: {
       id: string;
       tag: string;
