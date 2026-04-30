@@ -1,4 +1,3 @@
-// TODO: move to test folder.
 import { Hono } from 'hono';
 import { apexCsrf, isAllowedApexOrigin } from '../csrf';
 import { apexCsrfMiddleware } from '../middleware/csrf';

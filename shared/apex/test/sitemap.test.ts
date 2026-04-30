@@ -1,4 +1,3 @@
-// TODO: move to test folder.
 import { buildSitemapXml } from '../sitemap';
 import type { SitemapEntry } from '../sitemap';
 
