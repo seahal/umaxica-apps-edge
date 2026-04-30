@@ -13,7 +13,7 @@ packages:
 
 catalog:
   '@cloudflare/vite-plugin': ^1.33.1
-  '@cloudflare/workers-types': ^4.20260422.1
+  '@cloudflare/workers-types': ^4.20260423.1
   '@hono/structured-logger': ^0.1.0
   '@opennextjs/cloudflare': ^1.19.0
   '@tailwindcss/postcss': ^4.2.2
