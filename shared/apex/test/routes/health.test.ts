@@ -119,7 +119,24 @@ describe('shared/apex/routes/health.ts', () => {
         expect(body).toContain('Error: <code>String error</code>');
       });
 
-      it('escapes Rails response body and fetch errors before rendering', async () => {
+      it('escapes Rails success response body before rendering', async () => {
+        const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+          new Response('</code><script>alert("xss")</script>', {
+            status: 200,
+          }),
+        );
+        vi.stubGlobal('fetch', fetchMock);
+
+        const route = createHealthRoute();
+        const res = await route.request('/health', {}, { RAILS_API_URL: 'http://localhost:3000' });
+        const body = await res.text();
+
+        expect(res.status).toBe(200);
+        expect(body).toContain('&lt;/code&gt;&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
+        expect(body).not.toContain('</code><script>alert("xss")</script>');
+      });
+
+      it('escapes Rails error response body before rendering', async () => {
         const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
           new Response('<script>alert("xss")</script>', {
             status: 503,
