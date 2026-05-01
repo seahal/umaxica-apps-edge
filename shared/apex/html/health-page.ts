@@ -39,7 +39,7 @@ export function buildHealthPageHtml(
         <div class="space-y-4">
           <p><strong>Status:</strong> OK</p>
           <p><strong>Timestamp:</strong> ${escapeHtml(timestampIso)}</p>
-          ${revisionInfo}
+          <p><strong>Revision:</strong> ${revisionValue}</p>
         </div>
       </div>
     </main>
