@@ -25,6 +25,18 @@ describe('GET /health', () => {
     expect(body).toContain('<title>UMAXICA</title>');
   });
 
+  it('returns OK when revision metadata is incomplete', async () => {
+    const response = await requestFromApp('/health', undefined, {
+      BRAND_NAME: 'UMAXICA',
+      REVISION: { id: 'test-version-id' },
+    });
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('<strong>Status:</strong> OK');
+    expect(body).toContain('test-version-id');
+  });
+
   it('applies security headers to HTML responses', async () => {
     const response = await requestFromApp('/health');
 

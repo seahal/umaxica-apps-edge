@@ -14,15 +14,9 @@ function escapeHtml(value: string): string {
 export function buildHealthPageHtml(
   brandName: string,
   timestampIso: string,
-  revision?: { id: string; tag: string; timestamp: string },
+  revision?: { id?: unknown; tag?: unknown; timestamp?: unknown },
 ): string {
-  const revisionInfo = revision
-    ? `<div class="pt-4 border-t border-gray-200">
-        <p><strong>Revision ID:</strong> ${escapeHtml(revision.id)}</p>
-        <p><strong>Revision Tag:</strong> ${escapeHtml(revision.tag)}</p>
-        <p><strong>Revision Time:</strong> ${escapeHtml(revision.timestamp)}</p>
-      </div>`
-    : '';
+  const revisionValue = formatRevision(revision);
 
   return `<!doctype html>
 <html lang="ja">
@@ -45,6 +39,23 @@ export function buildHealthPageHtml(
     </main>
   </body>
 </html>`;
+}
+
+function formatRevision(revision?: { id?: unknown; tag?: unknown; timestamp?: unknown }): string {
+  if (!revision) {
+    return '';
+  }
+
+  return [revision.id, revision.tag, revision.timestamp]
+    .filter((value): value is string | number | boolean => {
+      if (typeof value === 'string') {
+        return value.length > 0;
+      }
+
+      return typeof value === 'number' || typeof value === 'boolean';
+    })
+    .map((value) => escapeHtml(String(value)))
+    .join(' ');
 }
 
 export function getBrandName(env?: { BRAND_NAME?: string }): string {

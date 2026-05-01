@@ -43,6 +43,46 @@ describe('shared/apex/routes/health.ts', () => {
       expect(body).toContain('Timestamp:');
     });
 
+    it('renders revision as a single field', async () => {
+      const route = createHealthRoute();
+      const res = await route.request(
+        '/health',
+        {},
+        {
+          BRAND_NAME: 'UMAXICA',
+          REVISION: {
+            id: 'df8ea12b-8219-4acd-a00e-b7ddb93568fb',
+            tag: '',
+            timestamp: '2026-04-30T08:04:14.812558Z',
+          },
+        },
+      );
+      const body = await res.text();
+
+      expect(res.status).toBe(200);
+      expect(body).toContain('<strong>Revision:</strong>');
+      expect(body).toContain('df8ea12b-8219-4acd-a00e-b7ddb93568fb');
+      expect(body).toContain('2026-04-30T08:04:14.812558Z');
+      expect(body).not.toContain('Revision ID');
+      expect(body).not.toContain('Revision Tag');
+      expect(body).not.toContain('Revision Time');
+    });
+
+    it('tolerates incomplete revision metadata', async () => {
+      const route = createHealthRoute();
+      const res = await route.request('/health', {}, {
+        BRAND_NAME: 'UMAXICA',
+        REVISION: {
+          id: 'df8ea12b-8219-4acd-a00e-b7ddb93568fb',
+        },
+      } as unknown as { BRAND_NAME: string });
+      const body = await res.text();
+
+      expect(res.status).toBe(200);
+      expect(body).toContain('<strong>Status:</strong> OK');
+      expect(body).toContain('df8ea12b-8219-4acd-a00e-b7ddb93568fb');
+    });
+
     it('ignores RAILS_API_URL and does not call external services', async () => {
       const fetchMock = vi.fn<typeof fetch>();
       vi.stubGlobal('fetch', fetchMock);
