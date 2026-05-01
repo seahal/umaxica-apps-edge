@@ -16,11 +16,12 @@ export function buildHealthPageHtml(
   timestampIso: string,
   revision?: { id: string; tag: string; timestamp: string },
 ): string {
-  const revisionValue = revision
-    ? [revision.id, revision.tag, revision.timestamp]
-        .filter((value) => value.length > 0)
-        .map(escapeHtml)
-        .join(' ')
+  const revisionInfo = revision
+    ? `<div class="pt-4 border-t border-gray-200">
+        <p><strong>Revision ID:</strong> ${escapeHtml(revision.id)}</p>
+        <p><strong>Revision Tag:</strong> ${escapeHtml(revision.tag)}</p>
+        <p><strong>Revision Time:</strong> ${escapeHtml(revision.timestamp)}</p>
+      </div>`
     : '';
 
   return `<!doctype html>
