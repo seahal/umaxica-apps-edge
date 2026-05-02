@@ -15,7 +15,7 @@ catalog:
   '@cloudflare/vite-plugin': ^1.33.2
   '@cloudflare/workers-types': ^4.20260424.1
   '@hono/structured-logger': ^0.1.0
-  '@opennextjs/cloudflare': ^1.19.3
+  '@opennextjs/cloudflare': ^1.19.4
   '@tailwindcss/postcss': ^4.2.2
   '@tailwindcss/vite': ^4.2.4
   '@types/node': ^20.19.39
