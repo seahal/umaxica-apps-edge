@@ -70,12 +70,16 @@ describe('shared/apex/routes/health.ts', () => {
 
     it('tolerates incomplete revision metadata', async () => {
       const route = createHealthRoute();
-      const res = await route.request('/health', {}, {
-        BRAND_NAME: 'UMAXICA',
-        REVISION: {
-          id: 'df8ea12b-8219-4acd-a00e-b7ddb93568fb',
+      const res = await route.request(
+        '/health',
+        {},
+        {
+          BRAND_NAME: 'UMAXICA',
+          REVISION: {
+            id: 'df8ea12b-8219-4acd-a00e-b7ddb93568fb',
+          },
         },
-      } as unknown as { BRAND_NAME: string });
+      );
       const body = await res.text();
 
       expect(res.status).toBe(200);
