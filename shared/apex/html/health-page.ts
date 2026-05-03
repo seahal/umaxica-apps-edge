@@ -1,4 +1,5 @@
 import { DEFAULT_BRAND_NAME } from '../brand';
+import type { HealthRevision } from '../bindings';
 
 const HEALTH_ROBOTS_HEADER = 'noindex, nofollow';
 
@@ -14,7 +15,7 @@ function escapeHtml(value: string): string {
 export function buildHealthPageHtml(
   brandName: string,
   timestampIso: string,
-  revision?: { id?: unknown; tag?: unknown; timestamp?: unknown },
+  revision?: HealthRevision,
 ): string {
   const revisionValue = formatRevision(revision);
 
@@ -41,18 +42,14 @@ export function buildHealthPageHtml(
 </html>`;
 }
 
-function formatRevision(revision?: { id?: unknown; tag?: unknown; timestamp?: unknown }): string {
+function formatRevision(revision?: HealthRevision): string {
   if (!revision) {
     return '';
   }
 
   return [revision.id, revision.tag, revision.timestamp]
-    .filter((value): value is string | number | boolean => {
-      if (typeof value === 'string') {
-        return value.length > 0;
-      }
-
-      return typeof value === 'number' || typeof value === 'boolean';
+    .filter((value): value is string => {
+      return typeof value === 'string' && value.length > 0;
     })
     .map((value) => escapeHtml(String(value)))
     .join(' ');
