@@ -16,7 +16,7 @@
   "dependencies": {
     "@hono/node-server": "^2.0.0",
     "hono": "catalog:",
-    "jose": "^6.2.2",
+    "jose": "^6.2.3",
     "tailwindcss": "catalog:"
   },
   "devDependencies": {
