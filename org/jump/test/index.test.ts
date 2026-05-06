@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import app from '../src/index.tsx';
+import app from '../src/index';
 
 describe('org/jump', () => {
   it('returns OK on root', async () => {
