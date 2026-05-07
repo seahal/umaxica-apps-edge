@@ -15,19 +15,19 @@ catalog:
   '@cloudflare/vite-plugin': ^1.35.0
   '@cloudflare/workers-types': ^4.20260430.1
   '@hono/structured-logger': ^0.1.0
-  '@opennextjs/cloudflare': ^1.19.3
+  '@opennextjs/cloudflare': ^1.19.5
   '@tailwindcss/postcss': ^4.2.2
   '@tailwindcss/vite': ^4.2.4
-  '@types/node': ^20.19.39
+  '@types/node': ^25.6.0
   '@types/react': ^19.2.14
   '@types/react-dom': ^19.2.3
   hono: ^4.12.16
-  next: 16.2.2
+  next: 16.2.6
   nuqs: ^2.8.9
-  react: 19.1.5
-  react-dom: 19.1.5
+  react: 19.2.5
+  react-dom: 19.2.5
   tailwindcss: ^4.2.4
-  typescript: ^5.9.3
+  typescript: ^6.0.3
   vite: npm:@voidzero-dev/vite-plus-core@^0.1.19
   vite-plus: ^0.1.20
   vitest: npm:@voidzero-dev/vite-plus-test@^0.1.20
@@ -43,7 +43,15 @@ ignoredBuiltDependencies:
 minimumReleaseAge: 10080
 
 minimumReleaseAgeExclude:
-  - '@hono/structured-logger'
+  - '@next/env'
+  - '@next/swc-darwin-arm64'
+  - '@next/swc-darwin-x64'
+  - '@next/swc-linux-arm64-gnu'
+  - '@next/swc-linux-arm64-musl'
+  - '@next/swc-linux-x64-gnu'
+  - '@next/swc-linux-x64-musl'
+  - '@next/swc-win32-arm64-msvc'
+  - '@next/swc-win32-x64-msvc'
   - next
 
 peerDependencyRules:
