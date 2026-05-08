@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { cacheLife } from 'next/cache';
 import { defaultLocale, isLocale } from './config';
 
 const dictionaries = {
@@ -8,9 +7,6 @@ const dictionaries = {
 };
 
 export const getDictionary = async (locale: string = defaultLocale) => {
-  'use cache';
-  cacheLife('max');
-
   if (!isLocale(locale)) {
     notFound();
   }
