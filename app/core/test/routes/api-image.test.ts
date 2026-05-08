@@ -10,12 +10,20 @@ vi.mock('@opennextjs/cloudflare', () => ({
 
 describe('app/core /api/image GET', () => {
   const fetchMock = vi.fn<typeof fetch>();
+  let originalAllowedImageHosts: string | undefined;
 
   beforeEach(() => {
+    originalAllowedImageHosts = process.env.ALLOWED_IMAGE_HOSTS;
+    process.env.ALLOWED_IMAGE_HOSTS = 'images.unsplash.com';
     vi.stubGlobal('fetch', fetchMock);
   });
   afterEach(() => {
     fetchMock.mockReset();
+    if (originalAllowedImageHosts === undefined) {
+      delete process.env.ALLOWED_IMAGE_HOSTS;
+    } else {
+      process.env.ALLOWED_IMAGE_HOSTS = originalAllowedImageHosts;
+    }
     vi.unstubAllGlobals();
   });
 
