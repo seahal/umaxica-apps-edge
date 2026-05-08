@@ -2,6 +2,7 @@ import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
   resolve: {
+    tsconfigPaths: true,
     alias: {
       '@microlabs/otel-cf-workers': new URL(
         'app/apex/__mocks__/@microlabs/otel-cf-workers.ts',

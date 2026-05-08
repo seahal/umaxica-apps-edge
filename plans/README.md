@@ -10,8 +10,9 @@ This directory contains pending implementation plans.
 
 ## Active Plans
 
-| Plan | Issue | Title |
-| ---- | ----- | ----- |
+| Plan                                      | Issue | Title                                              |
+| ----------------------------------------- | ----- | -------------------------------------------------- |
+| [004](./004-get-route-status-coverage.md) | TBD   | Happy-path status code coverage for all GET routes |
 
 ## Completed Plans (moved to /adr)
 
