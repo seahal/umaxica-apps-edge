@@ -8,7 +8,7 @@ export default defineConfig({
     },
   },
   staged: {
-    '*': 'vp check --fix',
+    '*': 'vp test && vp check',
   },
   fmt: {
     printWidth: 100,
