@@ -2,12 +2,12 @@
   "name": "umaxica-apps-edge-app-jump",
   "type": "module",
   "scripts": {
-    "server": "wrangler dev",
-    "build": "pnpm run type",
-    "deploy": "pnpm run build && wrangler deploy",
-    "deploy:upload": "pnpm run build && wrangler versions upload",
-    "deploy:promote": "wrangler versions deploy --yes",
-    "cf-typegen": "pnpm wrangler types --env-interface CloudflareBindings",
+    "server": "vp exec wrangler dev",
+    "build": "vp run type",
+    "deploy": "vp run build && vp exec wrangler deploy",
+    "deploy:upload": "vp run build && vp exec wrangler versions upload",
+    "deploy:promote": "vp exec wrangler versions deploy --yes",
+    "cf-typegen": "vp exec wrangler types --env-interface CloudflareBindings",
     "type": "vp exec tsc --noEmit"
   },
   "dependencies": {

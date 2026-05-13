@@ -2,8 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "umaxica-apps-edge-app-jump",
   "keep_vars": true,
-  "compatibility_date": "2026-03-17",
-  "compatibility_flags": ["nodejs_als", "nodejs_compat"],
+  "compatibility_date": "2026-05-13",
+  "compatibility_flags": ["nodejs_compat"],
   "version_metadata": {
     "binding": "REVISION"
   },
@@ -15,12 +15,18 @@
       "vars": {
         "CLOUDFLARE_ENV": "development",
         "NODE_ENV": "development"
+      },
+      "version_metadata": {
+        "binding": "REVISION"
       }
     },
     "production": {
       "vars": {
         "CLOUDFLARE_ENV": "production",
         "NODE_ENV": "production"
+      },
+      "version_metadata": {
+        "binding": "REVISION"
       }
     }
   }

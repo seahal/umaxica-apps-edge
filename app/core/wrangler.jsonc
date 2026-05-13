@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "umaxica-apps-edge-app-core",
   "main": ".open-next/worker.js",
-  "compatibility_date": "2026-03-17",
+  "compatibility_date": "2026-05-13",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "version_metadata": {
     "binding": "REVISION"
@@ -36,7 +36,9 @@
     }
   },
   "upload_source_maps": false,
-  "placement": { "mode": "smart" },
+  "placement": {
+    "mode": "smart"
+  },
   "env": {
     "development": {
       "vars": {
@@ -44,7 +46,26 @@
         "NODE_ENV": "development",
         "BRAND_NAME": "UMAXICA",
         "NEXT_PUBLIC_SENTRY_DSN": ""
-      }
+      },
+      "version_metadata": {
+        "binding": "REVISION"
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "umaxica-apps-edge-app-core"
+        }
+      ],
+      "ratelimits": [
+        {
+          "name": "RATE_LIMITER",
+          "namespace_id": "1001",
+          "simple": {
+            "limit": 2000,
+            "period": 60
+          }
+        }
+      ]
     },
     "production": {
       "vars": {
@@ -52,13 +73,28 @@
         "NODE_ENV": "production",
         "BRAND_NAME": "UMAXICA",
         "NEXT_PUBLIC_SENTRY_DSN": ""
-      }
+      },
+      "version_metadata": {
+        "binding": "REVISION"
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "umaxica-apps-edge-app-core"
+        }
+      ],
+      "ratelimits": [
+        {
+          "name": "RATE_LIMITER",
+          "namespace_id": "1001",
+          "simple": {
+            "limit": 2000,
+            "period": 60
+          }
+        }
+      ]
     }
   },
-  /**
-   * Rate Limiting
-   * https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
-   */
   "ratelimits": [
     {
       "name": "RATE_LIMITER",

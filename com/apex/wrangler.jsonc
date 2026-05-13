@@ -2,8 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "umaxica-apps-edge-com-apex",
   "keep_vars": true,
-  "compatibility_date": "2026-03-17",
-  "compatibility_flags": ["nodejs_als", "nodejs_compat"],
+  "compatibility_date": "2026-05-13",
+  "compatibility_flags": ["nodejs_compat"],
   "version_metadata": {
     "binding": "REVISION"
   },
@@ -32,7 +32,9 @@
       "head_sampling_rate": 0.2
     }
   },
-  "placement": { "mode": "smart" },
+  "placement": {
+    "mode": "smart"
+  },
   "env": {
     "development": {
       "vars": {
@@ -55,7 +57,20 @@
           "persist": true,
           "head_sampling_rate": 0.2
         }
-      }
+      },
+      "version_metadata": {
+        "binding": "REVISION"
+      },
+      "ratelimits": [
+        {
+          "name": "RATE_LIMITER",
+          "namespace_id": "1002",
+          "simple": {
+            "limit": 2000,
+            "period": 60
+          }
+        }
+      ]
     },
     "production": {
       "vars": {
@@ -78,13 +93,22 @@
           "persist": true,
           "head_sampling_rate": 0.2
         }
-      }
+      },
+      "version_metadata": {
+        "binding": "REVISION"
+      },
+      "ratelimits": [
+        {
+          "name": "RATE_LIMITER",
+          "namespace_id": "1002",
+          "simple": {
+            "limit": 2000,
+            "period": 60
+          }
+        }
+      ]
     }
   },
-  /**
-   * Rate Limiting
-   * https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
-   */
   "ratelimits": [
     {
       "name": "RATE_LIMITER",
