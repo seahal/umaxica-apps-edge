@@ -1,22 +1,22 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "umaxica-apps-edge-app-apex",
-  "keep_vars": true,
+  "name": "umaxica-apps-edge-com-news",
+  "main": ".open-next/worker.js",
   "compatibility_date": "2026-05-13",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "version_metadata": {
     "binding": "REVISION"
   },
-  "main": "./src/index.tsx",
-  "workers_dev": false,
-  "preview_urls": true,
-  "upload_source_maps": false,
   "assets": {
     "binding": "ASSETS",
-    "directory": "./public",
-    "not_found_handling": "404-page",
-    "run_worker_first": true
+    "directory": ".open-next/assets"
   },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "umaxica-apps-edge-com-news"
+    }
+  ],
   "observability": {
     "enabled": false,
     "head_sampling_rate": 1,
@@ -32,6 +32,7 @@
       "head_sampling_rate": 0.2
     }
   },
+  "upload_source_maps": false,
   "placement": {
     "mode": "smart"
   },
@@ -40,16 +41,21 @@
       "vars": {
         "CLOUDFLARE_ENV": "development",
         "NODE_ENV": "development",
-        "BRAND_NAME": "UMAXICA",
-        "RAILS_API_URL": "http://localhost:3000"
+        "BRAND_NAME": "UMAXICA COM"
       },
       "version_metadata": {
         "binding": "REVISION"
       },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "umaxica-apps-edge-com-news"
+        }
+      ],
       "ratelimits": [
         {
           "name": "RATE_LIMITER",
-          "namespace_id": "1001",
+          "namespace_id": "1002",
           "simple": {
             "limit": 2000,
             "period": 60
@@ -61,16 +67,21 @@
       "vars": {
         "CLOUDFLARE_ENV": "production",
         "NODE_ENV": "production",
-        "BRAND_NAME": "UMAXICA",
-        "RAILS_API_URL": "https://api.umaxica.com"
+        "BRAND_NAME": "UMAXICA COM"
       },
       "version_metadata": {
         "binding": "REVISION"
       },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "umaxica-apps-edge-com-news"
+        }
+      ],
       "ratelimits": [
         {
           "name": "RATE_LIMITER",
-          "namespace_id": "1001",
+          "namespace_id": "1002",
           "simple": {
             "limit": 2000,
             "period": 60
@@ -82,7 +93,7 @@
   "ratelimits": [
     {
       "name": "RATE_LIMITER",
-      "namespace_id": "1001",
+      "namespace_id": "1002",
       "simple": {
         "limit": 2000,
         "period": 60

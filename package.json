@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "cf-typegen": "vp exec wrangler types --env-interface CloudflareBindings",
     "build:apex:check": "XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-/tmp} vp run --filter ./app/apex --filter ./com/apex --filter ./net/apex --filter ./org/apex build",
-    "deploy": "pnpm --dir app/core run deploy",
-    "deploy:upload": "pnpm --dir app/core run deploy:upload",
-    "deploy:promote": "pnpm --dir app/core run deploy:promote",
-    "type": "pnpm -r --if-present run type",
-    "typecheck": "pnpm run type",
+    "deploy": "vp run --filter ./app/core deploy",
+    "deploy:upload": "vp run --filter ./app/core deploy:upload",
+    "deploy:promote": "vp run --filter ./app/core deploy:promote",
+    "type": "vp run --recursive --if-present type",
+    "typecheck": "vp run type",
     "prepare": "vp config"
   },
   "dependencies": {

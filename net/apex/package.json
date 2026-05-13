@@ -4,12 +4,12 @@
   "scripts": {
     "server": "vp dev",
     "build": "vp build && sh -c 'mkdir -p dist/client/src && cp dist/client/assets/style-*.css dist/client/src/style.css'",
-    "preview": "$npm_execpath run build && vp preview",
-    "deploy": "$npm_execpath run build && wrangler deploy",
-    "deploy:upload": "$npm_execpath run build && wrangler versions upload",
-    "deploy:promote": "wrangler versions deploy --yes",
-    "cf-typegen": "pnpm wrangler types --env-interface CloudflareBindings",
-    "type": "pnpm run cf-typegen && vp exec tsc --noEmit"
+    "preview": "vp run build && vp preview",
+    "deploy": "vp run build && vp exec wrangler deploy",
+    "deploy:upload": "vp run build && vp exec wrangler versions upload",
+    "deploy:promote": "vp exec wrangler versions deploy --yes",
+    "cf-typegen": "vp exec wrangler types --env-interface CloudflareBindings",
+    "type": "vp run cf-typegen && vp exec tsc --noEmit"
   },
   "dependencies": {
     "@hono/structured-logger": "catalog:",
