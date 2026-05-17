@@ -21,8 +21,6 @@ export function applySecurityHeaders(c: Context): void {
 export function securityHeadersMiddleware(): MiddlewareHandler {
   return async (c, next) => {
     await next();
-    if (c.res.status !== 400 && c.res.status !== 404) {
-      applySecurityHeaders(c);
-    }
+    applySecurityHeaders(c);
   };
 }

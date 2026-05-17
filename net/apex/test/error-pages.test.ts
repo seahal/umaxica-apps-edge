@@ -40,10 +40,10 @@ describe('404 error page', () => {
     expect(body).toContain("The page you were looking for doesn't exist");
   });
 
-  it('does not include CSP header', async () => {
+  it('includes CSP header', async () => {
     const res = await app.request('/nonexistent-path', {}, env);
 
-    expect(res.headers.get('content-security-policy')).toBeNull();
+    expect(res.headers.get('content-security-policy')).toContain("default-src 'self'");
   });
 });
 
@@ -56,9 +56,7 @@ describe('400 error page', () => {
 
   errorApp.use('*', async (c, next) => {
     await next();
-    if (c.res.status !== 400 && c.res.status !== 404) {
-      c.header('Content-Security-Policy', "default-src 'self'");
-    }
+    c.header('Content-Security-Policy', "default-src 'self'");
   });
 
   errorApp.get('/error', () => {
@@ -79,9 +77,9 @@ describe('400 error page', () => {
     expect(body).toContain('400 Bad Request');
   });
 
-  it('does not include CSP header', async () => {
+  it('includes CSP header', async () => {
     const res = await errorApp.request('/error', {}, env);
 
-    expect(res.headers.get('content-security-policy')).toBeNull();
+    expect(res.headers.get('content-security-policy')).toContain("default-src 'self'");
   });
 });

@@ -3,7 +3,9 @@ import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import {
   DEFAULT_ALLOWED_IMAGE_HOSTS,
+  isAllowedImageSourceSize,
   isAllowedImageFetchTarget,
+  parseImageTransformOptions,
   validateImageUrl,
 } from '../../../../../../shared/cloudflare/image';
 
@@ -22,6 +24,10 @@ export async function GET(request: NextRequest) {
   }
 
   const allowedHosts = process.env.ALLOWED_IMAGE_HOSTS ?? DEFAULT_ALLOWED_IMAGE_HOSTS;
+  const options = parseImageTransformOptions(width, quality);
+  if (!options) {
+    return new NextResponse('Invalid image transform parameter', { status: 400 });
+  }
 
   const validatedUrl = validateImageUrl(url, request.url, allowedHosts);
   if (!validatedUrl) {
@@ -40,6 +46,9 @@ export async function GET(request: NextRequest) {
   if (!sourceImage.body) {
     return new NextResponse('Source image body is empty', { status: 500 });
   }
+  if (!isAllowedImageSourceSize(sourceImage.headers.get('content-length'))) {
+    return new NextResponse('Source image is too large', { status: 413 });
+  }
 
   const { env } = getCloudflareContext() as { env: CloudflareEnv };
 
@@ -55,14 +64,6 @@ export async function GET(request: NextRequest) {
     // Transform using Cloudflare Images binding
     // oxlint-disable-next-line typescript-eslint/no-explicit-any
     const image = (env.IMAGES as any).input(sourceImage.body);
-
-    const options: { width?: number; quality?: number } = {};
-    if (width) {
-      options.width = parseInt(width, 10);
-    }
-    if (quality) {
-      options.quality = parseInt(quality, 10);
-    }
 
     image.transform(options);
 

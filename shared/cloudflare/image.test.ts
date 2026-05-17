@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { DEFAULT_ALLOWED_IMAGE_HOSTS, validateImageUrl } from './image';
+import {
+  DEFAULT_ALLOWED_IMAGE_HOSTS,
+  MAX_IMAGE_SOURCE_BYTES,
+  isAllowedImageSourceSize,
+  parseImageTransformOptions,
+  validateImageUrl,
+} from './image';
 
 describe('shared/cloudflare/image', () => {
   it('resolves relative urls against the request url', () => {
@@ -45,5 +51,28 @@ describe('shared/cloudflare/image', () => {
     expect(
       validateImageUrl('https://user:pass@example.com/logo.png', 'https://example.com/app'),
     ).toBeNull();
+  });
+
+  it('parses bounded image transform options', () => {
+    expect(parseImageTransformOptions('1200', '85')).toEqual({ width: 1200, quality: 85 });
+    expect(parseImageTransformOptions(null, null)).toEqual({});
+  });
+
+  it('rejects invalid image transform options', () => {
+    expect(parseImageTransformOptions('0', '85')).toBeNull();
+    expect(parseImageTransformOptions('4097', '85')).toBeNull();
+    expect(parseImageTransformOptions('1200.5', '85')).toBeNull();
+    expect(parseImageTransformOptions('1200', '0')).toBeNull();
+    expect(parseImageTransformOptions('1200', '101')).toBeNull();
+  });
+
+  it('allows image source sizes at or below the maximum', () => {
+    expect(isAllowedImageSourceSize(null)).toBe(true);
+    expect(isAllowedImageSourceSize(String(MAX_IMAGE_SOURCE_BYTES))).toBe(true);
+  });
+
+  it('rejects image source sizes above the maximum or malformed values', () => {
+    expect(isAllowedImageSourceSize(String(MAX_IMAGE_SOURCE_BYTES + 1))).toBe(false);
+    expect(isAllowedImageSourceSize('10.5')).toBe(false);
   });
 });

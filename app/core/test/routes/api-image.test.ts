@@ -42,4 +42,33 @@ describe('app/core /api/image GET', () => {
 
     expect(response.status).toBe(200);
   });
+
+  it('rejects invalid transform parameters before fetching the source image', async () => {
+    const request = new NextRequest(
+      'https://app.umaxica.app/api/image?url=https%3A%2F%2Fimages.unsplash.com%2Fa.png&w=5000&q=80',
+    );
+    const response = await GET(request);
+
+    expect(response.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects oversized source images', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+        status: 200,
+        headers: {
+          'content-length': String(10 * 1024 * 1024 + 1),
+          'content-type': 'image/png',
+        },
+      }),
+    );
+
+    const request = new NextRequest(
+      'https://app.umaxica.app/api/image?url=https%3A%2F%2Fimages.unsplash.com%2Fa.png&w=100&q=80',
+    );
+    const response = await GET(request);
+
+    expect(response.status).toBe(413);
+  });
 });
