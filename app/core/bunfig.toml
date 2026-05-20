@@ -1,0 +1,26 @@
+# Bun test configuration
+# この部分はテスト設定の責務: Bunテストランナーの基本設定を定義
+# テストではこう確認する: 設定が正しく読み込まれ、DOM環境とsetupFilesが適切に機能するかをテスト
+
+[test]
+# DOM環境の設定（React コンポーネントのテストに必要）
+environment = "happy-dom"
+
+# テスト実行前のセットアップファイル
+setupFiles = ["./test-setup.ts"]
+
+# テストファイルのパターン
+include = [
+  "test/**/*.{ts,tsx,js,jsx}",
+  "src/**/*.test.{ts,tsx,js,jsx}",
+  "src/**/__tests__/**/*.{ts,tsx,js,jsx}",
+]
+
+# 除外するファイルパターン  
+exclude = ["**/node_modules/**", "**/dist/**", "**/build/**", "**/workers/**"]
+
+# テストタイムアウト（ミリ秒）
+timeout = 10000
+
+#並行実行を無効にして安定性を向上
+concurrency = 1

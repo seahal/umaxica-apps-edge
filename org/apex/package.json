@@ -3,32 +3,6 @@
   "type": "module",
   "scripts": {
     "server": "vp dev",
-<<<<<<< HEAD
-    "build": "vp build && sh -c 'mkdir -p dist/client/src && cp dist/client/assets/style-*.css dist/client/src/style.css'",
-    "preview": "vp run build && vp preview",
-    "deploy": "vp run build && vp exec wrangler deploy",
-    "deploy:upload": "vp run build && vp exec wrangler versions upload",
-    "deploy:promote": "vp exec wrangler versions deploy --yes",
-    "cf-typegen": "vp exec wrangler types --env-interface CloudflareBindings",
-    "type": "vp run cf-typegen && vp exec tsc --noEmit"
-  },
-  "dependencies": {
-    "@hono/structured-logger": "catalog:",
-    "hono": "catalog:"
-  },
-  "devDependencies": {
-    "@cloudflare/vite-plugin": "catalog:",
-    "@cloudflare/workers-types": "catalog:",
-    "@tailwindcss/vite": "catalog:",
-    "@types/react": "catalog:",
-    "autoprefixer": "^10.5.0",
-    "postcss": "^8.5.10",
-    "tailwindcss": "catalog:",
-    "vite": "catalog:",
-    "vite-plus": "catalog:",
-    "vite-ssr-components": "^0.5.2",
-    "wrangler": "catalog:"
-=======
     "build": "vp build --ssr src/index.tsx && rm -rf dist/client && mkdir -p dist/client && cp -a public/. dist/client/",
     "preview": "$npm_execpath run build && vp preview",
     "deploy": "$npm_execpath run build && wrangler deploy",
@@ -51,6 +25,5 @@
     "vite-plus": "catalog:",
     "vite-ssr-components": "^0.5.2",
     "wrangler": "^4.71.0"
->>>>>>> f779cd0 ([update] began to use Vite+.)
   }
 }

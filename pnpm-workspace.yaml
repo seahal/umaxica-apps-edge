@@ -1,90 +1,23 @@
 packages:
   - app/apex
-  - app/jump
   - app/core
-  - app/docs
-  - app/help
-  - app/news
   - com/apex
-  - com/jump
   - com/core
-  - com/docs
-  - com/help
-  - com/news
   - org/apex
-  - org/jump
   - org/core
-  - org/docs
-  - org/help
-  - org/news
   - dev/core
   - net/apex
 
 catalog:
-<<<<<<< HEAD
-  '@cloudflare/vite-plugin': ^1.37.1
-  '@cloudflare/workers-types': ^4.20260516.1
-  '@hono/structured-logger': ^0.1.0
-  '@opennextjs/cloudflare': ^1.19.9
-  '@tailwindcss/postcss': ^4.2.2
-  '@tailwindcss/vite': ^4.3.0
-  '@types/node': ^25.6.2
-  '@types/react': ^19.2.14
-  '@types/react-dom': ^19.2.3
-  hono: ^4.12.19
-  next: 16.2.6
-  nuqs: ^2.8.9
-  react: 19.2.6
-  react-dom: 19.2.6
-  tailwindcss: ^4.3.0
-  typescript: ^6.0.3
-  vite: npm:@voidzero-dev/vite-plus-core@^0.1.19
-  vite-plus: ^0.1.20
-  vitest: npm:@voidzero-dev/vite-plus-test@^0.1.20
-  wrangler: ^4.92.0
-=======
   vite: npm:@voidzero-dev/vite-plus-core@latest
   vite-plus: ^0.1.11
   vitest: npm:@voidzero-dev/vite-plus-test@^0.1.11
->>>>>>> f779cd0 ([update] began to use Vite+.)
 
 ignoredBuiltDependencies:
-  - '@sentry/cli'
   - esbuild
   - sharp
-  - unrs-resolver
   - workerd
 
-<<<<<<< HEAD
-minimumReleaseAge: 10080
-
-minimumReleaseAgeExclude:
-  - '@next/env'
-  - '@next/swc-darwin-arm64'
-  - '@next/swc-darwin-x64'
-  - '@next/swc-linux-arm64-gnu'
-  - '@next/swc-linux-arm64-musl'
-  - '@next/swc-linux-x64-gnu'
-  - '@next/swc-linux-x64-musl'
-  - '@next/swc-win32-arm64-msvc'
-  - '@next/swc-win32-x64-msvc'
-  - '@cloudflare/vite-plugin'
-  - '@cloudflare/workerd-darwin-64'
-  - '@cloudflare/workerd-darwin-arm64'
-  - '@cloudflare/workerd-linux-64'
-  - '@cloudflare/workerd-linux-arm64'
-  - '@cloudflare/workerd-windows-64'
-  - '@cloudflare/workers-types'
-  - '@opennextjs/aws'
-  - '@opennextjs/cloudflare'
-  - hono
-  - miniflare
-  - next
-  - react
-  - react-dom
-  - workerd
-  - wrangler
-=======
 minimumReleaseAge: 4320
 
 minimumReleaseAgeExclude:
@@ -96,11 +29,11 @@ minimumReleaseAgeExclude:
   - '@oxlint-tsgolint/*'
   - oxfmt
   - '@oxfmt/*'
+  - '@cloudflare/workers-types'
 
 overrides:
   vite: 'catalog:'
   vitest: 'catalog:'
->>>>>>> f779cd0 ([update] began to use Vite+.)
 
 peerDependencyRules:
   allowAny:

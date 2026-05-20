@@ -3,7 +3,6 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "preserveSymlinks": true,
     "strict": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
@@ -11,11 +10,10 @@
     "exactOptionalPropertyTypes": true,
     "skipLibCheck": true,
     "lib": ["ESNext", "DOM"],
-    "types": ["node"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "esModuleInterop": true,
     "noEmit": true
   },
-  "include": ["src/**/*", "*.d.ts", "vite.config.ts"]
+  "include": ["src/**/*", "*.d.ts"]
 }

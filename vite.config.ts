@@ -1,19 +1,8 @@
 import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
-<<<<<<< HEAD
-  run: {
-    cache: {
-      scripts: true,
-      tasks: true,
-    },
-  },
-  staged: {
-    '*': 'vp test && vp check',
-=======
   staged: {
     '*': 'vp check --fix',
->>>>>>> f779cd0 ([update] began to use Vite+.)
   },
   fmt: {
     printWidth: 100,
@@ -49,31 +38,13 @@ export default defineConfig({
       '**/dist/**',
       '**/node_modules/**',
       '**/build/**',
-<<<<<<< HEAD
-=======
       '**/.react-router/**',
->>>>>>> f779cd0 ([update] began to use Vite+.)
       '**/+types/**',
       'pnpm-lock.yaml',
     ],
   },
   lint: {
-<<<<<<< HEAD
-    plugins: [
-      'eslint',
-      'typescript',
-      'unicorn',
-      'oxc',
-      'react',
-      'import',
-      'jsx-a11y',
-      'promise',
-      'react-perf',
-      'vitest',
-    ],
-=======
     plugins: ['typescript', 'react', 'import', 'jsx-a11y'],
->>>>>>> f779cd0 ([update] began to use Vite+.)
     env: {
       browser: true,
       es2024: true,
@@ -83,85 +54,30 @@ export default defineConfig({
       react: {
         version: '19',
       },
-<<<<<<< HEAD
-      vitest: {
-        typecheck: true,
-      },
-    },
-    rules: {
-      'no-unused-vars': 'error',
-      'no-console': 'error',
-=======
     },
     rules: {
       'no-unused-vars': 'error',
       'no-console': 'warn',
->>>>>>> f779cd0 ([update] began to use Vite+.)
       'no-var': 'error',
       'prefer-const': 'error',
       eqeqeq: 'error',
       'no-eval': 'error',
       'no-implied-eval': 'error',
-<<<<<<< HEAD
-      'no-debugger': 'error',
-      'no-alert': 'error',
-      'no-empty': 'error',
-      'react/react-in-jsx-scope': 'off',
-      'react/no-danger': 'error',
-      'typescript/no-explicit-any': 'error',
-      'typescript/no-non-null-assertion': 'error',
-      'typescript/consistent-type-imports': 'error',
-      'typescript/no-misused-promises': 'error',
-      'import/no-cycle': 'error',
-      'import/no-unassigned-import': 'off',
-      'promise/catch-or-return': 'error',
-      'react-perf/jsx-no-new-function-as-prop': 'warn',
-      'react-perf/jsx-no-new-object-as-prop': 'warn',
-      'vitest/no-conditional-tests': 'error',
-      'vitest/warn-todo': 'warn',
-    },
-    overrides: [
-      {
-        files: ['**/*.test.*', '**/*.spec.*', '**/test/**'],
-        rules: {
-          'no-console': 'off',
-        },
-      },
-    ],
-=======
       'react/no-danger': 'warn',
       'typescript/no-explicit-any': 'error',
       'typescript/no-non-null-assertion': 'warn',
       'typescript/consistent-type-imports': 'error',
     },
->>>>>>> f779cd0 ([update] began to use Vite+.)
     ignorePatterns: [
       '**/.wrangler/**',
       '**/dist/**',
       '**/node_modules/**',
       'worker-configuration.d.ts',
       '**/+types/**',
-<<<<<<< HEAD
-      '**/build/**',
-      'app/news/**',
-      'app/docs/**',
-      'app/help/**',
-      'com/news/**',
-      'com/docs/**',
-      'com/help/**',
-      'org/news/**',
-      'org/docs/**',
-      'org/help/**',
-      'dev/core/**',
-    ],
-    options: {
-      reportUnusedDisableDirectives: 'warn',
-=======
       '**/.react-router/**',
       '**/build/**',
     ],
     options: {
->>>>>>> f779cd0 ([update] began to use Vite+.)
       typeAware: true,
       typeCheck: true,
     },

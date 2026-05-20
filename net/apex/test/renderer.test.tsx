@@ -1,11 +1,9 @@
 /** @jsxImportSource hono/jsx */
 import { Hono } from 'hono';
-import { i18nMiddleware } from '../../../shared/apex/middleware';
 import { renderer } from '../src/renderer';
 
 describe('Renderer layout', () => {
   const app = new Hono();
-  app.use(i18nMiddleware() as unknown as Parameters<typeof app.use>[0]);
   app.use(renderer);
   app.get('/', (c) => c.render(<p>Test content</p>));
 
@@ -25,11 +23,11 @@ describe('Renderer layout', () => {
     expect(body).toContain('UMAXICA');
   });
 
-  it('renders header title with the default brand name', async () => {
-    const res = await app.request('/');
+  it('renders header title from BRAND_NAME env', async () => {
+    const res = await app.request('/', {}, { BRAND_NAME: 'UMAXCA' });
     const body = await res.text();
-    expect(body).toContain('UMAXICA');
-    expect(body).toContain('<title>Umaxica</title>');
+    expect(body).toContain('UMAXCA');
+    expect(body).toContain('<title>UMAXCA</title>');
   });
 
   it('renders children in main element', async () => {
@@ -47,16 +45,8 @@ describe('Renderer layout', () => {
     expect(body).toContain(`© ${currentYear} UMAXICA`);
   });
 
-  it('sets lang attribute to en by default', async () => {
+  it('sets lang attribute to ja', async () => {
     const res = await app.request('/');
-    const body = await res.text();
-    expect(body).toContain('lang="en"');
-  });
-
-  it('sets lang attribute to ja when Accept-Language prefers ja', async () => {
-    const res = await app.request('/', {
-      headers: { 'Accept-Language': 'ja' },
-    });
     const body = await res.text();
     expect(body).toContain('lang="ja"');
   });

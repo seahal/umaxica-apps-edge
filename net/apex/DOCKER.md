@@ -64,7 +64,7 @@ docker compose down
 docker compose --profile build run --rm build
 
 # カスタムコマンドを実行
-docker compose run --rm dev pnpm run <command>
+docker compose run --rm dev bun run <command>
 
 # シェルに入る
 docker compose run --rm dev bash
@@ -150,4 +150,3 @@ docker compose up dev
    ```bash
    docker compose --profile wrangler up wrangler
    ```
-   `

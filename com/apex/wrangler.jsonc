@@ -2,15 +2,12 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "umaxica-apps-edge-com-apex",
   "keep_vars": true,
-  "compatibility_date": "2026-05-13",
-  "compatibility_flags": ["nodejs_compat"],
-  "version_metadata": {
-    "binding": "REVISION"
-  },
+  "compatibility_date": "2026-02-27",
+  "compatibility_flags": ["nodejs_als"],
   "main": "./src/index.tsx",
   "workers_dev": false,
   "preview_urls": true,
-  "upload_source_maps": false,
+  "upload_source_maps": true,
   "assets": {
     "binding": "ASSETS",
     "directory": "./public",
@@ -18,49 +15,46 @@
     "run_worker_first": true
   },
   "observability": {
-    "enabled": false,
+    "enabled": true,
     "head_sampling_rate": 1,
     "logs": {
       "enabled": true,
-      "head_sampling_rate": 0.2,
+      "head_sampling_rate": 1,
       "persist": true,
       "invocation_logs": true
     },
     "traces": {
       "enabled": true,
       "persist": true,
-      "head_sampling_rate": 0.2
+      "head_sampling_rate": 1
     }
-  },
-  "placement": {
-    "mode": "smart"
   },
   "env": {
     "development": {
       "vars": {
-        "CLOUDFLARE_ENV": "development",
-        "NODE_ENV": "development",
-        "BRAND_NAME": "UMAXICA",
-        "RAILS_API_URL": "http://localhost:3000"
+        "BRAND_NAME": "UMAXICA"
       },
       "observability": {
-        "enabled": false,
+        "enabled": true,
         "head_sampling_rate": 1,
         "logs": {
           "enabled": true,
-          "head_sampling_rate": 0.2,
-          "persist": true,
-          "invocation_logs": true
+          "invocation_logs": true,
+          "head_sampling_rate": 1,
+          "persist": true
         },
         "traces": {
           "enabled": true,
-          "persist": true,
-          "head_sampling_rate": 0.2
+          "head_sampling_rate": 1,
+          "persist": true
         }
       },
-      "version_metadata": {
-        "binding": "REVISION"
-      },
+      "kv_namespaces": [
+        {
+          "binding": "BREAKER_KV",
+          "id": "38d85c2cbf3c4578b9fb2bf999affda9"
+        }
+      ],
       "ratelimits": [
         {
           "name": "RATE_LIMITER",
@@ -74,29 +68,29 @@
     },
     "production": {
       "vars": {
-        "CLOUDFLARE_ENV": "production",
-        "NODE_ENV": "production",
-        "BRAND_NAME": "UMAXICA",
-        "RAILS_API_URL": "https://api.umaxica.com"
+        "BRAND_NAME": "UMAXICA"
       },
       "observability": {
-        "enabled": false,
-        "head_sampling_rate": 1,
+        "enabled": true,
+        "head_sampling_rate": 0.2,
         "logs": {
           "enabled": true,
+          "invocation_logs": true,
           "head_sampling_rate": 0.2,
-          "persist": true,
-          "invocation_logs": true
+          "persist": true
         },
         "traces": {
           "enabled": true,
-          "persist": true,
-          "head_sampling_rate": 0.2
+          "head_sampling_rate": 0.05,
+          "persist": true
         }
       },
-      "version_metadata": {
-        "binding": "REVISION"
-      },
+      "kv_namespaces": [
+        {
+          "binding": "BREAKER_KV",
+          "id": "38d85c2cbf3c4578b9fb2bf999affda9"
+        }
+      ],
       "ratelimits": [
         {
           "name": "RATE_LIMITER",
@@ -109,6 +103,17 @@
       ]
     }
   },
+  "placement": { "mode": "smart" },
+  "kv_namespaces": [
+    {
+      "binding": "BREAKER_KV",
+      "id": "38d85c2cbf3c4578b9fb2bf999affda9"
+    }
+  ],
+  /**
+   * Rate Limiting
+   * https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
+   */
   "ratelimits": [
     {
       "name": "RATE_LIMITER",

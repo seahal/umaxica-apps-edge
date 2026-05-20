@@ -1,22 +1,24 @@
 import { jsxRenderer } from 'hono/jsx-renderer';
-import { Link, ViteClient } from 'vite-ssr-components/hono';
+import { ViteClient } from 'vite-ssr-components/hono';
 import { getBrandName } from '../../../shared/apex/brand';
 import { brandFromEnv } from '../../../shared/apex/title';
 import { SeoHead } from '../../../shared/apex/seo';
-
-const DEFAULT_META = { description: 'This domain does not provide services for end users.' };
 
 export const renderer = jsxRenderer(({ children }, c) => {
   const currentYear = new Date().getUTCFullYear();
   const brandName = getBrandName(c.env);
   return (
-    <html lang={c.get('language') ?? 'en'}>
+    <html lang="ja">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <SeoHead c={c} brand={brandFromEnv(c)} defaultMeta={DEFAULT_META} />
+        <SeoHead
+          c={c}
+          brand={brandFromEnv(c)}
+          defaultMeta={{ description: 'This domain does not provide services for end users.' }}
+        />
         <ViteClient />
-        <Link href="/src/style.css" rel="stylesheet" />
+        <link href="/src/style.css" rel="stylesheet" />
       </head>
       <body class="min-h-screen flex flex-col bg-gray-50">
         <header class="bg-white shadow-sm">

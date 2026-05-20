@@ -1,31 +1,17 @@
-<<<<<<< HEAD
-=======
 import type { Context } from 'hono';
->>>>>>> f779cd0 ([update] began to use Vite+.)
 import type { AssetEnv } from './security-headers';
 
+type ApexContext = Context<{ Bindings: AssetEnv }>;
 type FallbackStatus = 400 | 404;
-type FallbackContext = {
-  env?: Pick<AssetEnv, 'ASSETS'>;
-  req: {
-    raw: Request;
-    url: string;
-  };
-  text: (text: string, status: FallbackStatus) => Response;
-};
 
 async function fetchHtmlFallback(
-  c: FallbackContext,
+  c: ApexContext,
   path: string,
   status: FallbackStatus,
   fallbackText: string,
 ) {
   if (!c.env?.ASSETS) {
-<<<<<<< HEAD
-    // oxlint-disable-next-line no-console
-=======
     // eslint-disable-next-line no-console
->>>>>>> f779cd0 ([update] began to use Vite+.)
     console.error(`ASSETS binding is missing for ${status} fallback`, { url: c.req.url });
     return c.text(fallbackText, status);
   }
@@ -38,19 +24,13 @@ async function fetchHtmlFallback(
   });
 }
 
-export function createBadRequestFallback(c: FallbackContext) {
+export function createBadRequestFallback(c: ApexContext) {
   return fetchHtmlFallback(c, '/400.html', 400, 'Bad Request');
 }
 
-<<<<<<< HEAD
-export async function createNotFoundFallback(c: FallbackContext) {
-  if (!c.env?.ASSETS) {
-    // oxlint-disable-next-line no-console
-=======
 export async function createNotFoundFallback(c: ApexContext) {
   if (!c.env?.ASSETS) {
     // eslint-disable-next-line no-console
->>>>>>> f779cd0 ([update] began to use Vite+.)
     console.error('ASSETS binding is missing for 404 fallback', { url: c.req.url });
     return c.text('Not Found', 404);
   }

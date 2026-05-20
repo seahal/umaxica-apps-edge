@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-import { app } from './app';
-
-=======
 import { Hono } from 'hono';
 import { apexCsrf } from '../../../shared/apex/csrf';
 import {
@@ -93,5 +89,4 @@ app.route('/', pageRoutes);
 app.notFound(createNotFoundFallback as unknown as Parameters<typeof app.notFound>[0]);
 
 // Sentry: to re-enable, wrap app with Sentry.withSentry() and export the handler.
->>>>>>> f779cd0 ([update] began to use Vite+.)
 export default app;
