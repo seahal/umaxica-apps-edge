@@ -25,18 +25,6 @@ services:
       - '5201:5201' # net/apex
       - '5301:5301' # org/apex
       - '5401:5401' # app/apex
-      - '5102:5102' # com/core
-      - '5402:5402' # app/core
-      - '5302:5302' # org/core
-      - '5403:5403' # app/docs
-      - '5103:5103' # com/docs
-      - '5303:5303' # org/docs
-      - '5404:5404' # app/help
-      - '5104:5104' # com/help
-      - '5304:5304' # org/help
-      - '5405:5405' # app/news
-      - '5105:5105' # com/news
-      - '5305:5305' # org/news
     command: sleep infinity
     tty: true
     stdin_open: true
@@ -44,18 +32,6 @@ services:
     user: edge:group
     environment:
       - CLOUDFLARE_ENV=development
-      - JIT_APP_CORE_URL=http://app.localhost:5402
-      - JIT_APP_DOCS_URL=http://app.localhost:5403
-      - JIT_APP_HELP_URL=http://app.localhost:5404
-      - JIT_APP_NEWS_URL=http://app.localhost:5405
-      - JIT_COM_CORE_URL=http://com.localhost:5102
-      - JIT_COM_DOCS_URL=http://com.localhost:5103
-      - JIT_COM_HELP_URL=http://com.localhost:5104
-      - JIT_COM_NEWS_URL=http://com.localhost:5105
-      - JIT_ORG_CORE_URL=http://org.localhost:5302
-      - JIT_ORG_DOCS_URL=http://org.localhost:5303
-      - JIT_ORG_HELP_URL=http://org.localhost:5304
-      - JIT_ORG_NEWS_URL=http://org.localhost:5305
       - VITE_GIT_HOOKS=0
       - NODE_OPTIONS=--max-old-space-size=4096
     restart: unless-stopped

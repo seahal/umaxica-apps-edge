@@ -1,11 +1,7 @@
 packages:
   - app/apex
-  - app/core
   - com/apex
-  - com/core
   - org/apex
-  - org/core
-  - dev/core
   - net/apex
 
 catalog:
