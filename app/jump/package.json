@@ -1,0 +1,11 @@
+{
+  "name": "umaxica-apps-edge-app-jump",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vp run --filter umaxica-apps-edge-app-apex build",
+    "deploy": "vp run --filter umaxica-apps-edge-app-apex deploy",
+    "deploy:upload": "vp run --filter umaxica-apps-edge-app-apex deploy:upload",
+    "deploy:promote": "vp run --filter umaxica-apps-edge-app-apex deploy:promote"
+  }
+}

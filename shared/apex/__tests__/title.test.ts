@@ -27,6 +27,14 @@ describe('buildBrandTitle', () => {
     expect(result).toBe('Umaxica - Pricing');
   });
 
+  it('falls back when brandName and separator are blank', () => {
+    const result = buildBrandTitle('Pricing', {
+      brandName: '   ',
+      separator: '   ',
+    });
+    expect(result).toBe('Umaxica | Pricing');
+  });
+
   it('treats whitespace-only pageTitle as empty', () => {
     const result = buildBrandTitle('   ', {
       brandName: 'Umaxica',
@@ -55,6 +63,20 @@ describe('brandFromEnv', () => {
 
   it('falls back to defaults when bindings are missing', () => {
     const brand = brandFromEnv({ env: {} });
+
+    expect(brand).toEqual({
+      brandName: 'Umaxica',
+      separator: ' | ',
+    });
+  });
+
+  it('falls back to default separator when binding is blank', () => {
+    const brand = brandFromEnv({
+      env: {
+        BRAND_NAME: 'Umaxica',
+        BRAND_SEPARATOR: '   ',
+      },
+    });
 
     expect(brand).toEqual({
       brandName: 'Umaxica',

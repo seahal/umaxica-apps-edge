@@ -80,4 +80,49 @@ describe('seo helpers', () => {
     const body = await res.text();
     expect(body).toContain('<title>Umaxica</title>');
   });
+
+  it('Layout uses default metadata and omits blank optional tags', async () => {
+    const app = new Hono();
+
+    app.get('/default-meta', (c) => {
+      const html = renderToString(
+        <Layout
+          c={c}
+          brand={{ brandName: 'Umaxica' }}
+          defaultMeta={{
+            title: '   ',
+            pageTitle: 'Home',
+            description: '   ',
+            canonical: '   ',
+            robots: '   ',
+            og: {
+              title: '   ',
+              description: '   ',
+              type: '   ',
+              url: '   ',
+              image: '   ',
+            },
+            twitter: {
+              card: '   ',
+              site: '   ',
+            },
+          }}
+        >
+          <main>Default metadata page</main>
+        </Layout>,
+      );
+      return c.html(html);
+    });
+
+    const res = await app.request('/default-meta');
+    const body = await res.text();
+
+    expect(body).toContain('<title>Umaxica | Home</title>');
+    expect(body).toContain('<meta name="twitter:card" content="summary_large_image"/>');
+    expect(body).not.toContain('name="description"');
+    expect(body).not.toContain('rel="canonical"');
+    expect(body).not.toContain('name="robots"');
+    expect(body).not.toContain('property="og:');
+    expect(body).not.toContain('name="twitter:site"');
+  });
 });
