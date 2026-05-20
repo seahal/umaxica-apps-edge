@@ -35,4 +35,31 @@ describe('apex CSRF config', () => {
 
     expect(response.status).toBe(403);
   });
+
+  it('allows form POST middleware execution from trusted apex origins', async () => {
+    const next = vi.fn();
+    const headers = {
+      'content-type': 'application/x-www-form-urlencoded',
+      origin: 'https://umaxica.app',
+      'sec-fetch-site': 'cross-site',
+    };
+    function header(): Record<string, string>;
+    function header(name: string): string | undefined;
+    function header(name?: string): string | Record<string, string> | undefined {
+      return name ? headers[name as keyof typeof headers] : headers;
+    }
+
+    await apexCsrf(
+      {
+        req: {
+          method: 'POST',
+          url: 'https://umaxica.app/submit',
+          header,
+        },
+      } as never,
+      next,
+    );
+
+    expect(next).toHaveBeenCalledOnce();
+  });
 });
