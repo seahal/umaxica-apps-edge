@@ -255,8 +255,6 @@ importers:
         specifier: ^4.71.0
         version: 4.72.0
 
-  org/core: {}
-
   org/jump: {}
 
 packages:
