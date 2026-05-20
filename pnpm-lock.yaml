@@ -136,6 +136,8 @@ importers:
         specifier: ^4.71.0
         version: 4.72.0
 
+  app/jump: {}
+
   com/apex:
     dependencies:
       hono:
@@ -172,6 +174,10 @@ importers:
       wrangler:
         specifier: ^4.71.0
         version: 4.72.0
+
+  com/core: {}
+
+  com/jump: {}
 
   net/apex:
     dependencies:
@@ -210,6 +216,8 @@ importers:
         specifier: ^4.71.0
         version: 4.72.0
 
+  net/jump: {}
+
   org/apex:
     dependencies:
       hono:
@@ -246,6 +254,10 @@ importers:
       wrangler:
         specifier: ^4.71.0
         version: 4.72.0
+
+  org/core: {}
+
+  org/jump: {}
 
 packages:
 

@@ -1,8 +1,14 @@
 packages:
   - app/apex
+  - app/jump
   - com/apex
+  - com/core
+  - com/jump
   - org/apex
+  - org/core
+  - org/jump
   - net/apex
+  - net/jump
 
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@latest
