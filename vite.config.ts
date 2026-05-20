@@ -38,7 +38,6 @@ export default defineConfig({
       '**/dist/**',
       '**/node_modules/**',
       '**/build/**',
-      '**/.react-router/**',
       '**/+types/**',
       'pnpm-lock.yaml',
     ],
@@ -74,7 +73,6 @@ export default defineConfig({
       '**/node_modules/**',
       'worker-configuration.d.ts',
       '**/+types/**',
-      '**/.react-router/**',
       '**/build/**',
     ],
     options: {

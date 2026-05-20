@@ -1,36 +1,7 @@
 {
-  "exclude": [
-    "app/apex/**/*",
-    "app/core/**/*",
-    "app/news/**/*",
-    "app/docs/**/*",
-    "app/help/**/*",
-    "com/apex/**/*",
-    "com/core/**/*",
-    "com/news/**/*",
-    "com/docs/**/*",
-    "com/help/**/*",
-    "org/apex/**/*",
-    "org/core/**/*",
-    "org/news/**/*",
-    "org/docs/**/*",
-    "org/help/**/*",
-    "dev/core/**/*",
-    "net/apex/**/*",
-    "shared/**/*"
-  ],
+  "exclude": ["app/apex/**/*", "com/apex/**/*", "org/apex/**/*", "net/apex/**/*", "shared/**/*"],
   "compilerOptions": {
     "target": "ESNext",
-    "paths": {
-      "@app/*": ["./app/core/src/*"],
-      "@app/test/*": ["./app/core/test/*"],
-      "@com/*": ["./com/core/src/*"],
-      "@com/test/*": ["./com/core/test/*"],
-      "@org/*": ["./org/core/src/*"],
-      "@org/test/*": ["./org/core/test/*"],
-      "@dev/*": ["./dev/core/src/*"],
-      "@dev/test/*": ["./dev/core/test/*"]
-    },
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],

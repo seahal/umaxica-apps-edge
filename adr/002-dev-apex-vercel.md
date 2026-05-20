@@ -8,9 +8,9 @@ https://github.com/seahal/umaxica-apps-edge/issues/248
 
 ## Problem
 
-`dev/core` (umaxica.dev) is deployed on Vercel as a Next.js app. There is currently no apex-layer Hono service for the `dev` domain. A lightweight `dev/apex` service is needed to handle:
+`umaxica.dev` is deployed on Vercel. There is currently no apex-layer Hono service for the `dev` domain. A lightweight `dev/apex` service is needed to handle:
 
-- Root redirect (`/`) → `dev/core` (umaxica.dev)
+- Root redirect (`/`) → `umaxica.dev`
 - Health check (`/health`) → proxy and display Rails `/edge/v0/health` JSON
 - About page (`/about`) → domain description
 

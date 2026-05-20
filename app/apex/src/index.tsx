@@ -36,9 +36,7 @@ app.use('*', (c, next) =>
 );
 app.use('*', async (c, next) => {
   await next();
-  if (c.res.status !== 400 && c.res.status !== 404) {
-    applySecurityHeaders(c);
-  }
+  applySecurityHeaders(c);
 });
 app.use(languageDetector({ supportedLanguages: ['en', 'ja'], fallbackLanguage: 'en' }));
 

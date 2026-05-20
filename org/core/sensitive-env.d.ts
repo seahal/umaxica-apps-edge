@@ -1,5 +1,0 @@
-interface Env {
-  JWT_AUTH_PUBLIC_KEY?: string;
-  JWT_PREFERENCE_PUBLIC_KEY?: string;
-  UMAXICA_APPS_EDGE_ORG_CORE_SENTRY_DSN?: string;
-}

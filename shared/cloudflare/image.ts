@@ -1,4 +1,13 @@
 export const DEFAULT_ALLOWED_IMAGE_HOSTS = 'images.unsplash.com, avatars.githubusercontent.com';
+export const MAX_IMAGE_WIDTH = 4096;
+export const MIN_IMAGE_QUALITY = 1;
+export const MAX_IMAGE_QUALITY = 100;
+export const MAX_IMAGE_SOURCE_BYTES = 10 * 1024 * 1024;
+
+export interface ImageTransformOptions {
+  width?: number;
+  quality?: number;
+}
 
 export function normalizeHostnames(rawHostnames: string | undefined): Set<string> {
   const hostnames = rawHostnames
@@ -74,4 +83,66 @@ export function isAllowedImageFetchTarget(
 
   const allowedHostnames = normalizeHostnames(allowedHostnamesValue);
   return allowedHostnames.has(parsed.hostname.toLowerCase());
+}
+
+function parseOptionalBoundedInteger(
+  rawValue: string | null,
+  minValue: number,
+  maxValue: number,
+): number | null | undefined {
+  if (rawValue === null) {
+    return undefined;
+  }
+
+  if (!/^\d+$/.test(rawValue)) {
+    return null;
+  }
+
+  const value = Number(rawValue);
+  if (!Number.isSafeInteger(value) || value < minValue || value > maxValue) {
+    return null;
+  }
+
+  return value;
+}
+
+export function parseImageTransformOptions(
+  widthValue: string | null,
+  qualityValue: string | null,
+): ImageTransformOptions | null {
+  const width = parseOptionalBoundedInteger(widthValue, 1, MAX_IMAGE_WIDTH);
+  if (width === null) {
+    return null;
+  }
+
+  const quality = parseOptionalBoundedInteger(qualityValue, MIN_IMAGE_QUALITY, MAX_IMAGE_QUALITY);
+  if (quality === null) {
+    return null;
+  }
+
+  const options: ImageTransformOptions = {};
+  if (width !== undefined) {
+    options.width = width;
+  }
+  if (quality !== undefined) {
+    options.quality = quality;
+  }
+
+  return options;
+}
+
+export function isAllowedImageSourceSize(
+  contentLengthValue: string | null,
+  maxBytes: number = MAX_IMAGE_SOURCE_BYTES,
+): boolean {
+  if (contentLengthValue === null) {
+    return true;
+  }
+
+  if (!/^\d+$/.test(contentLengthValue)) {
+    return false;
+  }
+
+  const contentLength = Number(contentLengthValue);
+  return Number.isSafeInteger(contentLength) && contentLength <= maxBytes;
 }

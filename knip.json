@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/knip/schema.json",
-  "ignoreBinaries": ["react-router-serve"],
+  "ignoreBinaries": [],
   "ignoreUnresolved": ["^vite/client$"],
   "ignore": ["**/.cache/**", "**/.wrangler/**", "**/dist/**", "**/build/**"]
 }

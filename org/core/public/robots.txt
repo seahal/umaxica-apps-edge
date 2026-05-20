@@ -1,5 +1,0 @@
-User-agent: *
-Disallow: /
-Allow: /$
-Allow: /assets/
-Allow: /favicon.ico

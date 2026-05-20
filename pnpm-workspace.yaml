@@ -1,17 +1,13 @@
 packages:
   - app/apex
-  - app/core
   - com/apex
-  - com/core
   - org/apex
-  - org/core
-  - dev/core
   - net/apex
 
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@latest
-  vite-plus: ^0.1.11
-  vitest: npm:@voidzero-dev/vite-plus-test@^0.1.11
+  vite-plus: ^0.1.21
+  vitest: npm:@voidzero-dev/vite-plus-test@^0.1.21
 
 ignoredBuiltDependencies:
   - esbuild

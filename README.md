@@ -12,16 +12,12 @@
 
 ## Workspaces
 
-| Package    | Role                  | Domain          | Dev Port |
-| ---------- | --------------------- | --------------- | -------- |
-| `com/core` | React Router SSR      | `*.umaxica.com` | 5102     |
-| `com/apex` | Apex/static worker    | `umaxica.com`   | 5101     |
-| `app/core` | React Router SSR      | `*.umaxica.app` | 5402     |
-| `app/apex` | Apex/static worker    | `umaxica.app`   | 5401     |
-| `org/core` | React Router SSR      | `*.umaxica.org` | 5302     |
-| `org/apex` | Apex/static worker    | `umaxica.org`   | 5301     |
-| `dev/core` | React Router + Vercel | `umaxica.dev`   | 5502     |
-| `net/apex` | Network apex worker   | —               | 5201     |
+| Package    | Role                | Domain        | Dev Port |
+| ---------- | ------------------- | ------------- | -------- |
+| `com/apex` | Apex/static worker  | `umaxica.com` | 5101     |
+| `app/apex` | Apex/static worker  | `umaxica.app` | 5401     |
+| `org/apex` | Apex/static worker  | `umaxica.org` | 5301     |
+| `net/apex` | Network apex worker | —             | 5201     |
 
 ## Quick Start
 
@@ -29,7 +25,7 @@
 vp install
 
 # Run a specific workspace
-vp run --filter <workspace> server   # e.g. com/core, app/apex
+vp run --filter <workspace> server   # e.g. com/apex, app/apex
 
 # Docker (optional)
 docker compose up && docker compose exec core bash
@@ -97,19 +93,15 @@ vp run --filter <workspace> deploy:promote
 
 ### Environment Variables
 
-Cloudflare workspaces use `wrangler.jsonc` (`vars` + environments). `dev/core` reads from Vercel env vars (`process.env` / `VITE_*`).
+Cloudflare workspaces use `wrangler.jsonc` (`vars` + environments).
 
-For local Docker Compose development, the Next.js workspace URL convention is:
+For local Docker Compose development, the workspace URL convention is:
 
 ```text
 JIT_{COM,ORG,APP}_{CORE,DOCS,NEWS,HELP}_URL
 ```
 
-The current Compose defaults map those names to the local dev ports for each workspace, for example:
-
-- `JIT_APP_CORE_URL=http://localhost:5171`
-- `JIT_COM_CORE_URL=http://localhost:5170`
-- `JIT_ORG_CORE_URL=http://localhost:5172`
+The current Compose defaults map those names to the local dev ports for each workspace.
 
 Use the same naming pattern in other workspaces when you need a self URL or cross-workspace link target.
 
