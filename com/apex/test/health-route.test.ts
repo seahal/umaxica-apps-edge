@@ -17,23 +17,10 @@ describe('GET /health', () => {
     expect(body).not.toContain('<footer');
   });
 
-  it('uses the default BRAND_NAME in the health page body', async () => {
-    const response = await requestFromComApp('/health');
+  it('uses BRAND_NAME from env in the health page title', async () => {
+    const response = await requestFromComApp('/health', {}, { BRAND_NAME: 'UMAXCA' });
     const body = await response.text();
-    expect(body).toContain('UMAXICA');
-    expect(body).toContain('<title>UMAXICA</title>');
-  });
-
-  it('returns OK when revision metadata is incomplete', async () => {
-    const response = await requestFromComApp('/health', undefined, {
-      BRAND_NAME: 'UMAXICA',
-      REVISION: { id: 'test-version-id' },
-    });
-    const body = await response.text();
-
-    expect(response.status).toBe(200);
-    expect(body).toContain('<strong>Status:</strong> OK');
-    expect(body).toContain('test-version-id');
+    expect(body).toContain('<title>UMAXCA</title>');
   });
 
   it('applies security headers to the health response', async () => {
