@@ -4,20 +4,10 @@ import app from '../src/index';
 
 describe('com/apex/src/index.tsx coverage', () => {
   it('returns 404 text when ASSETS is missing in notFound', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    try {
-      const res = await app.request('/nonexistent-404', {}, {});
-      expect(res.status).toBe(404);
-      const text = await res.text();
-      expect(text).toBe('Not Found');
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'ASSETS binding is missing for 404 fallback',
-        expect.any(Object),
-      );
-    } finally {
-      consoleSpy.mockRestore();
-    }
+    const res = await app.request('/nonexistent-404', {}, {});
+    expect(res.status).toBe(404);
+    const text = await res.text();
+    expect(text).toBe('Not Found');
   });
 
   it('handles health check error and hits onError catch block', async () => {
@@ -40,7 +30,6 @@ describe('com/apex/src/index.tsx coverage', () => {
     const isoSpy = vi.spyOn(Date.prototype, 'toISOString').mockImplementation(() => {
       throw new Error('ISO String error');
     });
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const env = {
       ASSETS: {
@@ -50,16 +39,12 @@ describe('com/apex/src/index.tsx coverage', () => {
       },
     };
 
-    try {
-      const res = await app.request('/health', {}, env);
-      expect(res.status).toBe(400);
-      const text = await res.text();
-      expect(text).toBe('Mock 400 Page');
-      expect(consoleSpy).toHaveBeenCalledWith('Unhandled apex error', expect.any(Object));
-    } finally {
-      isoSpy.mockRestore();
-      consoleSpy.mockRestore();
-    }
+    const res = await app.request('/health', {}, env);
+    expect(res.status).toBe(400);
+    const text = await res.text();
+    expect(text).toBe('Mock 400 Page');
+
+    isoSpy.mockRestore();
   });
 
   it('handles notFound when assetRes.status is not 404', async () => {

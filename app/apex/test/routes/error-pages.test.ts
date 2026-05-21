@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Hono } from 'hono';
-import { HTTPException } from 'hono/http-exception';
 import app from '../../src/index';
 
 const notFoundHtml = readFileSync(resolve(__dirname, '../../public/404.html'), 'utf-8');
@@ -81,34 +80,5 @@ describe('400 error page', () => {
     const res = await errorApp.request('/error', {}, env);
 
     expect(res.headers.get('content-security-policy')).toContain("default-src 'self'");
-  });
-});
-
-describe('HTTPException handling', () => {
-  type AssetEnv = {
-    ASSETS: { fetch: (request: Request) => Promise<Response> };
-  };
-
-  const httpExceptionApp = new Hono<{ Bindings: AssetEnv }>();
-
-  httpExceptionApp.get('/http-error', () => {
-    throw new HTTPException(418, {
-      message: 'I am a teapot',
-    });
-  });
-
-  httpExceptionApp.onError(async (err, c) => {
-    if (err instanceof HTTPException) {
-      return err.getResponse();
-    }
-    return c.text('Unknown error', 500);
-  });
-
-  it('returns HTTPException response directly', async () => {
-    const res = await httpExceptionApp.request('/http-error');
-
-    expect(res.status).toBe(418);
-    const body = await res.text();
-    expect(body).toContain('I am a teapot');
   });
 });

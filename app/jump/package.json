@@ -1,21 +1,11 @@
 {
   "name": "umaxica-apps-edge-app-jump",
+  "private": true,
   "type": "module",
   "scripts": {
-    "server": "vp exec wrangler dev",
-    "build": "vp run type",
-    "deploy": "vp run build && vp exec wrangler deploy",
-    "deploy:upload": "vp run build && vp exec wrangler versions upload",
-    "deploy:promote": "vp exec wrangler versions deploy --yes",
-    "cf-typegen": "vp exec wrangler types --env-interface CloudflareBindings",
-    "type": "vp exec tsc --noEmit"
-  },
-  "dependencies": {
-    "@hono/structured-logger": "catalog:",
-    "hono": "catalog:"
-  },
-  "devDependencies": {
-    "typescript": "catalog:",
-    "wrangler": "catalog:"
+    "build": "vp run --filter umaxica-apps-edge-app-apex build",
+    "deploy": "vp run --filter umaxica-apps-edge-app-apex deploy",
+    "deploy:upload": "vp run --filter umaxica-apps-edge-app-apex deploy:upload",
+    "deploy:promote": "vp run --filter umaxica-apps-edge-app-apex deploy:promote"
   }
 }

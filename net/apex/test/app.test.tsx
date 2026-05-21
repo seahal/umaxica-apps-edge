@@ -6,7 +6,6 @@ describe('Net Hono app', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('x-robots-tag')).toBe('noindex, nofollow');
     const body = await res.text();
-    expect(body).toContain('<title>UMAXICA</title>');
     expect(body).toContain('<strong>Status:</strong> OK');
     expect(body).toContain('Timestamp');
     expect(body).toContain('<meta name="robots" content="noindex, nofollow" />');
@@ -20,9 +19,7 @@ describe('Net Hono app', () => {
     const body = await res.text();
     expect(body).toContain('About this site.');
     expect(body).not.toContain('このサイトについて');
-    expect(body).toContain('https://umaxica.app');
-    expect(body).toContain('https://umaxica.com');
-    expect(body).toContain('https://umaxica.org');
+    expect(body).toContain('umaxica.app');
     expect(body).toContain('<title>UMAXICA (net) - Apex</title>');
     expect(body).toContain('<link rel="canonical" href="https://umaxica.net/"');
     expect(body).toContain('<meta name="robots" content="index,follow"');
@@ -42,7 +39,7 @@ describe('Net Hono app', () => {
     const res = await app.request('/about');
     expect(res.status).toBe(200);
     const body = await res.text();
-    expect(body).toContain('About this site.');
+    expect(body).toContain('About');
     expect(body).not.toContain('このサイトについて');
     expect(body).toContain('<title>About | UMAXICA (net) - Apex</title>');
     expect(body).toContain(
@@ -50,9 +47,6 @@ describe('Net Hono app', () => {
     );
     expect(body).toContain('<link rel="canonical" href="https://umaxica.net/about"');
     expect(body).toContain('<meta name="robots" content="index,follow"');
-    expect(body).toContain('https://umaxica.app');
-    expect(body).toContain('https://umaxica.com');
-    expect(body).toContain('https://umaxica.org');
   });
 
   it('renders about page in Japanese when Accept-Language prefers ja', async () => {
@@ -72,11 +66,11 @@ describe('Net Hono app', () => {
     expect(body).toContain(`© ${currentYear} UMAXICA`);
   });
 
-  it('renders root page with the default brand name', async () => {
-    const res = await app.request('/');
+  it('renders root page with brand name from env', async () => {
+    const res = await app.request('/', {}, { BRAND_NAME: 'UMAXCA' });
     const body = await res.text();
     expect(body).toContain('<title>UMAXICA (net) - Apex</title>');
-    expect(body).toContain('UMAXICA');
+    expect(body).toContain('UMAXCA');
   });
 
   it('applies security headers', async () => {

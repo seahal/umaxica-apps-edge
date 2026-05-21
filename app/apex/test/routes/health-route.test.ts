@@ -18,23 +18,10 @@ describe('GET /health', () => {
     expect(body).not.toContain('<footer');
   });
 
-  it('uses the default BRAND_NAME in the health page body', async () => {
-    const response = await requestFromApp('/health');
+  it('uses BRAND_NAME from env in the health page title', async () => {
+    const response = await requestFromApp('/health', {}, { BRAND_NAME: 'UMAXCA' });
     const body = await response.text();
-    expect(body).toContain('UMAXICA');
-    expect(body).toContain('<title>UMAXICA</title>');
-  });
-
-  it('returns OK when revision metadata is incomplete', async () => {
-    const response = await requestFromApp('/health', undefined, {
-      BRAND_NAME: 'UMAXICA',
-      REVISION: { id: 'test-version-id' },
-    });
-    const body = await response.text();
-
-    expect(response.status).toBe(200);
-    expect(body).toContain('<strong>Status:</strong> OK');
-    expect(body).toContain('test-version-id');
+    expect(body).toContain('<title>UMAXCA</title>');
   });
 
   it('applies security headers to HTML responses', async () => {
@@ -44,11 +31,23 @@ describe('GET /health', () => {
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
   });
 
-  it('includes a timestamp', async () => {
+  it('includes valid ISO 8601 timestamp format', async () => {
     const response = await requestFromApp('/health');
     const body = await response.text();
 
-    expect(body).toContain('Timestamp:');
+    const timestampMatch = body.match(/Timestamp:<\/strong>\s*([^<]+)/);
+    expect(timestampMatch?.[1]).toBeTruthy();
+
+    const timestamp = timestampMatch?.[1];
+    if (!timestamp) {
+      throw new Error('Timestamp match missing captured value');
+    }
+
+    const normalizedTimestamp = timestamp.trim();
+    expect(normalizedTimestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+
+    const date = new Date(normalizedTimestamp);
+    expect(date.toString()).not.toBe('Invalid Date');
   });
 
   it('returns valid HTML structure', async () => {

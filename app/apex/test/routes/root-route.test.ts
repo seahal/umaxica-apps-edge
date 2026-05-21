@@ -1,6 +1,4 @@
-import { createRootRedirect } from '../../../../shared/apex/root-redirect';
-
-const { buildRegionErrorPayload } = createRootRedirect('umaxica.app');
+import { buildRegionErrorPayload } from '../../src/root-redirect';
 import { requestFromApp } from '../utils/request';
 
 const SITE_URL = 'umaxica.app';
@@ -25,14 +23,14 @@ describe('GET /', () => {
   it('redirects to the requested region when `ri` is allowed', async () => {
     const response = await requestFromApp('/?ri=us');
 
-    expect(response.status).toBe(307);
+    expect(response.status).toBe(301);
     expect(response.headers.get('location')).toBe(`https://us.${SITE_URL}/`);
   });
 
   it('normalizes the region parameter to lowercase before checking allowlist', async () => {
     const response = await requestFromApp('/?ri=US');
 
-    expect(response.status).toBe(307);
+    expect(response.status).toBe(301);
     expect(response.headers.get('location')).toBe(`https://us.${SITE_URL}/`);
   });
 
@@ -86,14 +84,14 @@ describe('GET /', () => {
     it('only redirects to whitelisted URLs for jp region', async () => {
       const response = await requestFromApp('/?ri=jp');
 
-      expect(response.status).toBe(307);
+      expect(response.status).toBe(301);
       expect(response.headers.get('location')).toBe(`https://jp.${SITE_URL}/`);
     });
 
     it('only redirects to whitelisted URLs for us region', async () => {
       const response = await requestFromApp('/?ri=us');
 
-      expect(response.status).toBe(307);
+      expect(response.status).toBe(301);
       expect(response.headers.get('location')).toBe(`https://us.${SITE_URL}/`);
     });
 
@@ -124,21 +122,21 @@ describe('GET /', () => {
     it('handles multiple query parameters correctly', async () => {
       const response = await requestFromApp('/?ri=us&foo=bar');
 
-      expect(response.status).toBe(307);
+      expect(response.status).toBe(301);
       expect(response.headers.get('location')).toBe(`https://us.${SITE_URL}/`);
     });
 
     it('handles case-insensitive region for jp', async () => {
       const response = await requestFromApp('/?ri=JP');
 
-      expect(response.status).toBe(307);
+      expect(response.status).toBe(301);
       expect(response.headers.get('location')).toBe(`https://jp.${SITE_URL}/`);
     });
 
     it('handles mixed case region codes', async () => {
       const response = await requestFromApp('/?ri=Us');
 
-      expect(response.status).toBe(307);
+      expect(response.status).toBe(301);
       expect(response.headers.get('location')).toBe(`https://us.${SITE_URL}/`);
     });
   });
