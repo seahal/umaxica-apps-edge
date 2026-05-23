@@ -34,7 +34,7 @@
     "@vitest/coverage-v8": "4.0.18",
     "babel-plugin-react-compiler": "^1.0.0",
     "happy-dom": "^20.9.0",
-    "knip": "^5.88.1",
+    "knip": "^6.14.0",
     "miniflare": "^4.20260515.0",
     "vite-plugin-babel": "^1.7.1",
     "vite-plus": "catalog:",
