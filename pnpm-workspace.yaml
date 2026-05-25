@@ -1,12 +1,15 @@
 packages:
   - app/apex
   - app/jump
+  - app/post
   - com/apex
   - com/core
   - com/jump
+  - com/post
   - org/apex
   - org/core
   - org/jump
+  - org/post
   - net/apex
   - net/jump
 
