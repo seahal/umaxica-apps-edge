@@ -17,13 +17,13 @@
     "prepare": "vp config"
   },
   "dependencies": {
-    "hono": "^4.12.21",
+    "hono": "^4.12.22",
     "jose": "^6.2.3",
     "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.28.5",
-    "@cloudflare/vite-plugin": "^1.37.3",
+    "@cloudflare/vite-plugin": "^1.38.0",
     "@tailwindcss/vite": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -34,14 +34,14 @@
     "@vitest/coverage-v8": "4.1.7",
     "babel-plugin-react-compiler": "^1.0.0",
     "happy-dom": "^20.9.0",
-    "knip": "^6.14.1",
-    "miniflare": "^4.20260520.0",
+    "knip": "^6.14.2",
+    "miniflare": "^4.20260521.0",
     "vite-plugin-babel": "^1.7.3",
     "vite-plus": "catalog:",
     "vite-ssr-components": "^0.6.1",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "catalog:",
-    "wrangler": "^4.93.1"
+    "wrangler": "^4.94.0"
   },
   "packageManager": "pnpm@10.29.3",
   "pnpm": {
