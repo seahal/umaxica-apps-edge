@@ -35,7 +35,7 @@ app.use('*', async (c, next) => {
 });
 app.use(languageDetector({ supportedLanguages: ['en', 'ja'], fallbackLanguage: 'en' }));
 
-pageRoutes.use(renderer);
+pageRoutes.use(renderer as unknown as Parameters<typeof pageRoutes.use>[0]);
 
 pageRoutes.get('/', timeout(2000), (c) => {
   setMeta(c, getRootMeta(c.env));

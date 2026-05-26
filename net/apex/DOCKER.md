@@ -9,15 +9,15 @@
 
 ## 利用可能なサービス
 
-### 1. dev - 開発サーバー（Vite）
+### 1. dev - Cloudflare Workers ローカル開発サーバー
 
-Vite の開発サーバーを起動します。HMR（Hot Module Replacement）が有効です。
+Wrangler のローカル開発サーバーを起動します。
 
 ```bash
 docker compose up dev
 ```
 
-アクセス: http://localhost:5173 または http://localhost:5174
+アクセス: http://localhost:8787
 
 ### 2. wrangler - Cloudflare Workers ローカルプレビュー
 
@@ -42,7 +42,7 @@ docker compose --profile build run --rm build
 ### 依存関係のインストール
 
 ```bash
-docker compose run --rm dev bun install
+docker compose run --rm dev vp install
 ```
 
 ### コマンドの実行
@@ -64,7 +64,7 @@ docker compose down
 docker compose --profile build run --rm build
 
 # カスタムコマンドを実行
-docker compose run --rm dev bun run <command>
+docker compose run --rm dev vp run <command>
 
 # シェルに入る
 docker compose run --rm dev bash
@@ -104,13 +104,13 @@ docker compose exec dev env | grep -Ei 'http_proxy|https_proxy|no_proxy|all_prox
 
 ```yaml
 ports:
-  - '3000:5173' # ホスト側のポートを 3000 に変更
+  - '3000:8787' # ホスト側のポートを 3000 に変更
 ```
 
 ### 依存関係が見つからない
 
 ```bash
-docker compose run --rm dev bun install
+docker compose run --rm dev vp install
 ```
 
 ### コンテナを再ビルド
@@ -127,7 +127,7 @@ docker compose up dev
 1. 依存関係をインストール:
 
    ```bash
-   docker compose run --rm dev bun install
+   docker compose run --rm dev vp install
    ```
 
 2. 開発サーバーを起動:
@@ -136,9 +136,9 @@ docker compose up dev
    docker compose up dev
    ```
 
-3. ブラウザで http://localhost:5173 を開く
+3. ブラウザで http://localhost:8787 を開く
 
-4. コードを編集すると自動的にリロードされます
+4. コードを編集したらサーバー出力を確認します
 
 5. プロダクションビルド:
 
