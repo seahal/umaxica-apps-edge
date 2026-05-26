@@ -261,33 +261,15 @@ importers:
         specifier: ^4.12.5
         version: 4.12.7
     devDependencies:
-      '@cloudflare/vite-plugin':
-        specifier: ^1.26.1
-        version: 1.27.0(@voidzero-dev/vite-plus-core@0.1.11(@types/node@25.9.1)(esbuild@0.27.3)(jiti@2.7.0)(terser@5.48.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0))(workerd@1.20260521.1)(wrangler@4.72.0(@cloudflare/workers-types@4.20260523.1))
-      '@tailwindcss/vite':
+      '@tailwindcss/cli':
         specifier: ^4.2.1
-        version: 4.2.1(@voidzero-dev/vite-plus-core@0.1.11(@types/node@25.9.1)(esbuild@0.27.3)(jiti@2.7.0)(terser@5.48.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0))
+        version: 4.3.0
       '@types/react':
         specifier: ^19.2.14
         version: 19.2.14
-      autoprefixer:
-        specifier: ^10.4.27
-        version: 10.4.27(postcss@8.5.8)
-      postcss:
-        specifier: ^8.5.8
-        version: 8.5.8
       tailwindcss:
         specifier: ^4.2.1
         version: 4.2.1
-      vite:
-        specifier: 'catalog:'
-        version: '@voidzero-dev/vite-plus-core@0.1.11(@types/node@25.9.1)(esbuild@0.27.3)(jiti@2.7.0)(terser@5.48.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)'
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.1.11(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(@voidzero-dev/vite-plus-core@0.1.11(@types/node@25.9.1)(esbuild@0.27.3)(jiti@2.7.0)(terser@5.48.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0))(esbuild@0.27.3)(happy-dom@20.9.0)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(terser@5.48.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
-      vite-ssr-components:
-        specifier: ^0.5.2
-        version: 0.5.2
       wrangler:
         specifier: ^4.71.0
         version: 4.72.0(@cloudflare/workers-types@4.20260523.1)
@@ -511,33 +493,15 @@ importers:
         specifier: ^4.12.5
         version: 4.12.7
     devDependencies:
-      '@cloudflare/vite-plugin':
-        specifier: ^1.26.1
-        version: 1.27.0(@voidzero-dev/vite-plus-core@0.1.11(@types/node@25.9.1)(esbuild@0.27.3)(jiti@2.7.0)(terser@5.48.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0))(workerd@1.20260521.1)(wrangler@4.72.0(@cloudflare/workers-types@4.20260523.1))
-      '@tailwindcss/vite':
+      '@tailwindcss/cli':
         specifier: ^4.2.1
-        version: 4.2.1(@voidzero-dev/vite-plus-core@0.1.11(@types/node@25.9.1)(esbuild@0.27.3)(jiti@2.7.0)(terser@5.48.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0))
+        version: 4.3.0
       '@types/react':
         specifier: ^19.2.14
         version: 19.2.14
-      autoprefixer:
-        specifier: ^10.4.27
-        version: 10.4.27(postcss@8.5.8)
-      postcss:
-        specifier: ^8.5.8
-        version: 8.5.8
       tailwindcss:
         specifier: ^4.2.1
         version: 4.2.1
-      vite:
-        specifier: 'catalog:'
-        version: '@voidzero-dev/vite-plus-core@0.1.11(@types/node@25.9.1)(esbuild@0.27.3)(jiti@2.7.0)(terser@5.48.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)'
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.1.11(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(@voidzero-dev/vite-plus-core@0.1.11(@types/node@25.9.1)(esbuild@0.27.3)(jiti@2.7.0)(terser@5.48.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0))(esbuild@0.27.3)(happy-dom@20.9.0)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(terser@5.48.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
-      vite-ssr-components:
-        specifier: ^0.5.2
-        version: 0.5.2
       wrangler:
         specifier: ^4.71.0
         version: 4.72.0(@cloudflare/workers-types@4.20260523.1)

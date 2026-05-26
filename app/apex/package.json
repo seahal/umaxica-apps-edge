@@ -2,7 +2,7 @@
   "name": "umaxica-apps-edge-app-apex",
   "type": "module",
   "scripts": {
-    "build:css": "vp exec tailwindcss -i ./src/style.css -o ./public/style.css --minify && vp fmt ./public/style.css",
+    "build:css": "vp exec tailwindcss -i ./src/style.css -o ./public/style.css --minify",
     "server": "vp run build:css && vp exec wrangler dev --config wrangler.jsonc",
     "build": "vp run build:css && vp exec wrangler deploy --config wrangler.jsonc --dry-run --outdir dist",
     "preview": "vp run build && vp exec wrangler dev --config wrangler.jsonc --local",
