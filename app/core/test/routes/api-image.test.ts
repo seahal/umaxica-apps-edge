@@ -39,7 +39,11 @@ describe('app/core /api/image GET', () => {
     fetchMock.mockResolvedValueOnce(
       new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
         status: 200,
-        headers: { 'content-type': 'image/png' },
+        headers: {
+          'content-type': 'image/png',
+          'set-cookie': 'session=upstream',
+          'x-upstream-header': 'not-forwarded',
+        },
       }),
     );
 
@@ -49,6 +53,10 @@ describe('app/core /api/image GET', () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('image/png');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(response.headers.has('set-cookie')).toBe(false);
+    expect(response.headers.has('x-upstream-header')).toBe(false);
     expect(fetchMock).toHaveBeenCalledWith('https://images.unsplash.com/a.png', {
       redirect: 'manual',
     });
@@ -91,5 +99,21 @@ describe('app/core /api/image GET', () => {
     const response = await GET(request);
 
     expect(response.status).toBe(413);
+  });
+
+  it('rejects unsupported upstream content types', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response('<svg><script>alert(1)</script></svg>', {
+        status: 200,
+        headers: { 'content-type': 'image/svg+xml' },
+      }),
+    );
+
+    const request = new NextRequest(
+      'https://app.umaxica.app/api/image?url=https%3A%2F%2Fimages.unsplash.com%2Fa.svg&w=100&q=80',
+    );
+    const response = await GET(request);
+
+    expect(response.status).toBe(415);
   });
 });

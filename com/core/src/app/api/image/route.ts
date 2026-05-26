@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import {
   DEFAULT_ALLOWED_IMAGE_HOSTS,
+  IMAGE_RESPONSE_CACHE_CONTROL,
+  buildProxiedImageHeaders,
+  getAllowedImageContentType,
   isAllowedImageSourceSize,
   isAllowedImageFetchTarget,
   parseImageTransformOptions,
@@ -50,6 +53,10 @@ export async function GET(request: NextRequest) {
   if (!isAllowedImageSourceSize(sourceImage.headers.get('content-length'))) {
     return new NextResponse('Source image is too large', { status: 413 });
   }
+  const sourceContentType = getAllowedImageContentType(sourceImage.headers.get('content-type'));
+  if (!sourceContentType) {
+    return new NextResponse('Source image content type is not supported', { status: 415 });
+  }
 
   const { env } = getCloudflareContext() as { env: CloudflareEnv };
 
@@ -57,7 +64,7 @@ export async function GET(request: NextRequest) {
   // fallback to returning the original image.
   if (!env.IMAGES) {
     return new NextResponse(sourceImage.body, {
-      headers: sourceImage.headers,
+      headers: buildProxiedImageHeaders(sourceContentType),
     });
   }
 
@@ -74,7 +81,8 @@ export async function GET(request: NextRequest) {
     return new NextResponse(output.body, {
       headers: {
         'Content-Type': 'image/webp',
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': IMAGE_RESPONSE_CACHE_CONTROL,
+        'X-Content-Type-Options': 'nosniff',
       },
     });
   } catch (error) {
@@ -82,7 +90,7 @@ export async function GET(request: NextRequest) {
     console.error('Image transformation failed:', error);
     // Fallback to original image on transformation error
     return new NextResponse(sourceImage.body, {
-      headers: sourceImage.headers,
+      headers: buildProxiedImageHeaders(sourceContentType),
     });
   }
 }
