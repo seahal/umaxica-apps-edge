@@ -1,6 +1,7 @@
 # prod
 dist/
 dist-server/
+public/style.css
 
 # dev
 .yarn/
