@@ -3,6 +3,17 @@ export const MAX_IMAGE_WIDTH = 4096;
 export const MIN_IMAGE_QUALITY = 1;
 export const MAX_IMAGE_QUALITY = 100;
 export const MAX_IMAGE_SOURCE_BYTES = 10 * 1024 * 1024;
+export const IMAGE_RESPONSE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
+const ALLOWED_IMAGE_CONTENT_TYPES = new Set([
+  'image/avif',
+  'image/bmp',
+  'image/gif',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/x-icon',
+]);
 
 function isPrivateOrReservedIPv4(hostname: string): boolean {
   const match = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
@@ -208,4 +219,25 @@ export function isAllowedImageSourceSize(
 
   const contentLength = Number(contentLengthValue);
   return Number.isSafeInteger(contentLength) && contentLength <= maxBytes;
+}
+
+export function getAllowedImageContentType(contentTypeValue: string | null): string | null {
+  if (contentTypeValue === null) {
+    return null;
+  }
+
+  const contentType = contentTypeValue.split(';', 1)[0]?.trim().toLowerCase();
+  if (!contentType || !ALLOWED_IMAGE_CONTENT_TYPES.has(contentType)) {
+    return null;
+  }
+
+  return contentType;
+}
+
+export function buildProxiedImageHeaders(contentType: string): Headers {
+  return new Headers({
+    'Content-Type': contentType,
+    'Cache-Control': IMAGE_RESPONSE_CACHE_CONTROL,
+    'X-Content-Type-Options': 'nosniff',
+  });
 }

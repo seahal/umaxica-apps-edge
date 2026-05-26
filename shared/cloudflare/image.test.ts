@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vite-plus/test';
 import {
   DEFAULT_ALLOWED_IMAGE_HOSTS,
   MAX_IMAGE_SOURCE_BYTES,
+  buildProxiedImageHeaders,
+  getAllowedImageContentType,
   isAllowedImageSourceSize,
   parseImageTransformOptions,
   validateImageUrl,
@@ -82,5 +84,22 @@ describe('shared/cloudflare/image', () => {
   it('rejects image source sizes above the maximum or malformed values', () => {
     expect(isAllowedImageSourceSize(String(MAX_IMAGE_SOURCE_BYTES + 1))).toBe(false);
     expect(isAllowedImageSourceSize('10.5')).toBe(false);
+  });
+
+  it('allows only safe raster image content types', () => {
+    expect(getAllowedImageContentType('image/png')).toBe('image/png');
+    expect(getAllowedImageContentType('image/jpeg; charset=binary')).toBe('image/jpeg');
+    expect(getAllowedImageContentType('image/svg+xml')).toBeNull();
+    expect(getAllowedImageContentType('text/html')).toBeNull();
+    expect(getAllowedImageContentType(null)).toBeNull();
+  });
+
+  it('builds proxied image headers without upstream-controlled headers', () => {
+    const headers = buildProxiedImageHeaders('image/png');
+
+    expect(headers.get('content-type')).toBe('image/png');
+    expect(headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+    expect(headers.get('x-content-type-options')).toBe('nosniff');
+    expect(headers.has('set-cookie')).toBe(false);
   });
 });
