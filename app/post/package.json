@@ -8,7 +8,7 @@
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "dev": "next dev --hostname 0.0.0.0 --port 5406",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "type": "vp exec tsc --noEmit",
+    "type": "vp exec tsgo --noEmit",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload"
   },
   "dependencies": {

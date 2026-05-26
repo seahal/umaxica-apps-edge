@@ -11,10 +11,13 @@ vi.mock('@opennextjs/cloudflare', () => ({
 describe('org/core /api/image GET', () => {
   const fetchMock = vi.fn<typeof fetch>();
   let originalAllowedImageHosts: string | undefined;
+  let originalNextPublicAppUrl: string | undefined;
 
   beforeEach(() => {
     originalAllowedImageHosts = process.env.ALLOWED_IMAGE_HOSTS;
+    originalNextPublicAppUrl = process.env.NEXT_PUBLIC_APP_URL;
     process.env.ALLOWED_IMAGE_HOSTS = 'images.unsplash.com';
+    process.env.NEXT_PUBLIC_APP_URL = 'https://umaxica.org';
     vi.stubGlobal('fetch', fetchMock);
   });
   afterEach(() => {
@@ -23,6 +26,11 @@ describe('org/core /api/image GET', () => {
       delete process.env.ALLOWED_IMAGE_HOSTS;
     } else {
       process.env.ALLOWED_IMAGE_HOSTS = originalAllowedImageHosts;
+    }
+    if (originalNextPublicAppUrl === undefined) {
+      delete process.env.NEXT_PUBLIC_APP_URL;
+    } else {
+      process.env.NEXT_PUBLIC_APP_URL = originalNextPublicAppUrl;
     }
     vi.unstubAllGlobals();
   });
@@ -41,5 +49,18 @@ describe('org/core /api/image GET', () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith('https://images.unsplash.com/a.png', {
+      redirect: 'manual',
+    });
+  });
+
+  it('does not trust the incoming request origin as an image fetch target', async () => {
+    const request = new NextRequest(
+      'https://127.0.0.1/api/image?url=https%3A%2F%2F127.0.0.1%2Fa.png&w=100&q=80',
+    );
+    const response = await GET(request);
+
+    expect(response.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

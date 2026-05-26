@@ -29,16 +29,17 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Invalid image transform parameter', { status: 400 });
   }
 
-  const validatedUrl = validateImageUrl(url, request.url, allowedHosts);
+  const trustedBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin;
+  const validatedUrl = validateImageUrl(url, trustedBaseUrl, allowedHosts);
   if (!validatedUrl) {
     return new NextResponse('Invalid or disallowed url parameter', { status: 400 });
   }
-  if (!isAllowedImageFetchTarget(validatedUrl, request.url, allowedHosts)) {
+  if (!isAllowedImageFetchTarget(validatedUrl, trustedBaseUrl, allowedHosts)) {
     return new NextResponse('Invalid or disallowed url parameter', { status: 400 });
   }
 
   // Fetch the source image
-  const sourceImage = await fetch(validatedUrl);
+  const sourceImage = await fetch(validatedUrl, { redirect: 'manual' });
   if (!sourceImage.ok) {
     return new NextResponse('Failed to fetch source image', { status: sourceImage.status });
   }

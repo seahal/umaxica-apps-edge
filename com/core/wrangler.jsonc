@@ -45,6 +45,7 @@
         "CLOUDFLARE_ENV": "development",
         "NODE_ENV": "development",
         "BRAND_NAME": "UMAXICA",
+        "NEXT_PUBLIC_APP_URL": "http://com.localhost:5102",
         "NEXT_PUBLIC_SENTRY_DSN": ""
       },
       "services": [
@@ -72,6 +73,7 @@
         "CLOUDFLARE_ENV": "production",
         "NODE_ENV": "production",
         "BRAND_NAME": "UMAXICA",
+        "NEXT_PUBLIC_APP_URL": "https://umaxica.com",
         "NEXT_PUBLIC_SENTRY_DSN": ""
       },
       "services": [
