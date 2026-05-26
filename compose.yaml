@@ -22,12 +22,15 @@ services:
           nocopy: true
     ports:
       - '5101:5101' # com/apex
-      - '5102:5102' # com/post
+      - '5102:5102' # com/core
+      - '5106:5106' # com/post
       - '5201:5201' # net/apex
       - '5301:5301' # org/apex
-      - '5302:5302' # org/post
+      - '5302:5302' # org/core
+      - '5306:5306' # org/post
       - '5401:5401' # app/apex
-      - '5402:5402' # app/post
+      - '5402:5402' # app/core
+      - '5406:5406' # app/post
     command: sleep infinity
     tty: true
     stdin_open: true
@@ -56,38 +59,8 @@ services:
       timeout: 5s
       retries: 12
     restart: unless-stopped
-  rails:
-    build:
-      context: ./rails
-    working_dir: /rails
-    volumes:
-      - type: bind
-        source: ./rails
-        target: /rails
-        consistency: cached
-      - type: volume
-        source: bundle-volume
-        target: /usr/local/bundle
-        volume:
-          nocopy: true
-    ports:
-      - '3001:3001'
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      RAILS_ENV: development
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: umaxica_post_development
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    command: bash -lc "bundle install && bin/rails db:prepare && bin/rails server -b 0.0.0.0 -p 3001"
-    restart: unless-stopped
 volumes:
   node-volume:
-    driver: local
-  bundle-volume:
     driver: local
   postgres-data:
     driver: local
