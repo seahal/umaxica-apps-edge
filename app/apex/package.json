@@ -4,22 +4,22 @@
   "scripts": {
     "server": "vp dev",
     "build": "vp build --ssr src/index.tsx && rm -rf dist/client && mkdir -p dist/client && cp -a public/. dist/client/",
-    "preview": "$npm_execpath run build && vp preview",
-    "deploy": "$npm_execpath run build && wrangler deploy",
-    "deploy:upload": "$npm_execpath run build && wrangler versions upload",
-    "deploy:promote": "wrangler versions deploy --yes",
-    "cf-typegen": "pnpm wrangler types --env-interface CloudflareBindings",
-    "type": "pnpm run cf-typegen && pnpm exec tsgo --noEmit"
+    "preview": "vp run build && vp preview",
+    "deploy": "vp run build && vp exec wrangler deploy --config dist/umaxica_apps_edge_app_apex/wrangler.json",
+    "deploy:upload": "vp run build && vp exec wrangler versions upload --config dist/umaxica_apps_edge_app_apex/wrangler.json",
+    "deploy:promote": "vp exec wrangler versions deploy --config dist/umaxica_apps_edge_app_apex/wrangler.json --yes",
+    "cf-typegen": "vp exec wrangler types --env-interface CloudflareBindings",
+    "type": "vp run cf-typegen && vp exec tsgo --noEmit"
   },
   "dependencies": {
-    "hono": "^4.12.18"
+    "hono": "^4.12.5"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.26.1",
     "@tailwindcss/vite": "^4.2.1",
     "@types/react": "^19.2.14",
     "autoprefixer": "^10.4.27",
-    "postcss": "^8.5.10",
+    "postcss": "^8.5.8",
     "semgrep": "^0.0.1",
     "tailwindcss": "^4.2.1",
     "vite": "catalog:",

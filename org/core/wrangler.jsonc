@@ -1,0 +1,110 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "umaxica-apps-edge-org-core",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-05-13",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "version_metadata": {
+    "binding": "REVISION"
+  },
+  "images": {
+    "binding": "IMAGES"
+  },
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".open-next/assets"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "umaxica-apps-edge-org-core"
+    }
+  ],
+  "observability": {
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 0.2,
+      "persist": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true,
+      "persist": true,
+      "head_sampling_rate": 0.2
+    }
+  },
+  "upload_source_maps": false,
+  "placement": {
+    "mode": "smart"
+  },
+  "env": {
+    "development": {
+      "vars": {
+        "CLOUDFLARE_ENV": "development",
+        "NODE_ENV": "development",
+        "BRAND_NAME": "UMAXICA",
+        "NEXT_PUBLIC_APP_URL": "http://org.localhost:5302",
+        "NEXT_PUBLIC_SENTRY_DSN": ""
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "umaxica-apps-edge-org-core"
+        }
+      ],
+      "version_metadata": {
+        "binding": "REVISION"
+      },
+      "ratelimits": [
+        {
+          "name": "RATE_LIMITER",
+          "namespace_id": "1003",
+          "simple": {
+            "limit": 2000,
+            "period": 60
+          }
+        }
+      ]
+    },
+    "production": {
+      "vars": {
+        "CLOUDFLARE_ENV": "production",
+        "NODE_ENV": "production",
+        "BRAND_NAME": "UMAXICA",
+        "NEXT_PUBLIC_APP_URL": "https://umaxica.org",
+        "NEXT_PUBLIC_SENTRY_DSN": ""
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "umaxica-apps-edge-org-core"
+        }
+      ],
+      "version_metadata": {
+        "binding": "REVISION"
+      },
+      "ratelimits": [
+        {
+          "name": "RATE_LIMITER",
+          "namespace_id": "1003",
+          "simple": {
+            "limit": 2000,
+            "period": 60
+          }
+        }
+      ]
+    }
+  },
+  "ratelimits": [
+    {
+      "name": "RATE_LIMITER",
+      "namespace_id": "1003",
+      "simple": {
+        "limit": 2000,
+        "period": 60
+      }
+    }
+  ]
+}

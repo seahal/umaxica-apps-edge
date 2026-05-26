@@ -4,6 +4,53 @@ export const MIN_IMAGE_QUALITY = 1;
 export const MAX_IMAGE_QUALITY = 100;
 export const MAX_IMAGE_SOURCE_BYTES = 10 * 1024 * 1024;
 
+function isPrivateOrReservedIPv4(hostname: string): boolean {
+  const match = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!match) {
+    return false;
+  }
+
+  const octets = match.slice(1).map(Number);
+  if (octets.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) {
+    return true;
+  }
+
+  const [a, b] = octets;
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    a >= 224
+  );
+}
+
+function isPrivateOrReservedIPv6(hostname: string): boolean {
+  const normalized = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  return (
+    normalized === '::' ||
+    normalized === '::1' ||
+    normalized.startsWith('fe80:') ||
+    normalized.startsWith('fc') ||
+    normalized.startsWith('fd')
+  );
+}
+
+function isDisallowedIpLiteral(hostname: string): boolean {
+  if (isPrivateOrReservedIPv4(hostname)) {
+    return true;
+  }
+
+  if (hostname.includes(':') || hostname.startsWith('[')) {
+    return isPrivateOrReservedIPv6(hostname);
+  }
+
+  return false;
+}
+
 export interface ImageTransformOptions {
   width?: number;
   quality?: number;
@@ -52,6 +99,10 @@ export function validateImageUrl(
     return null;
   }
 
+  if (isDisallowedIpLiteral(parsed.hostname)) {
+    return null;
+  }
+
   if (isAllowedOrigin(requestUrl, parsed)) {
     return parsed.toString();
   }
@@ -74,6 +125,18 @@ export function isAllowedImageFetchTarget(
   try {
     parsed = new URL(candidateUrl);
   } catch {
+    return false;
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return false;
+  }
+
+  if (parsed.username || parsed.password) {
+    return false;
+  }
+
+  if (isDisallowedIpLiteral(parsed.hostname)) {
     return false;
   }
 

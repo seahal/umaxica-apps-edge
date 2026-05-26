@@ -53,6 +53,14 @@ describe('shared/cloudflare/image', () => {
     ).toBeNull();
   });
 
+  it('rejects private or reserved ip literals even when explicitly allowed', () => {
+    expect(validateImageUrl('http://127.0.0.1/logo.png', 'https://example.com/app')).toBeNull();
+    expect(
+      validateImageUrl('http://192.168.1.10/logo.png', 'https://example.com/app', '192.168.1.10'),
+    ).toBeNull();
+    expect(validateImageUrl('http://[::1]/logo.png', 'https://example.com/app')).toBeNull();
+  });
+
   it('parses bounded image transform options', () => {
     expect(parseImageTransformOptions('1200', '85')).toEqual({ width: 1200, quality: 85 });
     expect(parseImageTransformOptions(null, null)).toEqual({});
