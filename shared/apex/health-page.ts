@@ -11,7 +11,7 @@ function buildHealthPageHtml(brandName: string, timestampIso: string): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${brandName}</title>
     <meta name="robots" content="${HEALTH_ROBOTS_HEADER}" />
-    <link href="/src/style.css" rel="stylesheet" />
+    <link href="/style.css" rel="stylesheet" />
   </head>
   <body class="min-h-screen flex flex-col bg-gray-50">
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-8">

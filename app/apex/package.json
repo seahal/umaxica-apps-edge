@@ -2,12 +2,13 @@
   "name": "umaxica-apps-edge-app-apex",
   "type": "module",
   "scripts": {
-    "server": "vp dev",
-    "build": "vp build --ssr src/index.tsx && rm -rf dist/client && mkdir -p dist/client && cp -a public/. dist/client/",
-    "preview": "vp run build && vp preview",
-    "deploy": "vp run build && vp exec wrangler deploy --config dist/umaxica_apps_edge_app_apex/wrangler.json",
-    "deploy:upload": "vp run build && vp exec wrangler versions upload --config dist/umaxica_apps_edge_app_apex/wrangler.json",
-    "deploy:promote": "vp exec wrangler versions deploy --config dist/umaxica_apps_edge_app_apex/wrangler.json --yes",
+    "build:css": "vp exec tailwindcss -i ./src/style.css -o ./public/style.css --minify && vp fmt ./public/style.css",
+    "server": "vp run build:css && vp exec wrangler dev --config wrangler.jsonc",
+    "build": "vp run build:css && vp exec wrangler deploy --config wrangler.jsonc --dry-run --outdir dist",
+    "preview": "vp run build && vp exec wrangler dev --config wrangler.jsonc --local",
+    "deploy": "vp run build:css && vp exec wrangler deploy --config wrangler.jsonc",
+    "deploy:upload": "vp run build:css && vp exec wrangler versions upload --config wrangler.jsonc",
+    "deploy:promote": "vp exec wrangler versions deploy --config wrangler.jsonc --yes",
     "cf-typegen": "vp exec wrangler types --env-interface CloudflareBindings",
     "type": "vp run cf-typegen && vp exec tsgo --noEmit"
   },
@@ -15,16 +16,10 @@
     "hono": "^4.12.5"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.26.1",
-    "@tailwindcss/vite": "^4.2.1",
+    "@tailwindcss/cli": "^4.2.1",
     "@types/react": "^19.2.14",
-    "autoprefixer": "^10.4.27",
-    "postcss": "^8.5.8",
     "semgrep": "^0.0.1",
     "tailwindcss": "^4.2.1",
-    "vite": "catalog:",
-    "vite-plus": "catalog:",
-    "vite-ssr-components": "^0.5.2",
     "wrangler": "^4.71.0"
   }
 }

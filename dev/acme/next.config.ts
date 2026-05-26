@@ -11,7 +11,7 @@ export default withSentryConfig(nextConfig, {
 
   org: 'umaxica',
 
-  project: 'umaxica-apps-edge-dev-core',
+  project: 'umaxica-apps-edge-dev-acme',
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
