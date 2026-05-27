@@ -72,6 +72,7 @@ export default defineConfig({
     include: [
       'app/**/*.test.{ts,tsx}',
       'com/**/*.test.{ts,tsx}',
+      'dev/apex/**/*.test.{ts,tsx}',
       'org/**/*.test.{ts,tsx}',
       'net/**/*.test.{ts,tsx}',
       'shared/**/*.test.{ts,tsx}',

@@ -13,7 +13,7 @@ import { timeout } from 'hono/timeout';
 import { checkRateLimit } from '../../../shared/apex/rate-limit';
 import { applySecurityHeaders, type AssetEnv } from '../../../shared/apex/security-headers';
 import { setMeta } from '../../../shared/apex/seo';
-import { getAboutMeta, getRootMeta, renderAboutContent, renderRootContent } from './page-content';
+import { getAboutMeta, renderAboutContent } from './page-content';
 import { renderer } from './renderer';
 
 const app = new Hono<{ Bindings: AssetEnv }>();
@@ -38,8 +38,7 @@ app.use(languageDetector({ supportedLanguages: ['en', 'ja'], fallbackLanguage: '
 pageRoutes.use(renderer as unknown as Parameters<typeof pageRoutes.use>[0]);
 
 pageRoutes.get('/', timeout(2000), (c) => {
-  setMeta(c, getRootMeta(c.env));
-  return c.render(renderRootContent(c.get('language')));
+  return c.redirect('/about', 301);
 });
 
 pageRoutes.get('/about', timeout(2000), (c) => {
