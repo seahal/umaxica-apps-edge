@@ -13,26 +13,10 @@ describe('Net Hono app', () => {
     expect(body).not.toContain('<footer');
   });
 
-  it('renders root page', async () => {
+  it('redirects root to about', async () => {
     const res = await app.request('/');
-    expect(res.status).toBe(200);
-    const body = await res.text();
-    expect(body).toContain('About this site.');
-    expect(body).not.toContain('このサイトについて');
-    expect(body).toContain('umaxica.app');
-    expect(body).toContain('<title>UMAXICA (net) - Apex</title>');
-    expect(body).toContain('<link rel="canonical" href="https://umaxica.net/"');
-    expect(body).toContain('<meta name="robots" content="index,follow"');
-  });
-
-  it('renders root page in Japanese when Accept-Language prefers ja', async () => {
-    const res = await app.request('/', {
-      headers: { 'Accept-Language': 'ja' },
-    });
-    expect(res.status).toBe(200);
-    const body = await res.text();
-    expect(body).toContain('このサイトについて');
-    expect(body).not.toContain('About this site.');
+    expect(res.status).toBe(301);
+    expect(res.headers.get('location')).toBe('/about');
   });
 
   it('renders about page', async () => {
@@ -60,16 +44,16 @@ describe('Net Hono app', () => {
   });
 
   it('renders footer with current UTC year', async () => {
-    const res = await app.request('/');
+    const res = await app.request('/about');
     const body = await res.text();
     const currentYear = new Date().getUTCFullYear();
     expect(body).toContain(`© ${currentYear} UMAXICA`);
   });
 
-  it('renders root page with brand name from env', async () => {
-    const res = await app.request('/', {}, { BRAND_NAME: 'UMAXCA' });
+  it('renders about page with brand name from env', async () => {
+    const res = await app.request('/about', {}, { BRAND_NAME: 'UMAXCA' });
     const body = await res.text();
-    expect(body).toContain('<title>UMAXICA (net) - Apex</title>');
+    expect(body).toContain('<title>About | UMAXICA (net) - Apex</title>');
     expect(body).toContain('UMAXCA');
   });
 
