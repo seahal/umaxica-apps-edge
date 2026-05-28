@@ -1,8 +1,0 @@
-@import 'tailwindcss';
-@source '../../../shared/apex/**/*.{ts,tsx}';
-
-@layer base {
-  a {
-    @apply text-blue-600 underline;
-  }
-}

@@ -1,17 +1,11 @@
 packages:
-  - app/apex
   - app/core
   - app/post
-  - com/apex
   - com/core
   - com/post
-  - dev/apex
   - dev/acme
-  - org/apex
   - org/core
   - org/post
-  - net/apex
-  - net/jump
 
 catalog:
   '@cloudflare/workers-types': ^4.20260523.0

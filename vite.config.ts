@@ -47,8 +47,16 @@ export default defineConfig({
     env: {
       browser: true,
       es2024: true,
+      node: true,
     },
-    globals: {},
+    globals: {
+      afterEach: 'readonly',
+      beforeEach: 'readonly',
+      describe: 'readonly',
+      expect: 'readonly',
+      it: 'readonly',
+      vi: 'readonly',
+    },
     settings: {
       react: {
         version: '19',

@@ -73,14 +73,14 @@ describe('Cookie and Consent State', () => {
   });
 
   describe('acceptCookieConsent', () => {
-    const originalFetch = global.fetch;
+    const originalFetch = globalThis.fetch;
 
     beforeEach(() => {
-      global.fetch = vi.fn<typeof fetch>();
+      globalThis.fetch = vi.fn<typeof fetch>();
     });
 
     afterEach(() => {
-      global.fetch = originalFetch;
+      globalThis.fetch = originalFetch;
     });
 
     it('successfully accepts cookie consent', async () => {

@@ -3,13 +3,6 @@ import { defineConfig } from 'vite-plus';
 export default defineConfig({
   resolve: {
     tsconfigPaths: true,
-    alias: {
-      '@microlabs/otel-cf-workers': new URL(
-        'app/apex/__mocks__/@microlabs/otel-cf-workers.ts',
-        import.meta.url,
-      ).pathname,
-      '@hono/otel': new URL('app/apex/__mocks__/@hono/otel.ts', import.meta.url).pathname,
-    },
   },
   test: {
     coverage: {
@@ -33,24 +26,7 @@ export default defineConfig({
         '**/.open-next/**',
         '**/next.config.ts',
         '**/open-next.config.ts',
-        '**/app/apex/src/page-content.tsx',
-        '**/com/apex/src/page-content.tsx',
-        '**/org/apex/src/page-content.tsx',
-        '**/net/apex/src/page-content.tsx',
-        '**/shared/apex/html/health-page.ts',
-        '**/shared/apex/middleware/rate-limit.ts',
-        '**/shared/apex/routes/about.ts',
-        '**/shared/apex/routes/root.ts',
         '**/shared/cloudflare/image.ts',
-        '**/apex/src/root-redirect.ts',
-        '**/apex/src/footer.tsx',
-        '**/apex/src/app.tsx',
-        '**/apex/src/index.tsx',
-        '**/apex/src/otel.ts',
-        '**/apex/src/renderer.tsx',
-        '**/apex/html/index.ts',
-        '**/apex/middleware/index.ts',
-        '**/apex/routes/index.ts',
         '**/src/i18n/**',
         '**/src/app/**',
       ],
@@ -72,7 +48,7 @@ export default defineConfig({
     include: [
       'app/**/*.test.{ts,tsx}',
       'com/**/*.test.{ts,tsx}',
-      'dev/apex/**/*.test.{ts,tsx}',
+      'dev/**/*.test.{ts,tsx}',
       'org/**/*.test.{ts,tsx}',
       'net/**/*.test.{ts,tsx}',
       'shared/**/*.test.{ts,tsx}',

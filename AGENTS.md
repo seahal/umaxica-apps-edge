@@ -1,3 +1,8 @@
+## Module Composition Rules
+
+- Mixin-style modules, shared helpers, and composition utilities MUST keep their own implementation as side-effect-light as possible. Mutations, registration, persistence, external I/O, and other observable side effects MUST be performed or explicitly wired by the caller or consuming module.
+- Shared module code MUST expose the smallest public surface practical. Keep internals unexported or locally scoped whenever possible, and only export functions or types that are intentionally part of the consumer-facing API.
+
 <!--VITE PLUS START-->
 
 # Using Vite+, the Unified Toolchain for the Web

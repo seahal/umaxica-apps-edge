@@ -15,6 +15,12 @@ const ALLOWED_IMAGE_CONTENT_TYPES = new Set([
   'image/x-icon',
 ]);
 
+function getAllowedImageHostsFromEnv(): string {
+  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process
+    ?.env;
+  return env?.ALLOWED_IMAGE_HOSTS ?? DEFAULT_ALLOWED_IMAGE_HOSTS;
+}
+
 function isPrivateOrReservedIPv4(hostname: string): boolean {
   const match = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (!match) {
@@ -92,8 +98,7 @@ function isAllowedOrigin(requestUrl: string, parsedUrl: URL): boolean {
 export function validateImageUrl(
   rawUrl: string,
   requestUrl: string,
-  allowedHostnamesValue: string | undefined = process.env.ALLOWED_IMAGE_HOSTS ??
-    DEFAULT_ALLOWED_IMAGE_HOSTS,
+  allowedHostnamesValue: string | undefined = getAllowedImageHostsFromEnv(),
 ): string | null {
   let parsed: URL;
   try {
@@ -129,8 +134,7 @@ export function validateImageUrl(
 export function isAllowedImageFetchTarget(
   candidateUrl: string,
   requestUrl: string,
-  allowedHostnamesValue: string | undefined = process.env.ALLOWED_IMAGE_HOSTS ??
-    DEFAULT_ALLOWED_IMAGE_HOSTS,
+  allowedHostnamesValue: string | undefined = getAllowedImageHostsFromEnv(),
 ): boolean {
   let parsed: URL;
   try {
