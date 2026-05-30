@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Umaxica App (EDGE) — a multi-domain monorepo deploying Hono services to Cloudflare Workers. Three domain families: umaxica.com (corporate), umaxica.app (service), umaxica.org (staff), plus network support services.
+Umaxica App (EDGE) — a multi-domain monorepo for Next.js applications deployed to Cloudflare Workers and Vercel. Three domain families: umaxica.com (corporate), umaxica.app (service), and umaxica.org (staff).
 
 ## Commands
 
@@ -20,30 +20,33 @@ All commands run from the repo root using **Vite+** (`vp`).
 | Run single test file       | `vp test run path/to/file.test.ts`   |
 | Run tests matching name    | `vp test run -t "test name"`         |
 | CF type generation         | `vp run cf-typegen`                  |
-| Dev server (per workspace) | `vp run --filter <workspace> server` |
+| Dev server (per workspace) | `vp run --filter <workspace> dev`    |
 | Deploy (per workspace)     | `vp run --filter <workspace> deploy` |
 
 ## Architecture
 
 ### Workspace Layout
 
-Each domain has an apex service built with Hono on Workers:
+The active workspaces are Next.js applications:
 
-| Workspace  | Domain         | Dev Port |
-| ---------- | -------------- | -------- |
-| `app/apex` | umaxica.app    | 5401     |
-| `com/apex` | umaxica.com    | 5101     |
-| `org/apex` | umaxica.org    | 5301     |
-| `net/apex` | Network worker | 5201     |
+| Workspace  | Domain           | Dev Port |
+| ---------- | ---------------- | -------- |
+| `app/core` | umaxica.app      | 5402     |
+| `app/post` | post.umaxica.app | 5406     |
+| `com/core` | umaxica.com      | 5102     |
+| `com/post` | post.umaxica.com | 5106     |
+| `org/core` | umaxica.org      | 5302     |
+| `org/post` | post.umaxica.org | 5306     |
+| `dev/acme` | umaxica.dev      | 5502     |
 
 ### Service Pattern
 
-- Hono v4 web framework on Cloudflare Workers
+- Next.js on Cloudflare Workers via OpenNext, plus Vercel for `dev/acme`
 - Vite+ drives local dev, builds, tests, linting, and formatting
 
 ### Key Dependencies
 
-- **Hono v4** for API services
+- **Next.js** for application implementation
 - **Vite** (via rolldown-vite) for builds
 - **Zod v4** for validation
 - **Wrangler v4** for Cloudflare deployment

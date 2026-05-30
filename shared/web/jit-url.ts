@@ -21,10 +21,16 @@ function normalizeUrl(value: string | undefined) {
   return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
 }
 
+function getProcessEnv(): Record<string, string | undefined> {
+  return (
+    (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {}
+  );
+}
+
 export function getJitWorkspaceUrl(
   domain: JitDomain,
   workspace: JitWorkspace,
-  env: Record<string, string | undefined> = process.env,
+  env: Record<string, string | undefined> = getProcessEnv(),
 ) {
   return normalizeUrl(env[getJitWorkspaceEnvName(domain, workspace)]);
 }

@@ -1,3 +1,0 @@
-User-agent: *
-Disallow: /health
-Sitemap: https://umaxica.net/sitemap.xml

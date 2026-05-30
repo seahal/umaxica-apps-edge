@@ -12,12 +12,15 @@
 
 ## Workspaces
 
-| Package    | Role                | Domain        | Dev Port |
-| ---------- | ------------------- | ------------- | -------- |
-| `com/apex` | Apex/static worker  | `umaxica.com` | 5101     |
-| `app/apex` | Apex/static worker  | `umaxica.app` | 5401     |
-| `org/apex` | Apex/static worker  | `umaxica.org` | 5301     |
-| `net/apex` | Network apex worker | —             | 5201     |
+| Package    | Role            | Domain             | Dev Port |
+| ---------- | --------------- | ------------------ | -------- |
+| `com/core` | Corporate app   | `umaxica.com`      | 5102     |
+| `com/post` | Corporate posts | `post.umaxica.com` | 5106     |
+| `org/core` | Staff app       | `umaxica.org`      | 5302     |
+| `org/post` | Staff posts     | `post.umaxica.org` | 5306     |
+| `app/core` | Service app     | `umaxica.app`      | 5402     |
+| `app/post` | Service posts   | `post.umaxica.app` | 5406     |
+| `dev/acme` | Development app | `umaxica.dev`      | 5502     |
 
 ## Quick Start
 
@@ -25,7 +28,7 @@
 vp install
 
 # Run a specific workspace
-vp run --filter <workspace> server   # e.g. com/apex, app/apex
+vp run --filter <workspace> dev   # e.g. com/core, app/core
 
 # Docker (optional)
 docker compose up && docker compose exec core bash
@@ -78,10 +81,10 @@ docker compose up && docker compose exec core bash
 
 ## Production Environment
 
-| Platform                                              | Workspaces                         | Domains                                     |
-| ----------------------------------------------------- | ---------------------------------- | ------------------------------------------- |
-| [Cloudflare Workers](https://workers.cloudflare.com/) | `com/*`, `app/*`, `org/*`, `net/*` | `umaxica.com`, `umaxica.app`, `umaxica.org` |
-| [Vercel](https://vercel.com/)                         | `dev/*`                            | `umaxica.dev`                               |
+| Platform                                              | Workspaces                | Domains                                     |
+| ----------------------------------------------------- | ------------------------- | ------------------------------------------- |
+| [Cloudflare Workers](https://workers.cloudflare.com/) | `com/*`, `app/*`, `org/*` | `umaxica.com`, `umaxica.app`, `umaxica.org` |
+| [Vercel](https://vercel.com/)                         | `dev/*`                   | `umaxica.dev`                               |
 
 ### Deployment
 
@@ -90,6 +93,15 @@ vp run --filter <workspace> deploy            # direct deploy
 vp run --filter <workspace> deploy:upload      # versioned: upload then promote
 vp run --filter <workspace> deploy:promote
 ```
+
+Cloudflare deploy commands should use the Vite+ workspace runner, for example:
+
+```bash
+vp run deploy:app-post:upload
+```
+
+Do not use `npm --dir`; npm does not support that flag. If npm must be used by
+the platform, use `npm --prefix app/post run deploy:upload`.
 
 ### Environment Variables
 

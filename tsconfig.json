@@ -1,5 +1,5 @@
 {
-  "exclude": ["app/apex/**/*", "com/apex/**/*", "org/apex/**/*", "net/apex/**/*", "shared/**/*"],
+  "exclude": ["shared/**/*"],
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
