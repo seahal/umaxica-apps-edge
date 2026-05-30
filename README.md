@@ -94,6 +94,15 @@ vp run --filter <workspace> deploy:upload      # versioned: upload then promote
 vp run --filter <workspace> deploy:promote
 ```
 
+Cloudflare deploy commands should use the Vite+ workspace runner, for example:
+
+```bash
+vp run deploy:app-post:upload
+```
+
+Do not use `npm --dir`; npm does not support that flag. If npm must be used by
+the platform, use `npm --prefix app/post run deploy:upload`.
+
 ### Environment Variables
 
 Cloudflare workspaces use `wrangler.jsonc` (`vars` + environments).
