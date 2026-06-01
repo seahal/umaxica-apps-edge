@@ -117,10 +117,7 @@ The current Compose defaults map those names to the local dev ports for each wor
 
 Use the same naming pattern in other workspaces when you need a self URL or cross-workspace link target.
 
-## Monitoring
-
-Uptime checks via [Pulsetic](https://pulsetic.com/).
-
 ## Acknowledgement
-
+- Secrets must stay in Rails credentials; do not commit plaintext secrets.
+- WebAuthn origins are controlled by `TRUSTED_ORIGINS`.
 - Public availability of this repository is not guaranteed permanently.

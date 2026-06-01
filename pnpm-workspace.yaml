@@ -17,7 +17,6 @@ catalog:
   nuqs: ^2.8.9
   react: 19.2.6
   react-dom: 19.2.6
-  typescript: ^6.0.3
   vite: npm:@voidzero-dev/vite-plus-core@latest
   vite-plus: ^0.1.23
   vitest: npm:@voidzero-dev/vite-plus-test@^0.1.23
@@ -30,17 +29,6 @@ ignoredBuiltDependencies:
   - workerd
 
 minimumReleaseAge: 4320
-
-minimumReleaseAgeExclude:
-  - vite-plus
-  - '@voidzero-dev/*'
-  - oxlint
-  - '@oxlint/*'
-  - oxlint-tsgolint
-  - '@oxlint-tsgolint/*'
-  - oxfmt
-  - '@oxfmt/*'
-  - '@cloudflare/workers-types'
 
 overrides:
   vite: 'catalog:'
