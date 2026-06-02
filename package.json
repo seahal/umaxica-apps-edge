@@ -9,6 +9,8 @@
     "lint": "vp lint --fix",
     "lint:check": "vp lint",
     "deploy:app-docs:upload": "vp run --filter umaxica-apps-edge-app-docs deploy:upload",
+    "deploy:com-docs:upload": "vp run --filter umaxica-apps-edge-com-docs deploy:upload",
+    "deploy:org-docs:upload": "vp run --filter umaxica-apps-edge-org-docs deploy:upload",
     "type": "vp run --filter umaxica-apps-edge-app-docs --filter umaxica-apps-edge-app-help --filter umaxica-apps-edge-app-news --filter umaxica-apps-edge-com-docs --filter umaxica-apps-edge-com-help --filter umaxica-apps-edge-com-news --filter umaxica-apps-edge-dev-acme --filter umaxica-apps-edge-org-docs --filter umaxica-apps-edge-org-help --filter umaxica-apps-edge-org-news type",
     "typecheck": "vp run type",
     "test": "vp test run",

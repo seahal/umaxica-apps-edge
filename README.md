@@ -104,10 +104,21 @@ Cloudflare deploy commands should use the Vite+ workspace runner, for example:
 
 ```bash
 vp run deploy:app-docs:upload
+vp run deploy:com-docs:upload
+vp run deploy:org-docs:upload
 ```
 
-Do not use `npm --dir`; npm does not support that flag. If npm must be used by
-the platform, use `npm --prefix app/docs run deploy:upload`.
+Cloudflare project deploy commands for docs should point at the docs workspace:
+
+```bash
+pnpm --dir app/docs run deploy:upload
+pnpm --dir com/docs run deploy:upload
+pnpm --dir org/docs run deploy:upload
+```
+
+Do not point Cloudflare at the removed `post` workspace. Do not use `npm --dir`;
+npm does not support that flag. If npm must be used by the platform, use
+`npm --prefix app/docs run deploy:upload`.
 
 ### Environment Variables
 
