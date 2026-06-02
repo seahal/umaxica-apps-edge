@@ -1,11 +1,17 @@
 packages:
   - app/core
-  - app/post
+  - app/docs
+  - app/help
+  - app/news
   - com/core
-  - com/post
+  - com/docs
+  - com/help
+  - com/news
   - dev/acme
   - org/core
-  - org/post
+  - org/docs
+  - org/help
+  - org/news
 
 catalog:
   '@cloudflare/workers-types': ^4.20260523.0

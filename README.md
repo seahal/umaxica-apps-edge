@@ -15,11 +15,17 @@
 | Package    | Role            | Domain             | Dev Port |
 | ---------- | --------------- | ------------------ | -------- |
 | `com/core` | Corporate app   | `umaxica.com`      | 5102     |
-| `com/post` | Corporate posts | `post.umaxica.com` | 5106     |
+| `com/docs` | Corporate docs  | `docs.umaxica.com` | 5106     |
+| `com/news` | Corporate news  | `news.umaxica.com` | 5107     |
+| `com/help` | Corporate help  | `help.umaxica.com` | 5108     |
 | `org/core` | Staff app       | `umaxica.org`      | 5302     |
-| `org/post` | Staff posts     | `post.umaxica.org` | 5306     |
+| `org/docs` | Staff docs      | `docs.umaxica.org` | 5306     |
+| `org/news` | Staff news      | `news.umaxica.org` | 5307     |
+| `org/help` | Staff help      | `help.umaxica.org` | 5308     |
 | `app/core` | Service app     | `umaxica.app`      | 5402     |
-| `app/post` | Service posts   | `post.umaxica.app` | 5406     |
+| `app/docs` | Service docs    | `docs.umaxica.app` | 5406     |
+| `app/news` | Service news    | `news.umaxica.app` | 5407     |
+| `app/help` | Service help    | `help.umaxica.app` | 5408     |
 | `dev/acme` | Development app | `umaxica.dev`      | 5502     |
 
 ## Quick Start
@@ -97,11 +103,11 @@ vp run --filter <workspace> deploy:promote
 Cloudflare deploy commands should use the Vite+ workspace runner, for example:
 
 ```bash
-vp run deploy:app-post:upload
+vp run deploy:app-docs:upload
 ```
 
 Do not use `npm --dir`; npm does not support that flag. If npm must be used by
-the platform, use `npm --prefix app/post run deploy:upload`.
+the platform, use `npm --prefix app/docs run deploy:upload`.
 
 ### Environment Variables
 
