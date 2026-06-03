@@ -6,13 +6,12 @@
     "build": "vp exec opennextjs-cloudflare build",
     "build:next": "next build",
     "cf-typegen": "vp exec wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
-    "deploy": "vp exec opennextjs-cloudflare build && vp run verify:worker-name && vp exec opennextjs-cloudflare deploy",
-    "deploy:upload": "vp exec opennextjs-cloudflare build && vp run verify:worker-name && vp exec opennextjs-cloudflare upload",
-    "deploy:promote": "vp run verify:worker-name && vp exec wrangler versions deploy --yes",
+    "deploy": "vp exec opennextjs-cloudflare build && vp exec opennextjs-cloudflare deploy",
+    "deploy:upload": "vp exec opennextjs-cloudflare build && vp exec opennextjs-cloudflare upload",
+    "deploy:promote": "vp exec wrangler versions deploy --yes",
     "dev": "next dev --hostname 0.0.0.0 --port 5306",
     "preview": "vp exec opennextjs-cloudflare build && vp exec opennextjs-cloudflare preview",
-    "type": "vp exec tsgo --noEmit",
-    "verify:worker-name": "node ../../scripts/verify-cloudflare-worker-name.mjs"
+    "type": "vp exec tsgo --noEmit"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.19.11",
