@@ -22,11 +22,17 @@ services:
           nocopy: true
     ports:
       - '5102:5102' # com/core
-      - '5106:5106' # com/post
+      - '5106:5106' # com/docs
+      - '5107:5107' # com/news
+      - '5108:5108' # com/help
       - '5302:5302' # org/core
-      - '5306:5306' # org/post
+      - '5306:5306' # org/docs
+      - '5307:5307' # org/news
+      - '5308:5308' # org/help
       - '5402:5402' # app/core
-      - '5406:5406' # app/post
+      - '5406:5406' # app/docs
+      - '5407:5407' # app/news
+      - '5408:5408' # app/help
     command: sleep infinity
     tty: true
     stdin_open: true

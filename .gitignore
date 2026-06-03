@@ -90,9 +90,15 @@ dev/core/.env.local
 dev/status/.env.local
 .dev.vars
 .dev.vars.*
-!app/post/.dev.vars.example
-!com/post/.dev.vars.example
-!org/post/.dev.vars.example
+!app/docs/.dev.vars.example
+!app/help/.dev.vars.example
+!app/news/.dev.vars.example
+!com/docs/.dev.vars.example
+!com/help/.dev.vars.example
+!com/news/.dev.vars.example
+!org/docs/.dev.vars.example
+!org/help/.dev.vars.example
+!org/news/.dev.vars.example
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

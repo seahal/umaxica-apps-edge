@@ -15,11 +15,17 @@
 | Package    | Role            | Domain             | Dev Port |
 | ---------- | --------------- | ------------------ | -------- |
 | `com/core` | Corporate app   | `umaxica.com`      | 5102     |
-| `com/post` | Corporate posts | `post.umaxica.com` | 5106     |
+| `com/docs` | Corporate docs  | `docs.umaxica.com` | 5106     |
+| `com/news` | Corporate news  | `news.umaxica.com` | 5107     |
+| `com/help` | Corporate help  | `help.umaxica.com` | 5108     |
 | `org/core` | Staff app       | `umaxica.org`      | 5302     |
-| `org/post` | Staff posts     | `post.umaxica.org` | 5306     |
+| `org/docs` | Staff docs      | `docs.umaxica.org` | 5306     |
+| `org/news` | Staff news      | `news.umaxica.org` | 5307     |
+| `org/help` | Staff help      | `help.umaxica.org` | 5308     |
 | `app/core` | Service app     | `umaxica.app`      | 5402     |
-| `app/post` | Service posts   | `post.umaxica.app` | 5406     |
+| `app/docs` | Service docs    | `docs.umaxica.app` | 5406     |
+| `app/news` | Service news    | `news.umaxica.app` | 5407     |
+| `app/help` | Service help    | `help.umaxica.app` | 5408     |
 | `dev/acme` | Development app | `umaxica.dev`      | 5502     |
 
 ## Quick Start
@@ -97,11 +103,27 @@ vp run --filter <workspace> deploy:promote
 Cloudflare deploy commands should use the Vite+ workspace runner, for example:
 
 ```bash
-vp run deploy:app-post:upload
+vp run deploy:app-docs:upload
+vp run deploy:com-docs:upload
+vp run deploy:org-docs:upload
 ```
 
-Do not use `npm --dir`; npm does not support that flag. If npm must be used by
-the platform, use `npm --prefix app/post run deploy:upload`.
+Cloudflare project deploy commands for docs should point at the docs workspace:
+
+```bash
+pnpm --dir app/docs run deploy:upload
+pnpm --dir com/docs run deploy:upload
+pnpm --dir org/docs run deploy:upload
+```
+
+Do not point Cloudflare at the removed `post` workspace. Do not use `npm --dir`;
+npm does not support that flag. If npm must be used by the platform, use
+`npm --prefix app/docs run deploy:upload`.
+
+If Wrangler reports that the CI system expected a `*-post` Worker while the
+workspace config uses `*-docs`, the Cloudflare Workers Build is still connected
+to the removed `post` Worker. Reconnect or recreate that Cloudflare build for
+the matching docs Worker before deploying.
 
 ### Environment Variables
 
@@ -117,10 +139,8 @@ The current Compose defaults map those names to the local dev ports for each wor
 
 Use the same naming pattern in other workspaces when you need a self URL or cross-workspace link target.
 
-## Monitoring
-
-Uptime checks via [Pulsetic](https://pulsetic.com/).
-
 ## Acknowledgement
 
+- Secrets must stay in Rails credentials; do not commit plaintext secrets.
+- WebAuthn origins are controlled by `TRUSTED_ORIGINS`.
 - Public availability of this repository is not guaranteed permanently.
