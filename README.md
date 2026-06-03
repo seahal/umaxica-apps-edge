@@ -120,6 +120,11 @@ Do not point Cloudflare at the removed `post` workspace. Do not use `npm --dir`;
 npm does not support that flag. If npm must be used by the platform, use
 `npm --prefix app/docs run deploy:upload`.
 
+If Wrangler reports that the CI system expected a `*-post` Worker while the
+workspace config uses `*-docs`, the Cloudflare Workers Build is still connected
+to the removed `post` Worker. Reconnect or recreate that Cloudflare build for
+the matching docs Worker before deploying.
+
 ### Environment Variables
 
 Cloudflare workspaces use `wrangler.jsonc` (`vars` + environments).
