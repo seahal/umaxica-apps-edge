@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@opennextjs/cloudflare": "catalog:",
-    "@sentry/nextjs": "^10.51.0",
+    "@sentry/nextjs": "^10.55.0",
     "client-only": "^0.0.1",
     "next": "catalog:",
     "nuqs": "catalog:",
