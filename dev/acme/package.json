@@ -13,7 +13,7 @@
     "@opentelemetry/api-logs": "^0.214.0",
     "@opentelemetry/instrumentation": "^0.214.0",
     "@opentelemetry/sdk-logs": "^0.214.0",
-    "@sentry/nextjs": "^10.51.0",
+    "@sentry/nextjs": "^10.56.0",
     "@vercel/otel": "^2.1.2",
     "client-only": "^0.0.1",
     "next": "catalog:",
