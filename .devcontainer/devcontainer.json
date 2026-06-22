@@ -149,17 +149,16 @@
     "NODE_OPTIONS": "--max-old-space-size=4096"
   },
   "mounts": [
-    "source=${localEnv:HOME}/.claude,target=/home/edge/.claude,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.claude.json,target=/home/edge/.claude.json,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.copilot,target=/home/edge/.copilot,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.codex,target=/home/edge/.codex,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.gemini,target=/home/edge/.gemini,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.config/gh,target=/home/edge/.config/gh,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.config/git,target=/home/edge/.config/git,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.gitconfig,target=/home/edge/.gitconfig,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.ssh,target=/home/edge/.ssh,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.config/opencode,target=/home/edge/.config/opencode,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.claude,target=/home/edge/.claude,type=bind",
+    "source=${localEnv:HOME}/.claude.json,target=/home/edge/.claude.json,type=bind",
+    "source=${localEnv:HOME}/.copilot,target=/home/edge/.copilot,type=bind",
+    "source=${localEnv:HOME}/.codex,target=/home/edge/.codex,type=bind",
+    "source=${localEnv:HOME}/.gemini,target=/home/edge/.gemini,type=bind",
+    "source=${localEnv:HOME}/.config/gh,target=/home/edge/.config/gh,type=bind,readonly",
+    "source=${localEnv:HOME}/.config/git,target=/home/edge/.config/git,type=bind,readonly",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/edge/.gitconfig,type=bind,readonly",
+    "source=${localEnv:HOME}/.ssh,target=/home/edge/.ssh,type=bind,readonly",
+    "source=${localEnv:HOME}/.config/opencode,target=/home/edge/.config/opencode,type=bind,readonly"
   ],
-  "updateRemoteUserUID": true,
-  "postCreateCommand": "sudo chown -R 1000:1000 /home/edge/"
+  "updateRemoteUserUID": false
 }

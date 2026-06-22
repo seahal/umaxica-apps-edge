@@ -20,6 +20,12 @@ services:
         target: /home/edge/workspace/node_modules
         volume:
           nocopy: true
+      - type: volume
+        source: home-cache
+        target: /home/edge/.cache
+      - type: volume
+        source: home-local-share
+        target: /home/edge/.local/share
     ports:
       - '5102:5102' # com/core
       - '5106:5106' # com/docs
@@ -63,6 +69,10 @@ services:
     restart: unless-stopped
 volumes:
   node-volume:
+    driver: local
+  home-cache:
+    driver: local
+  home-local-share:
     driver: local
   postgres-data:
     driver: local
