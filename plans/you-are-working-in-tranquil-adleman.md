@@ -98,3 +98,51 @@ Each app gets a thin wrapper (`app/core/src/lib/rails-client.ts` etc., or reuse 
 - `pnpm --filter <each> run build` (OpenNext) and `pnpm --filter <each> run preview` (workerd boot), hitting `/health` and `/rails-health`
 - `git status` before and after — diff must touch only the files listed above
 - Live VPC calls: attempt, else mark `BLOCKED EXTERNALLY` with the exact command a human needs to run (`wrangler login`, then `wrangler vpc service create ...`, then re-run this task)
+
+## Post-implementation: stale deploy diagnosis (current sub-task)
+
+**Context:** All work above landed in commits `c90a062` ("added cloudflare worker vpc settings") and `a4c16cc` (the `force-dynamic` fix for the SSG prerender bug found via the user's CI log — `getCloudflareContext()` sync form isn't valid during static generation, fixed by opting `/rails-health` out of prerendering on all three apps). Working tree is clean; both commits are confirmed present with the expected file sets (verified via `git show --stat`).
+
+The user then deployed and reported:
+- `app/core` `/rails-health` shows the **old** message "Rails API URL is not configured / Set RAILS_API_URL to point at the Rails container or host port" — this exact string only exists in the pre-VPC implementation (confirmed via `grep -rn RAILS_API_URL` across app/com/org `src/` returning zero matches in the current source tree). This proves the live app/core Worker is running a build from **before** this task's changes.
+- `com/core` and `org/core` `/rails-health` return **404** — also consistent with a pre-task deploy, since those apps had no `rails-health` route at all before this slice.
+
+**Diagnosis:** the deployment the user ran served a stale/cached build artifact (or ran before commit `c90a062`/`a4c16cc` were picked up), not the current source. This is not a defect in the current code — it's a deploy-freshness issue. Likely causes to check with the user: (a) `deploy:promote` (`wrangler versions deploy --yes`) was used, which promotes an already-uploaded version rather than building fresh; (b) the CI build cache (`Restoring from build output cache` seen in the earlier log) served a cached `.next`/`.open-next` output older than the fix; (c) the deploy ran against a commit older than `a4c16cc`.
+
+**Next steps (to execute once out of plan mode):**
+1. Ask the user how they trigger deploy (their CI vs. local `pnpm run deploy`) and whether it was run after commit `a4c16cc`.
+2. Cannot verify or re-trigger deploy from this sandbox — Cloudflare/wrangler here is unauthenticated (confirmed earlier: `wrangler whoami` fails, no `~/.wrangler` credentials), so `pnpm run deploy` will fail locally the same way `pnpm run build` did before authentication. Any real deploy must run in the user's authenticated environment (their CI or an authenticated local machine).
+3. Recommend the user force a clean rebuild (bypass build cache) and redeploy from HEAD (`a4c16cc`), for all three apps, then re-check `/rails-health` on each — expect: app/core shows the new bounded VPC-based view ("Rails health is reachable/unreachable/..." or "Rails VPC binding is not configured" if the placeholder-adjacent binding isn't resolving), com/core and org/core no longer 404 and show their own bounded views.
+4. If still stale after a forced clean rebuild from HEAD, escalate to inspecting the CI pipeline's checkout ref / cache key rather than the application code, since the source is confirmed correct.
+
+No code changes are anticipated for this sub-task — it is a deploy/cache verification, not an implementation fix.
+
+**Update — redeploy confirmed fresh:** user re-checked and app/core's `/rails-health` now shows the new bounded view:
+> Rails is unreachable / Request failed before a response arrived. / internal error; reference = 305ad952514e45edb4e5376add822397
+
+This confirms:
+- The stale-deploy theory was correct — a subsequent redeploy now serves the current code (`a4c16cc`). Gate 5 (OpenNext build/deploy) is now genuinely live and working for app/core.
+- `checkRailsHealth` → `getRailsClient()` → `createRailsClient(...).fetch()` chain is executing for real against the live `VPC_SERVICE_APP_CORE` binding and reaching Cloudflare's edge (the "unreachable" branch with a Cloudflare-style `internal error; reference = <id>` message is the binding's `fetch()` throwing — this is a Cloudflare-side error surfaced through our `catch` block exactly as designed, not an app bug).
+- This `internal error; reference = ...` string is characteristic of a Cloudflare Workers runtime-level failure (not an HTTP error from Rails itself, which would hit the `http-error` branch instead). Most likely causes, all external to this repo: the Tunnel isn't actually connected/routing to the `core` target yet, the Podman Rails container isn't up/listening on port 3000, or the VPC Service's tunnel/hostname/port wiring doesn't yet match reality. None of these are fixable from application code.
+
+**Still open:** whether com/core and org/core also now show their own bounded views (no update from the user on those yet) — worth confirming.
+
+**Recommended next step:** treat this as Gate 6/7 = `BLOCKED EXTERNALLY`, evidenced by a real "unreachable" result with a Cloudflare reference ID (rather than "unauthenticated, couldn't even try"), and point the user at checking the Cloudflare Tunnel connector status / Podman container health for the `core` target — that reference ID is the thing to hand to Cloudflare dashboard logs or `cloudflared tunnel` diagnostics if they want to dig further. No repo-side action indicated.
+
+**Update — confirmed by user:** all three apps (app/com/org) now show bounded results (not 404) — deploy is fresh everywhere. However, the user clarified the real root cause of the "unreachable" result: the Rails health path this repo targets (`/edge/v0/health`) **no longer exists** on the Rails side. The correct current path is `/health/liveness.json` (confirmed reachable by the user at `https://side-jp.umaxica.app/health/liveness.json` as a public-endpoint sanity check). The user explicitly confirmed: only the **path** needs to change — the private VPC target hostname per app (`core.app.localhost` / `core.com.localhost` / `core.org.localhost`) stays exactly as designed; nothing about the VPC/binding/hostname architecture changes.
+
+## Fix: update Rails health check path
+
+**Single change point:** `shared/cloudflare/rails-health.ts` has one constant:
+```ts
+const RAILS_HEALTH_PATH = '/edge/v0/health';
+```
+Change to:
+```ts
+const RAILS_HEALTH_PATH = '/health/liveness.json';
+```
+This is the only place the health path is defined — all three apps' `rails-health/page.tsx` call `checkRailsHealth(getRailsClient())`, which internally calls `client.fetch(RAILS_HEALTH_PATH)`. No other file references `/edge/v0/health` (confirmed via grep — the only remaining occurrence after this task's earlier migration is this one constant; the old `RAILS_API_URL`-based implementation that also used this path was already fully replaced).
+
+No test currently asserts the literal path value (`rails-health.test.ts` uses a fake `RailsClient` and never inspects what path `checkRailsHealth` passes to `client.fetch`), so this is a safe one-line change with no red/green cycle needed for the constant itself — existing tests continue to pass unchanged. Will re-run the full test suite and typecheck after the edit to confirm.
+
+**Out of scope / unchanged:** VPC binding names, `service_id`, `remote: true`, per-app hostnames, wrangler.jsonc, rails-client.ts core logic — none of this needs to change.

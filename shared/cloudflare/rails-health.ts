@@ -1,6 +1,6 @@
 import type { RailsClient } from './rails-client';
 
-const RAILS_HEALTH_PATH = '/edge/v0/health';
+const RAILS_HEALTH_PATH = '/health/liveness.json';
 
 export type RailsHealthResult =
   | { kind: 'ok'; status: number }

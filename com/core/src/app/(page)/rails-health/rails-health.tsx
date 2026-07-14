@@ -46,7 +46,7 @@ export function RailsHealthView({
     <main className="page-main health-page">
       <section className="health-hero">
         <p className="health-eyebrow">Diagnostics</p>
-        <h1>Rails /edge/v0/health</h1>
+        <h1>Rails /health/liveness.json</h1>
         <p className="health-description">
           This page checks the Rails health endpoint over the private Workers VPC binding and
           shows a bounded reachability result. Response bodies are never rendered here.
