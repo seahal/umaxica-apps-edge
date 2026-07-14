@@ -1,4 +1,5 @@
 import { render } from '@testing-library/react';
+// @ts-expect-error React is provided by the app workspace, not the root package.
 import { createElement } from '../app/core/node_modules/react';
 import { describe, expect, it, vi } from 'vitest';
 import appLoader from '../app/core/src/image-loader';
@@ -35,6 +36,10 @@ import * as appInstrumentation from '../app/core/src/instrumentation';
 import * as comInstrumentation from '../com/core/src/instrumentation';
 import * as devInstrumentation from '../dev/acme/src/instrumentation';
 import * as orgInstrumentation from '../org/core/src/instrumentation';
+
+function removeServiceWorker() {
+  delete (navigator as unknown as { serviceWorker?: ServiceWorkerContainer }).serviceWorker;
+}
 
 describe('coverage boundaries', () => {
   it.each([
@@ -87,12 +92,14 @@ describe('coverage boundaries', () => {
 
   it('maps Rails health client results', async () => {
     expect(await checkRailsHealth(null)).toEqual({ kind: 'not-configured' });
-    expect(await checkRailsHealth({ fetch: vi.fn().mockResolvedValue({ kind: 'ok', status: 200 }) })).toEqual(
-      { kind: 'ok', status: 200 },
-    );
-    expect(await checkRailsHealth({ fetch: vi.fn().mockResolvedValue({ kind: 'http-error', status: 503 }) })).toEqual(
-      { kind: 'http-error', status: 503 },
-    );
+    expect(
+      await checkRailsHealth({ fetch: vi.fn().mockResolvedValue({ kind: 'ok', status: 200 }) }),
+    ).toEqual({ kind: 'ok', status: 200 });
+    expect(
+      await checkRailsHealth({
+        fetch: vi.fn().mockResolvedValue({ kind: 'http-error', status: 503 }),
+      }),
+    ).toEqual({ kind: 'http-error', status: 503 });
     expect(
       await checkRailsHealth({
         fetch: vi.fn().mockResolvedValue({ kind: 'unreachable', errorMessage: 'down' }),
@@ -117,14 +124,16 @@ describe('coverage boundaries', () => {
     });
 
     expect(render(createElement(Component)).container.innerHTML).toBe('');
-    await vi.waitFor(() => expect(register).toHaveBeenCalledWith('/sw.js', {
-      scope: '/',
-      updateViaCache: 'none',
-    }));
+    await vi.waitFor(() =>
+      expect(register).toHaveBeenCalledWith('/sw.js', {
+        scope: '/',
+        updateViaCache: 'none',
+      }),
+    );
   });
 
   it('does not fail when service workers are unavailable or registration rejects', async () => {
-    delete (navigator as Navigator & { serviceWorker?: ServiceWorkerContainer }).serviceWorker;
+    removeServiceWorker();
     expect(render(createElement(AppServiceWorkerRegistration)).container.innerHTML).toBe('');
 
     Object.defineProperty(navigator, 'serviceWorker', {
@@ -138,16 +147,19 @@ describe('coverage boundaries', () => {
     ['app', AppServiceWorkerRegistration],
     ['com', ComServiceWorkerRegistration],
     ['org', OrgServiceWorkerRegistration],
-  ])('%s service worker registration tolerates unavailable workers and failures', (_name, Component) => {
-    delete (navigator as Navigator & { serviceWorker?: ServiceWorkerContainer }).serviceWorker;
-    expect(render(createElement(Component)).container.innerHTML).toBe('');
+  ])(
+    '%s service worker registration tolerates unavailable workers and failures',
+    (_name, Component) => {
+    removeServiceWorker();
+      expect(render(createElement(Component)).container.innerHTML).toBe('');
 
-    Object.defineProperty(navigator, 'serviceWorker', {
-      configurable: true,
-      value: { register: vi.fn().mockRejectedValue(new Error('unsupported')) },
-    });
-    expect(render(createElement(Component)).container.innerHTML).toBe('');
-  });
+      Object.defineProperty(navigator, 'serviceWorker', {
+        configurable: true,
+        value: { register: vi.fn().mockRejectedValue(new Error('unsupported')) },
+      });
+      expect(render(createElement(Component)).container.innerHTML).toBe('');
+    },
+  );
 
   it.each([
     ['app', appInstrumentation],

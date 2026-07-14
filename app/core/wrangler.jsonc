@@ -60,7 +60,7 @@
       "vpc_services": [
         {
           "binding": "VPC_SERVICE_APP_CORE",
-          "service_id": "019db1e8-552d-7801-9268-48d64c5d175a",
+          "service_id": "019f5fe0-287f-7040-9f2f-036cb5b21df7",
           "remote": true
         }
       ],
@@ -95,7 +95,7 @@
       "vpc_services": [
         {
           "binding": "VPC_SERVICE_APP_CORE",
-          "service_id": "019db1e8-552d-7801-9268-48d64c5d175a",
+          "service_id": "019f5fe0-287f-7040-9f2f-036cb5b21df7",
           "remote": true
         }
       ],
