@@ -7,15 +7,12 @@ import {
 } from '../../../../shared/cloudflare/rails-client';
 
 const RAILS_HOSTNAME = 'core.org.localhost';
-const RAILS_DEV_PORT = 3000;
+const RAILS_PORT = 3000;
 
 function createDevOnlyFetcher(): RailsFetcher {
   return {
     fetch(input, init) {
-      const url = new URL(input);
-      url.protocol = 'http:';
-      url.port = String(RAILS_DEV_PORT);
-      return fetch(url.toString(), init);
+      return fetch(input, init);
     },
   };
 }
@@ -25,11 +22,11 @@ export function getRailsClient(): RailsClient | null {
   const binding = env.UMAXICA_APPS_EDGE_CF_WORKERS_VPC;
 
   if (binding) {
-    return createRailsClient(binding, RAILS_HOSTNAME);
+    return createRailsClient(binding, RAILS_HOSTNAME, RAILS_PORT);
   }
 
   if (process.env.NODE_ENV === 'development') {
-    return createRailsClient(createDevOnlyFetcher(), RAILS_HOSTNAME);
+    return createRailsClient(createDevOnlyFetcher(), RAILS_HOSTNAME, RAILS_PORT);
   }
 
   return null;
