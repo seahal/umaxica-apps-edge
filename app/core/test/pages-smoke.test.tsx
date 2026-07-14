@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { redirect } from 'next/navigation';
 import RootPage from '../src/app/(page)/page';
 import AboutPage from '../src/app/(page)/about/page';

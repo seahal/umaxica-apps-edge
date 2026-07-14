@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_ALLOWED_IMAGE_HOSTS,
   MAX_IMAGE_SOURCE_BYTES,

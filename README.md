@@ -12,29 +12,36 @@
 
 ## Workspaces
 
+This table describes the target workspace matrix. `info` rows are planned
+public information surfaces and may not exist until the Astro migration slice
+adds them.
+
 | Package    | Role            | Domain             | Dev Port |
 | ---------- | --------------- | ------------------ | -------- |
 | `com/core` | Corporate app   | `umaxica.com`      | 5102     |
 | `com/docs` | Corporate docs  | `docs.umaxica.com` | 5106     |
 | `com/news` | Corporate news  | `news.umaxica.com` | 5107     |
+| `com/info` | Corporate info  | `info.umaxica.com` | 5109     |
 | `com/help` | Corporate help  | `help.umaxica.com` | 5108     |
 | `org/core` | Staff app       | `umaxica.org`      | 5302     |
 | `org/docs` | Staff docs      | `docs.umaxica.org` | 5306     |
 | `org/news` | Staff news      | `news.umaxica.org` | 5307     |
+| `org/info` | Staff info      | `info.umaxica.org` | 5309     |
 | `org/help` | Staff help      | `help.umaxica.org` | 5308     |
 | `app/core` | Service app     | `umaxica.app`      | 5402     |
 | `app/docs` | Service docs    | `docs.umaxica.app` | 5406     |
 | `app/news` | Service news    | `news.umaxica.app` | 5407     |
+| `app/info` | Service info    | `info.umaxica.app` | 5409     |
 | `app/help` | Service help    | `help.umaxica.app` | 5408     |
 | `dev/acme` | Development app | `umaxica.dev`      | 5502     |
 
 ## Quick Start
 
 ```bash
-vp install
+pnpm install
 
 # Run a specific workspace
-vp run --filter <workspace> dev   # e.g. com/core, app/core
+pnpm --filter <workspace> run dev   # e.g. com/core, app/core
 
 # Docker (optional)
 docker compose up && docker compose exec core bash
@@ -42,37 +49,42 @@ docker compose up && docker compose exec core bash
 
 ## Scripts
 
-Toolchain is [Vite+](https://vite.plus/) (`vp` CLI).
+Toolchain is plain pnpm scripts backed by standalone Oxfmt, Oxlint, Vitest, and tsgo.
 
 ```bash
-vp check                  # format + lint + type-check
-vp fmt                    # oxfmt
-vp lint                   # oxlint
-vp test                   # vitest
-vp run --filter <ws> <script>
+pnpm run format            # oxfmt .
+pnpm run format:check      # oxfmt --check .
+pnpm run lint               # oxlint --type-aware --fix .
+pnpm run lint:check         # oxlint --type-aware .
+pnpm run typecheck           # tsgo --noEmit, per app
+pnpm run test                # vitest run
+pnpm run test:cov            # vitest run --coverage
+pnpm --filter <ws> run <script>
 ```
 
 ## Development Environment
 
 ### Toolchain
 
-| Tool                                                            | Role                                      | Version |
-| --------------------------------------------------------------- | ----------------------------------------- | ------- |
-| [Vite+](https://vite.plus/) (`vp`)                              | Unified CLI (dev, build, test, lint, fmt) | 0.1.x   |
-| [pnpm](https://pnpm.io/)                                        | Package manager (wrapped by `vp`)         | 10.32.x |
-| [Oxfmt](https://oxc.rs/)                                        | Formatter (`vp fmt`)                      | bundled |
-| [Oxlint](https://oxc.rs/)                                       | Linter (`vp lint`)                        | bundled |
-| [tsgo](https://github.com/nicolo-ribaudo/tsgo)                  | Type checker (`vp check`)                 | bundled |
-| [Vitest](https://vitest.dev/)                                   | Test runner (`vp test`)                   | bundled |
-| [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | Cloudflare Workers CLI                    | 4.x     |
+| Tool                                                            | Role                                 | Version   |
+| --------------------------------------------------------------- | ------------------------------------ | --------- |
+| [pnpm](https://pnpm.io/)                                        | Package manager & task orchestration | 10.29.x   |
+| [Next.js](https://nextjs.org/)                                  | Framework, dev server, build         | 16.x      |
+| [Oxfmt](https://oxc.rs/)                                        | Formatter (`pnpm run format`)        | 0.58.x    |
+| [Oxlint](https://oxc.rs/)                                       | Linter (`pnpm run lint`)             | 1.73.x    |
+| [tsgo](https://github.com/microsoft/typescript-go)              | Type checker (`pnpm run typecheck`)  | 7.0.0-dev |
+| [Vitest](https://vitest.dev/)                                   | Test runner (`pnpm run test`)        | 4.1.x     |
+| [Playwright](https://playwright.dev/)                           | Browser/E2E tests                    | 1.59.x    |
+| [Lefthook](https://github.com/evilmartians/lefthook)            | Git hooks                            | 2.1.x     |
+| [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | Cloudflare Workers CLI               | 4.x       |
 
-Oxfmt, Oxlint, tsgo, and Vitest are bundled with Vite+ — no separate installation required.
+Each tool is installed and invoked directly; nothing wraps `next dev`/`next build`.
 
 ### Docker / DevContainer
 
 The development environment can be set up via Docker + VS Code DevContainer.
 
-- **Base image**: `node:24-trixie` with pnpm (corepack) and Vite+ pre-installed
+- **Base image**: `node:24-trixie` with pnpm (corepack) pre-installed
 - **DevContainer**: configured in `.devcontainer/devcontainer.json`
   - Extensions: Claude Code, Oxc, Playwright
   - Disabled: ESLint, Prettier, GitLens, GitHub Copilot
@@ -95,17 +107,17 @@ docker compose up && docker compose exec core bash
 ### Deployment
 
 ```bash
-vp run --filter <workspace> deploy            # direct deploy
-vp run --filter <workspace> deploy:upload      # versioned: upload then promote
-vp run --filter <workspace> deploy:promote
+pnpm --filter <workspace> run deploy            # direct deploy
+pnpm --filter <workspace> run deploy:upload      # versioned: upload then promote
+pnpm --filter <workspace> run deploy:promote
 ```
 
-Cloudflare deploy commands should use the Vite+ workspace runner, for example:
+Cloudflare deploy commands should use the pnpm workspace filter, for example:
 
 ```bash
-vp run deploy:app-docs:upload
-vp run deploy:com-docs:upload
-vp run deploy:org-docs:upload
+pnpm run deploy:app-docs:upload
+pnpm run deploy:com-docs:upload
+pnpm run deploy:org-docs:upload
 ```
 
 Cloudflare project deploy commands for docs should point at the docs workspace:
@@ -132,12 +144,31 @@ Cloudflare workspaces use `wrangler.jsonc` (`vars` + environments).
 For local Docker Compose development, the workspace URL convention is:
 
 ```text
-JIT_{COM,ORG,APP}_{CORE,DOCS,NEWS,HELP}_URL
+JIT_{COM,ORG,APP}_{CORE,DOCS,NEWS,INFO,HELP}_URL
 ```
 
-The current Compose defaults map those names to the local dev ports for each workspace.
+Compose defaults should map those names to the local dev ports for each workspace.
 
 Use the same naming pattern in other workspaces when you need a self URL or cross-workspace link target.
+
+## Surface Architecture
+
+Core workspaces stay on Next.js. They own RP/BFF behavior, authenticated UI,
+React Aria surfaces, logged-in state, and account, organization, and avatar
+operations.
+
+Public information workspaces use Astro: `docs`, `news`, `info`, and `help`.
+They are limited to public content, MDX, content collections, SSG/SSR, and image
+optimization.
+
+Rails Core/Base remains the source of truth for policy, mutation, authority,
+and content JSON APIs. Astro public surfaces may consume only public,
+read-only Rails content APIs through the Cloudflare Workers private connectivity
+boundary. They must not receive Acme refresh tokens, user-scoped secrets, or
+authenticated Core session material.
+
+See [Public Information Surfaces](./docs/public-information-surfaces.md) and
+[ADR 004](./adr/004-public-information-surfaces-astro.md).
 
 ## Acknowledgement
 
