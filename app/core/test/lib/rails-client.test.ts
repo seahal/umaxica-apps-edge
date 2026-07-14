@@ -25,7 +25,7 @@ describe('app/core rails client', () => {
       Promise.resolve(new Response('ok', { status: 200 })),
     );
     vi.mocked(getCloudflareContext).mockReturnValue({
-      env: { VPC_SERVICE_APP_CORE: { fetch: fetchMock } },
+      env: { UMAXICA_APPS_EDGE_CF_WORKERS_VPC: { fetch: fetchMock } },
     } as unknown as ReturnType<typeof getCloudflareContext>);
 
     const client = getRailsClient();

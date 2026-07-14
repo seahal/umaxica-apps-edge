@@ -22,7 +22,7 @@ function createDevOnlyFetcher(): RailsFetcher {
 
 export function getRailsClient(): RailsClient | null {
   const { env } = getCloudflareContext() as { env: Partial<CloudflareEnv> };
-  const binding = env.VPC_SERVICE_ORG_CORE;
+  const binding = env.UMAXICA_APPS_EDGE_CF_WORKERS_VPC;
 
   if (binding) {
     return createRailsClient(binding, RAILS_HOSTNAME);

@@ -59,7 +59,7 @@
       ],
       "vpc_services": [
         {
-          "binding": "VPC_SERVICE_APP_CORE",
+          "binding": "UMAXICA_APPS_EDGE_CF_WORKERS_VPC",
           "service_id": "019f5fe0-287f-7040-9f2f-036cb5b21df7",
           "remote": true
         }
@@ -94,7 +94,7 @@
       ],
       "vpc_services": [
         {
-          "binding": "VPC_SERVICE_APP_CORE",
+          "binding": "UMAXICA_APPS_EDGE_CF_WORKERS_VPC",
           "service_id": "019f5fe0-287f-7040-9f2f-036cb5b21df7",
           "remote": true
         }

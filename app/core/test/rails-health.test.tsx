@@ -23,7 +23,9 @@ describe('app/core rails health view', () => {
   });
 
   it('renders the http-error view with only the status class, no body', () => {
-    const html = renderToStaticMarkup(<RailsHealthView result={httpErrorResult} workspaceUrl={null} />);
+    const html = renderToStaticMarkup(
+      <RailsHealthView result={httpErrorResult} workspaceUrl={null} />,
+    );
 
     expect(html).toContain('Rails responded with an error');
     expect(html).toContain('Status: HTTP 503');
@@ -44,6 +46,6 @@ describe('app/core rails health view', () => {
     );
 
     expect(html).toContain('Rails VPC binding is not configured');
-    expect(html).toContain('VPC_SERVICE_APP_CORE');
+    expect(html).toContain('UMAXICA_APPS_EDGE_CF_WORKERS_VPC');
   });
 });
