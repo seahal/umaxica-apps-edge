@@ -29,7 +29,8 @@ function renderStateDetails(result: RailsHealthResult) {
     case 'not-configured':
       return (
         <p className="health-error">
-          The <code>VPC_SERVICE_ORG_CORE</code> binding is not available in this environment.
+          The <code>UMAXICA_APPS_EDGE_CF_WORKERS_VPC</code> binding is not available in this
+          environment.
         </p>
       );
   }
@@ -48,8 +49,8 @@ export function RailsHealthView({
         <p className="health-eyebrow">Diagnostics</p>
         <h1>Rails /health/liveness.json</h1>
         <p className="health-description">
-          This page checks the Rails health endpoint over the private Workers VPC binding and
-          shows a bounded reachability result. Response bodies are never rendered here.
+          This page checks the Rails health endpoint over the private Workers VPC binding and shows
+          a bounded reachability result. Response bodies are never rendered here.
         </p>
         {workspaceUrl ? <p className="health-workspace">Workspace URL: {workspaceUrl}</p> : null}
       </section>
