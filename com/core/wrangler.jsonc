@@ -54,6 +54,13 @@
           "service": "umaxica-apps-edge-com-core"
         }
       ],
+      "vpc_services": [
+        {
+          "binding": "VPC_SERVICE_COM_CORE",
+          "service_id": "019db1e8-552d-7801-9268-48d64c5d175a",
+          "remote": true
+        }
+      ],
       "version_metadata": {
         "binding": "REVISION"
       },
@@ -80,6 +87,13 @@
         {
           "binding": "WORKER_SELF_REFERENCE",
           "service": "umaxica-apps-edge-com-core"
+        }
+      ],
+      "vpc_services": [
+        {
+          "binding": "VPC_SERVICE_COM_CORE",
+          "service_id": "019db1e8-552d-7801-9268-48d64c5d175a",
+          "remote": true
         }
       ],
       "version_metadata": {

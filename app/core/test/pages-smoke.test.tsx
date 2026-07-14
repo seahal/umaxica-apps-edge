@@ -22,6 +22,14 @@ vi.mock('@/i18n/config', () => ({
   defaultLocale: 'en',
 }));
 
+vi.mock('server-only', () => ({}));
+
+vi.mock('@opennextjs/cloudflare', () => ({
+  getCloudflareContext: vi.fn<() => { env: Record<string, unknown> }>().mockReturnValue({
+    env: {},
+  }),
+}));
+
 vi.mock('@/i18n/dictionaries', () => ({
   getDictionary: vi.fn<() => Promise<Record<string, unknown>>>().mockResolvedValue({
     home: {
@@ -110,13 +118,6 @@ describe('app/core pages render without throwing', () => {
   });
 
   it('rails-health page renders', async () => {
-    fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ status: 'ok' }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      }),
-    );
-
     const element = await RailsHealthPage();
     const html = renderToStaticMarkup(element);
     expect(html).not.toBe('');
