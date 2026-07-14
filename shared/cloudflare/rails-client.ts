@@ -70,8 +70,12 @@ function buildSanitizedHeaders(init: RailsClientInit | undefined): Headers {
   return headers;
 }
 
-export function createRailsClient(binding: RailsFetcher, hostname: string): RailsClient {
-  const origin = `https://${hostname}`;
+export function createRailsClient(
+  binding: RailsFetcher,
+  hostname: string,
+  port: number,
+): RailsClient {
+  const origin = `http://${hostname}:${port}`;
 
   return {
     async fetch(path, init) {

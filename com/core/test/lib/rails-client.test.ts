@@ -34,7 +34,7 @@ describe('com/core rails client', () => {
     await client?.fetch('/edge/v0/health');
 
     const [requestUrl] = fetchMock.mock.calls[0] as [string];
-    expect(new URL(requestUrl).host).toBe('core.com.localhost');
+    expect(new URL(requestUrl).host).toBe('core.com.localhost:3000');
   });
 
   it('falls back to a dev-only direct fetcher in development when no binding exists', async () => {
