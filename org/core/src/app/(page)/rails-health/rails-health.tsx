@@ -29,7 +29,7 @@ function renderStateDetails(result: RailsHealthResult) {
     case 'not-configured':
       return (
         <p className="health-error">
-          The <code>VPC_SERVICE_APP_CORE</code> binding is not available in this environment.
+          The <code>VPC_SERVICE_ORG_CORE</code> binding is not available in this environment.
         </p>
       );
   }

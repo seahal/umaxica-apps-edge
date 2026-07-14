@@ -11,7 +11,8 @@
     "deploy:upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "deploy:promote": "wrangler versions deploy --yes",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "catalog:",

@@ -57,6 +57,13 @@
           "service": "umaxica-apps-edge-app-core"
         }
       ],
+      "vpc_services": [
+        {
+          "binding": "VPC_SERVICE_APP_CORE",
+          "service_id": "019db1e8-552d-7801-9268-48d64c5d175a",
+          "remote": true
+        }
+      ],
       "ratelimits": [
         {
           "name": "RATE_LIMITER",
@@ -83,6 +90,13 @@
         {
           "binding": "WORKER_SELF_REFERENCE",
           "service": "umaxica-apps-edge-app-core"
+        }
+      ],
+      "vpc_services": [
+        {
+          "binding": "VPC_SERVICE_APP_CORE",
+          "service_id": "019db1e8-552d-7801-9268-48d64c5d175a",
+          "remote": true
         }
       ],
       "ratelimits": [

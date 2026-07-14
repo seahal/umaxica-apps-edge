@@ -12,6 +12,7 @@ export default async function PageLayout({
   const links = [
     { href: '/', label: dict.home.title },
     { href: '/explore', label: dict.explore.title },
+    { href: '/rails-health', label: 'Rails health' },
     { href: '/messages', label: dict.messages.title },
     { href: '/notifications', label: dict.notifications.title },
     { href: '/configuration', label: dict.configuration.title },
@@ -24,7 +25,7 @@ export default async function PageLayout({
         <h1 className="page-brand">UMAXICA</h1>
         <nav aria-label="Primary" className="page-nav">
           {links.map((link) => (
-            <Link href={link.href} key={link.href}>
+            <Link href={link.href as never} key={link.href}>
               {link.label}
             </Link>
           ))}
