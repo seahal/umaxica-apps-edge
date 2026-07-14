@@ -109,9 +109,6 @@ WORKDIR ${HOME}/workspace
 RUN rm -rf "${HOME}/.cache"
 RUN rm -rf "${HOME}/.local"
 
-# Install Vite+ (unified toolchain)
-RUN curl -fsSL https://vite.plus | bash
-
 USER ${DOCKER_USER}:${DOCKER_GROUP}
 
 CMD ["sleep", "infinity"]

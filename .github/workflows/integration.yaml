@@ -75,7 +75,7 @@ jobs:
           node-version: '24'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec oxfmt --check .
+      - run: pnpm run format:check
 
   lint:
     runs-on: ubuntu-slim
@@ -88,7 +88,7 @@ jobs:
           node-version: '24'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec oxlint .
+      - run: pnpm run lint:check
 
   typecheck:
     runs-on: ubuntu-slim
@@ -101,7 +101,7 @@ jobs:
           node-version: '24'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run type
+      - run: pnpm run typecheck
 
   test:
     runs-on: ubuntu-slim
@@ -116,21 +116,17 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run test:cov
 
-  build-vite:
+  build:
     runs-on: ubuntu-slim
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         target:
-          - app/apex
           - app/core
-          - com/apex
           - com/core
-          - dev/status
-          - net/apex
-          - org/apex
           - org/core
+          - dev/acme
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -139,21 +135,4 @@ jobs:
           node-version: '24'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - if: ${{ startsWith(matrix.target, 'dev/') }}
-        run: pnpm -C ${{ matrix.target }} run build
-      - if: ${{ !startsWith(matrix.target, 'dev/') }}
-        run: pnpm --dir ${{ matrix.target }} run build
-      - name: Report asset sizes
-        run: |
-          case "${{ matrix.target }}" in
-            */apex) asset_dir="${{ matrix.target }}/dist/client" ;;
-            *) asset_dir="${{ matrix.target }}/build/client" ;;
-          esac
-
-          if [[ ! -d "$asset_dir" ]]; then
-            echo "Asset directory not found: $asset_dir" >&2
-            exit 1
-          fi
-
-          echo "Asset directory: $asset_dir"
-          find "$asset_dir" -type f \( -name '*.js' -o -name '*.css' \) -printf '%P\t%s bytes\n' | sort
+      - run: pnpm -C ${{ matrix.target }} run build

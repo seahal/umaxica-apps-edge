@@ -3,15 +3,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vp exec opennextjs-cloudflare build",
+    "build": "opennextjs-cloudflare build",
     "build:next": "next build",
-    "cf-typegen": "vp exec wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
-    "deploy": "vp exec opennextjs-cloudflare build && vp exec opennextjs-cloudflare deploy",
-    "deploy:upload": "vp exec opennextjs-cloudflare build && vp exec opennextjs-cloudflare upload",
-    "deploy:promote": "vp exec wrangler versions deploy --yes",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "deploy:upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "deploy:promote": "wrangler versions deploy --yes",
     "dev": "next dev --hostname 0.0.0.0 --port 5408",
-    "preview": "vp exec opennextjs-cloudflare build && vp exec opennextjs-cloudflare preview",
-    "type": "vp exec tsgo --noEmit"
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.19.11",
@@ -24,7 +24,6 @@
     "@types/node": "^25.9.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "vite-plus": "catalog:",
     "wrangler": "^4.93.0"
   }
 }

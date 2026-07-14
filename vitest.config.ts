@@ -1,9 +1,8 @@
-import { defineConfig } from 'vite-plus';
+import tsconfigPaths from 'vite-tsconfig-paths';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  resolve: {
-    tsconfigPaths: true,
-  },
+  plugins: [tsconfigPaths()],
   test: {
     coverage: {
       exclude: [
