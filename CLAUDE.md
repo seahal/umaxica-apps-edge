@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Umaxica App (EDGE) — a multi-domain monorepo for Next.js applications deployed to Cloudflare Workers and Vercel. Three domain families: umaxica.com (corporate), umaxica.app (service), and umaxica.org (staff).
+Umaxica App (EDGE) — a multi-domain monorepo mixing Next.js applications (Cloudflare Workers/Vercel) with lightweight Hono `*/apex` workers (Cloudflare Workers). Three domain families: umaxica.com (corporate), umaxica.app (service), and umaxica.org (staff), plus umaxica.net (network support, `net/apex`).
 
 ## Commands
 
@@ -27,35 +27,49 @@ All commands run from the repo root using **pnpm** scripts and standalone tool b
 
 ### Workspace Layout
 
-The active workspaces are Next.js applications:
+Most workspaces are Next.js applications; `*/apex` are Hono workers:
 
-| Workspace  | Domain           | Dev Port |
-| ---------- | ---------------- | -------- |
-| `app/core` | umaxica.app      | 5402     |
-| `app/docs` | docs.umaxica.app | 5406     |
-| `app/news` | news.umaxica.app | 5407     |
-| `app/help` | help.umaxica.app | 5408     |
-| `app/info` | info.umaxica.app | 5409     |
-| `com/core` | umaxica.com      | 5102     |
-| `com/docs` | docs.umaxica.com | 5106     |
-| `com/news` | news.umaxica.com | 5107     |
-| `com/help` | help.umaxica.com | 5108     |
-| `com/info` | info.umaxica.com | 5109     |
-| `org/core` | umaxica.org      | 5302     |
-| `org/docs` | docs.umaxica.org | 5306     |
-| `org/news` | news.umaxica.org | 5307     |
-| `org/help` | help.umaxica.org | 5308     |
-| `org/info` | info.umaxica.org | 5309     |
-| `dev/acme` | umaxica.dev      | 5502     |
+| Workspace  | Domain           | Dev Port | Framework      |
+| ---------- | ---------------- | -------- | -------------- |
+| `app/apex` | umaxica.app      | 5401     | Hono           |
+| `app/core` | umaxica.app      | 5402     | Next.js        |
+| `app/docs` | docs.umaxica.app | 5406     | Next.js        |
+| `app/news` | news.umaxica.app | 5407     | Next.js        |
+| `app/help` | help.umaxica.app | 5408     | Next.js        |
+| `app/info` | info.umaxica.app | 5409     | Next.js        |
+| `com/apex` | umaxica.com      | 5101     | Hono           |
+| `com/core` | umaxica.com      | 5102     | Next.js        |
+| `com/docs` | docs.umaxica.com | 5106     | Next.js        |
+| `com/news` | news.umaxica.com | 5107     | Next.js        |
+| `com/help` | help.umaxica.com | 5108     | Next.js        |
+| `com/info` | info.umaxica.com | 5109     | Next.js        |
+| `net/apex` | umaxica.net      | 5201     | Hono           |
+| `org/apex` | umaxica.org      | 5301     | Hono           |
+| `org/core` | umaxica.org      | 5302     | Next.js        |
+| `org/docs` | docs.umaxica.org | 5306     | Next.js        |
+| `org/news` | news.umaxica.org | 5307     | Next.js        |
+| `org/help` | help.umaxica.org | 5308     | Next.js        |
+| `org/info` | info.umaxica.org | 5309     | Next.js        |
+| `dev/acme` | umaxica.dev      | 5502     | Vercel/edge fn |
+
+`app/apex`, `com/apex`, `org/apex`, and `net/apex` own the apex/root domain
+(redirect to a regional `*/core` subdomain, `/health`, `/about`); the
+corresponding `*/core` Next.js app serves the actual regional subdomain, not
+the root. They intentionally share the same top-level domain — do not treat
+that as a collision to resolve. `shared/apex/` holds their common
+middleware/routes (`createApexApp`, health page, security headers, rate
+limiting, CSRF); it is separate from `shared/next/`, `shared/cloudflare/`, etc.
 
 ### Service Pattern
 
-- Next.js on Cloudflare Workers via OpenNext, plus Vercel for `dev/acme`
-- pnpm scripts drive local dev, builds, tests, linting, and formatting; each tool (Next.js, Oxlint, Oxfmt, Vitest, tsgo) is invoked directly
+- Next.js on Cloudflare Workers via OpenNext, plus Vercel for `dev/acme`, for `*/core` and content workspaces (`docs`/`news`/`help`/`info`)
+- Hono v4 directly on Cloudflare Workers (no bundler/build step beyond `wrangler`) for `*/apex`
+- pnpm scripts drive local dev, builds, tests, linting, and formatting; each tool (Next.js, Hono/Wrangler, Oxlint, Oxfmt, Vitest, tsgo) is invoked directly — no `vp`/Vite+ wrapper anywhere in this repo
 
 ### Key Dependencies
 
-- **Next.js** for application implementation and builds (no Vite build step)
+- **Next.js** for `*/core` and content workspaces (no Vite build step)
+- **Hono v4** for `*/apex` workers
 - **Zod v4** for validation
 - **Wrangler v4** for Cloudflare deployment
 

@@ -123,8 +123,12 @@ jobs:
       fail-fast: false
       matrix:
         target:
+          - app/apex
           - app/core
+          - com/apex
           - com/core
+          - net/apex
+          - org/apex
           - org/core
           - dev/acme
     steps:
