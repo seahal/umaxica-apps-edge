@@ -51,8 +51,7 @@ Use `AbortSignal.timeout(1500)` (shorter than the route-level `hono/timeout` of 
 
 ```ts
 type RailsHealthResult =
-  | { ok: true; status: number; body: string }
-  | { ok: false; error: string };
+  { ok: true; status: number; body: string } | { ok: false; error: string };
 
 async function fetchRailsHealth(apiUrl: string): Promise<RailsHealthResult> {
   try {

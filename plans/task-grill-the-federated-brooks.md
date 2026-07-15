@@ -34,32 +34,32 @@ Do not remove Vite+ in one commit. The catalog rewires `vite`/`vitest` package i
 
 ## 3. Current toolchain authority **[repo]**
 
-| Concern | Actual authority |
-|---|---|
-| build/deploy | per-app pnpm scripts → `vp exec opennextjs-cloudflare` / `next build` / `vercel` |
-| dev | per-app `next dev --port <n>` (no vp) |
-| lint | `vp lint` locally (config in `vite.config.ts`); **CI job is a no-op** |
-| format | `vp fmt` locally (config in `vite.config.ts`); **CI job is a no-op** |
-| tests/coverage | `vp test` → bundled Vitest 4.1.10, root `vitest.config.ts` (imports from `vite-plus`) |
-| typecheck | `vp run type` → per-app `vp exec tsgo --noEmit` (tsgo = `@typescript/native-preview`, NOT vite-plus) |
-| hooks | Vite+ (`prepare: vp config` → `.vite-hooks/pre-commit`: `vp staged` → `vp check --fix`). **Lefthook is not installed** despite CLAUDE.md/README claims |
-| CI | GitHub Actions calling a mix of pnpm-direct (broken) and vp-backed scripts |
+| Concern        | Actual authority                                                                                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| build/deploy   | per-app pnpm scripts → `vp exec opennextjs-cloudflare` / `next build` / `vercel`                                                                       |
+| dev            | per-app `next dev --port <n>` (no vp)                                                                                                                  |
+| lint           | `vp lint` locally (config in `vite.config.ts`); **CI job is a no-op**                                                                                  |
+| format         | `vp fmt` locally (config in `vite.config.ts`); **CI job is a no-op**                                                                                   |
+| tests/coverage | `vp test` → bundled Vitest 4.1.10, root `vitest.config.ts` (imports from `vite-plus`)                                                                  |
+| typecheck      | `vp run type` → per-app `vp exec tsgo --noEmit` (tsgo = `@typescript/native-preview`, NOT vite-plus)                                                   |
+| hooks          | Vite+ (`prepare: vp config` → `.vite-hooks/pre-commit`: `vp staged` → `vp check --fix`). **Lefthook is not installed** despite CLAUDE.md/README claims |
+| CI             | GitHub Actions calling a mix of pnpm-direct (broken) and vp-backed scripts                                                                             |
 
 Verdict: an **inconsistent mixture** — pnpm scripts wrap vp, vp wraps tools, CI bypasses vp and silently breaks.
 
 ## 4. Vite+ dependency graph
 
-| Edge | File | Class | Replacement | Risk |
-|---|---|---|---|---|
-| `vitest`→`@voidzero-dev/vite-plus-test`, `vite`→`@voidzero-dev/vite-plus-core@latest` catalog aliases + `overrides` + `peerDependencyRules` | `pnpm-workspace.yaml` | test/build dep identity rewire | real `vitest@^4`, drop `vite` entry (nothing uses Vite) | **Medium** — lockfile churn; `@latest` pin is also a supply-chain smell |
-| `vp fmt`/`vp lint`/`vp check` + config | root `package.json`, `vite.config.ts` | lint/format | standalone `oxlint`+`oxlint-tsgolint`+`oxfmt` pkgs with `.oxlintrc.json`/`.oxfmtrc.json` ported from `vite.config.ts` | **Medium** — config translation must be verified rule-by-rule; type-aware lint needs `oxlint-tsgolint` **[tool: oxc.rs docs]** |
-| `vp test run [--coverage]` | root `package.json` | test orchestration | `vitest run [--coverage]`; rewrite `vitest.config.ts` imports `vite-plus`→`vitest/config` | Low — plain Vitest config semantics |
-| `vp run --filter <ws> <script>` (`type`, deploys) | root `package.json` | task orchestration only | `pnpm -r --filter <ws> run <script>` (loses vp's task cache — acceptable, tasks are fast) | Low |
-| `vp exec <bin>` (opennextjs-cloudflare, wrangler, tsgo) | all app `package.json` | dev convenience | bare binary name in pnpm scripts (pnpm puts `.bin` on PATH) **[tool: pnpm docs]** | Low |
-| `prepare: vp config` → `.vite-hooks/` | root `package.json`, `.vite-hooks/` | git hooks | Lefthook (`lefthook.yml`, `prepare: lefthook install`) — note `.npmrc ignore-scripts=true` means `prepare` doesn't auto-run anyway; document manual install | Low |
-| CI `pnpm exec oxlint .` / `oxfmt --check .` | `integration.yaml` | CI (broken) | real binaries after standalone install | **These are no-ops today** |
-| Docs (README, AGENTS.md, CLAUDE.md) | — | docs | rewrite | Low |
-| `knip.json` `ignoreUnresolved: ["^vite/client$"]`, root deps `@cloudflare/vite-plugin`, `@vitejs/plugin-react`, `vite-plugin-babel`, `vite-ssr-components`, `vite-tsconfig-paths`, `@tailwindcss/vite`, `vitest.config.ts` `resolve.tsconfigPaths` | root + app devDeps | **dead** (no Vite build exists) | delete | Low |
+| Edge                                                                                                                                                                                                                                               | File                                  | Class                           | Replacement                                                                                                                                                 | Risk                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `vitest`→`@voidzero-dev/vite-plus-test`, `vite`→`@voidzero-dev/vite-plus-core@latest` catalog aliases + `overrides` + `peerDependencyRules`                                                                                                        | `pnpm-workspace.yaml`                 | test/build dep identity rewire  | real `vitest@^4`, drop `vite` entry (nothing uses Vite)                                                                                                     | **Medium** — lockfile churn; `@latest` pin is also a supply-chain smell                                                        |
+| `vp fmt`/`vp lint`/`vp check` + config                                                                                                                                                                                                             | root `package.json`, `vite.config.ts` | lint/format                     | standalone `oxlint`+`oxlint-tsgolint`+`oxfmt` pkgs with `.oxlintrc.json`/`.oxfmtrc.json` ported from `vite.config.ts`                                       | **Medium** — config translation must be verified rule-by-rule; type-aware lint needs `oxlint-tsgolint` **[tool: oxc.rs docs]** |
+| `vp test run [--coverage]`                                                                                                                                                                                                                         | root `package.json`                   | test orchestration              | `vitest run [--coverage]`; rewrite `vitest.config.ts` imports `vite-plus`→`vitest/config`                                                                   | Low — plain Vitest config semantics                                                                                            |
+| `vp run --filter <ws> <script>` (`type`, deploys)                                                                                                                                                                                                  | root `package.json`                   | task orchestration only         | `pnpm -r --filter <ws> run <script>` (loses vp's task cache — acceptable, tasks are fast)                                                                   | Low                                                                                                                            |
+| `vp exec <bin>` (opennextjs-cloudflare, wrangler, tsgo)                                                                                                                                                                                            | all app `package.json`                | dev convenience                 | bare binary name in pnpm scripts (pnpm puts `.bin` on PATH) **[tool: pnpm docs]**                                                                           | Low                                                                                                                            |
+| `prepare: vp config` → `.vite-hooks/`                                                                                                                                                                                                              | root `package.json`, `.vite-hooks/`   | git hooks                       | Lefthook (`lefthook.yml`, `prepare: lefthook install`) — note `.npmrc ignore-scripts=true` means `prepare` doesn't auto-run anyway; document manual install | Low                                                                                                                            |
+| CI `pnpm exec oxlint .` / `oxfmt --check .`                                                                                                                                                                                                        | `integration.yaml`                    | CI (broken)                     | real binaries after standalone install                                                                                                                      | **These are no-ops today**                                                                                                     |
+| Docs (README, AGENTS.md, CLAUDE.md)                                                                                                                                                                                                                | —                                     | docs                            | rewrite                                                                                                                                                     | Low                                                                                                                            |
+| `knip.json` `ignoreUnresolved: ["^vite/client$"]`, root deps `@cloudflare/vite-plugin`, `@vitejs/plugin-react`, `vite-plugin-babel`, `vite-ssr-components`, `vite-tsconfig-paths`, `@tailwindcss/vite`, `vitest.config.ts` `resolve.tsconfigPaths` | root + app devDeps                    | **dead** (no Vite build exists) | delete                                                                                                                                                      | Low                                                                                                                            |
 
 ## 5. What breaks if Vite+ is deleted today **[verified/inf]**
 
@@ -68,7 +68,7 @@ Verdict: an **inconsistent mixture** — pnpm scripts wrap vp, vp wraps tools, C
 3. Pre-commit hook (`.vite-hooks/pre-commit` → `vp staged`).
 4. **oxlint, oxfmt binaries vanish entirely** — they are shipped inside vite-plus, no standalone packages installed.
 5. Vitest vanishes (`vitest` resolves to `@voidzero-dev/vite-plus-test`); `vitest.config.ts` fails to import `vite-plus`.
-6. CI typecheck/test jobs fail; CI lint/format jobs would *finally* fail loudly instead of no-op'ing.
+6. CI typecheck/test jobs fail; CI lint/format jobs would _finally_ fail loudly instead of no-op'ing.
 7. NOT broken: `next dev`, `next build`, tsgo binary (`@typescript/native-preview`), Playwright, wrangler, OpenNext.
 
 ## 6. Tool-by-tool verdict
@@ -116,15 +116,15 @@ Lost vs Vite+: `vp run` task caching. Measured task times (lint 0.7s, tests 0.5s
 
 ## 10. Baseline results (2026-07-14, dirty develop tree)
 
-| Command | Result | Notes |
-|---|---|---|
-| `oxlint .` (raw .bin) | exit 0, **no lint performed** | "IDE extension only" shim — CI lint job is a no-op (pre-existing) |
-| `oxfmt --check .` (raw .bin) | exit 0, **no check performed** | same — CI format job is a no-op (pre-existing) |
-| `vp lint` | pass, 0.7s | clean |
-| `vp fmt --check` | 4 files dirty (all under `plans/`), 0.4s/227 files | pre-existing |
-| `vp run type` | **4 packages FAIL** | pre-existing code errors: `org/core` missing `@/i18n/config` + `@/i18n/dictionaries` modules; `shared/cloudflare/image.ts` TS18048 possibly-undefined ×5 |
-| `vp test run` | **pass**: 18 files, 112 tests, 480ms | clean |
-| Coverage / Playwright / builds | not executed (plan mode / write-heavy) | Playwright specs are scaffolds against playwright.dev; run coverage + one `opennextjs-cloudflare build` in Slice 0 |
+| Command                        | Result                                             | Notes                                                                                                                                                    |
+| ------------------------------ | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `oxlint .` (raw .bin)          | exit 0, **no lint performed**                      | "IDE extension only" shim — CI lint job is a no-op (pre-existing)                                                                                        |
+| `oxfmt --check .` (raw .bin)   | exit 0, **no check performed**                     | same — CI format job is a no-op (pre-existing)                                                                                                           |
+| `vp lint`                      | pass, 0.7s                                         | clean                                                                                                                                                    |
+| `vp fmt --check`               | 4 files dirty (all under `plans/`), 0.4s/227 files | pre-existing                                                                                                                                             |
+| `vp run type`                  | **4 packages FAIL**                                | pre-existing code errors: `org/core` missing `@/i18n/config` + `@/i18n/dictionaries` modules; `shared/cloudflare/image.ts` TS18048 possibly-undefined ×5 |
+| `vp test run`                  | **pass**: 18 files, 112 tests, 480ms               | clean                                                                                                                                                    |
+| Coverage / Playwright / builds | not executed (plan mode / write-heavy)             | Playwright specs are scaffolds against playwright.dev; run coverage + one `opennextjs-cloudflare build` in Slice 0                                       |
 
 ## 11. Dead or redundant tooling
 

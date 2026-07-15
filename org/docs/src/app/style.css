@@ -2,7 +2,7 @@
   color: #17202a;
   background: #f8fafc;
   font-family:
-    Inter,
+    var(--font-sans),
     ui-sans-serif,
     system-ui,
     -apple-system,

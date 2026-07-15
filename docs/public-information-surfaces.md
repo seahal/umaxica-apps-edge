@@ -7,11 +7,11 @@ of truth for policy, mutation, and content JSON authority.
 
 ## Surface Matrix
 
-| Workspace family | Core app | Public docs | Public news | Public info | Public help |
-| --- | --- | --- | --- | --- | --- |
-| `com` | `com/core` | `com/docs` | `com/news` | `com/info` | `com/help` |
-| `org` | `org/core` | `org/docs` | `org/news` | `org/info` | `org/help` |
-| `app` | `app/core` | `app/docs` | `app/news` | `app/info` | `app/help` |
+| Workspace family | Core app   | Public docs | Public news | Public info | Public help |
+| ---------------- | ---------- | ----------- | ----------- | ----------- | ----------- |
+| `com`            | `com/core` | `com/docs`  | `com/news`  | `com/info`  | `com/help`  |
+| `org`            | `org/core` | `org/docs`  | `org/news`  | `org/info`  | `org/help`  |
+| `app`            | `app/core` | `app/docs`  | `app/news`  | `app/info`  | `app/help`  |
 
 ## Framework Ownership
 

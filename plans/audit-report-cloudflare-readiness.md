@@ -1,13 +1,14 @@
 # Umaxica EDGE — Fifteen-Application Cloudflare/OpenNext Readiness Audit
+
 Date: 2026-07-14 · Branch: `develop` · Audit subject: **working tree as-is** (user-confirmed) · Info apps treated as **NOT CREATED** (user-confirmed)
 
 ## 1. Executive Verdict
 
-**The repository is not currently ready to operate fifteen Next.js applications on Cloudflare Workers.** Only the three Core apps are deployable today. Nine read-surface apps (docs/help/news × app/com/org) are gutted by *uncommitted working-tree deletions* — their `next.config.ts`, `open-next.config.ts`, `wrangler.jsonc`, and all source were deleted (git HEAD still has them; a stash "backup before restoring develop from accidental main merge" exists). The three Info apps have never been created (empty untracked directories, absent from `pnpm-workspace.yaml`). **No application has any Workers VPC configuration** — the Rails private-origin integration is entirely future work.
+**The repository is not currently ready to operate fifteen Next.js applications on Cloudflare Workers.** Only the three Core apps are deployable today. Nine read-surface apps (docs/help/news × app/com/org) are gutted by _uncommitted working-tree deletions_ — their `next.config.ts`, `open-next.config.ts`, `wrangler.jsonc`, and all source were deleted (git HEAD still has them; a stash "backup before restoring develop from accidental main merge" exists). The three Info apps have never been created (empty untracked directories, absent from `pnpm-workspace.yaml`). **No application has any Workers VPC configuration** — the Rails private-origin integration is entirely future work.
 
 Counts: **READY: 0 · MINOR: 3** (core.app/com/org — READY WITH MINOR CLEANUP) · **UPGRADE REQUIRED: 0 · BROKEN/ARCHITECTURAL: 12** (9 gutted + 3 not created) · **UNKNOWN: 0**.
 
-The good news: the stack that exists is *current*, not stale. Next 16.2.6 (latest is 16.2.10), React 19.2.6, @opennextjs/cloudflare 1.19.11 (latest 1.20.1), Wrangler 4.x, compatibility_date 2026-05-13, `nodejs_compat` everywhere, zero `next-on-pages`/Pages legacy, zero `runtime='edge'`. This is a mid-refactor accident, not decade-drift.
+The good news: the stack that exists is _current_, not stale. Next 16.2.6 (latest is 16.2.10), React 19.2.6, @opennextjs/cloudflare 1.19.11 (latest 1.20.1), Wrangler 4.x, compatibility_date 2026-05-13, `nodejs_compat` everywhere, zero `next-on-pages`/Pages legacy, zero `runtime='edge'`. This is a mid-refactor accident, not decade-drift.
 
 ## 2. Repository Topology
 
@@ -33,29 +34,30 @@ The good news: the stack that exists is *current*, not stale. Next 16.2.6 (lates
 
 Working-tree judgment. "HEAD ✓" = config existed at git HEAD and matched the current OpenNext contract.
 
-| Application | Next.js | React | OpenNext | Wrangler | Compat date | nodejs_compat | OpenNext build | workerd preview | Deploy config | VPC readiness | Cache readiness | Test readiness | Overall |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| info.app | — | — | — | — | — | — | — | — | none | none | — | — | **BROKEN** (not created) |
-| info.com | — | — | — | — | — | — | — | — | none | none | — | — | **BROKEN** (not created) |
-| info.org | — | — | — | — | — | — | — | — | none | none | — | — | **BROKEN** (not created) |
-| core.app | 16.2.6 | 19.2.6 | 1.19.11 | ^4.93 | 2026-05-13 | ✓ | **PASS** | **PASS (200 / & /health)** | ✓ | n/a (Core) | static-only OK | vitest+playwright, no workerd test | **READY WITH MINOR CLEANUP** |
-| core.com | 16.2.6 | 19.2.6 | 1.19.11 | ^4.93 | 2026-05-13 | ✓ | **PASS** | not run (identical config) | ✓ | n/a (Core) | static-only OK | same | **READY WITH MINOR CLEANUP** |
-| core.org | 16.2.6 | 19.2.6 | 1.19.11 | ^4.93 | 2026-05-13 | ✓ | **PASS** | not run | ✓ | n/a (Core) | static-only OK | same + **typecheck FAIL** (`@/i18n/*` missing) | **READY WITH MINOR CLEANUP** |
-| help.app | pkg.json only | " | " | " | HEAD: 2026-05-13 ✓ | HEAD ✓ | **FAIL** (configs deleted) | — | deleted | CLIENT LAYER MISSING | unknown | none | **BROKEN** (uncommitted deletions) |
-| help.com | " | " | " | " | " | " | " | — | deleted | " | " | none | **BROKEN** |
-| help.org | " | " | " | " | " | " | " | — | deleted | " | " | none | **BROKEN** |
-| news.app | " | " | " | " | " | " | " | — | deleted | " | " | none | **BROKEN** |
-| news.com | " | " | " | " | " | " | " | — | deleted | " | " | none | **BROKEN** |
-| news.org | " | " | " | " | " | " | " | — | deleted | " | " | none | **BROKEN** |
-| docs.app | ^16.2.6 | ^19.2.6 | ^1.19.11 | ^4.93 | HEAD: 2026-05-13 ✓ | HEAD ✓ | **FAIL**: `No open-next.config.ts` (SOURCE FAILURE) | — | deleted | CLIENT LAYER MISSING | unknown | none | **BROKEN** |
-| docs.com | " | " | " | " | " | " | (same class) | — | deleted | " | " | none | **BROKEN** |
-| docs.org | " | " | " | " | " | " | (same class) | — | deleted | " | " | none | **BROKEN** |
+| Application | Next.js       | React   | OpenNext | Wrangler | Compat date        | nodejs_compat | OpenNext build                                      | workerd preview            | Deploy config | VPC readiness        | Cache readiness | Test readiness                                 | Overall                            |
+| ----------- | ------------- | ------- | -------- | -------- | ------------------ | ------------- | --------------------------------------------------- | -------------------------- | ------------- | -------------------- | --------------- | ---------------------------------------------- | ---------------------------------- |
+| info.app    | —             | —       | —        | —        | —                  | —             | —                                                   | —                          | none          | none                 | —               | —                                              | **BROKEN** (not created)           |
+| info.com    | —             | —       | —        | —        | —                  | —             | —                                                   | —                          | none          | none                 | —               | —                                              | **BROKEN** (not created)           |
+| info.org    | —             | —       | —        | —        | —                  | —             | —                                                   | —                          | none          | none                 | —               | —                                              | **BROKEN** (not created)           |
+| core.app    | 16.2.6        | 19.2.6  | 1.19.11  | ^4.93    | 2026-05-13         | ✓             | **PASS**                                            | **PASS (200 / & /health)** | ✓             | n/a (Core)           | static-only OK  | vitest+playwright, no workerd test             | **READY WITH MINOR CLEANUP**       |
+| core.com    | 16.2.6        | 19.2.6  | 1.19.11  | ^4.93    | 2026-05-13         | ✓             | **PASS**                                            | not run (identical config) | ✓             | n/a (Core)           | static-only OK  | same                                           | **READY WITH MINOR CLEANUP**       |
+| core.org    | 16.2.6        | 19.2.6  | 1.19.11  | ^4.93    | 2026-05-13         | ✓             | **PASS**                                            | not run                    | ✓             | n/a (Core)           | static-only OK  | same + **typecheck FAIL** (`@/i18n/*` missing) | **READY WITH MINOR CLEANUP**       |
+| help.app    | pkg.json only | "       | "        | "        | HEAD: 2026-05-13 ✓ | HEAD ✓        | **FAIL** (configs deleted)                          | —                          | deleted       | CLIENT LAYER MISSING | unknown         | none                                           | **BROKEN** (uncommitted deletions) |
+| help.com    | "             | "       | "        | "        | "                  | "             | "                                                   | —                          | deleted       | "                    | "               | none                                           | **BROKEN**                         |
+| help.org    | "             | "       | "        | "        | "                  | "             | "                                                   | —                          | deleted       | "                    | "               | none                                           | **BROKEN**                         |
+| news.app    | "             | "       | "        | "        | "                  | "             | "                                                   | —                          | deleted       | "                    | "               | none                                           | **BROKEN**                         |
+| news.com    | "             | "       | "        | "        | "                  | "             | "                                                   | —                          | deleted       | "                    | "               | none                                           | **BROKEN**                         |
+| news.org    | "             | "       | "        | "        | "                  | "             | "                                                   | —                          | deleted       | "                    | "               | none                                           | **BROKEN**                         |
+| docs.app    | ^16.2.6       | ^19.2.6 | ^1.19.11 | ^4.93    | HEAD: 2026-05-13 ✓ | HEAD ✓        | **FAIL**: `No open-next.config.ts` (SOURCE FAILURE) | —                          | deleted       | CLIENT LAYER MISSING | unknown         | none                                           | **BROKEN**                         |
+| docs.com    | "             | "       | "        | "        | "                  | "             | (same class)                                        | —                          | deleted       | "                    | "               | none                                           | **BROKEN**                         |
+| docs.org    | "             | "       | "        | "        | "                  | "             | (same class)                                        | —                          | deleted       | "                    | "               | none                                           | **BROKEN**                         |
 
 (16th surface: `dev/acme`, Vercel-target, `next build` PASS — out of Cloudflare scope, not silently ignored.)
 
 ## 5. Version and Configuration Drift
 
 Quantified: **1** Next.js version family (16.2.6), **1** OpenNext version, **1** compatibility date (2026-05-13), **1** wrangler.jsonc shape (core ≡ HEAD read-apps minus IMAGES-loader/Sentry) — the apps are **several coherent families, not fifteen drifting apps**. Real drift:
+
 1. **Catalog bypass**: 9 read apps pin `next ^16.2.6` etc. directly; cores use `catalog:` (2 version-source mechanisms).
 2. **Wrangler range split**: root `^4.110.0` vs catalog `^4.93.0`.
 3. `@types/node`: root ^26.1.1 vs catalog ^25.7.0 vs read-apps ^25.9.1 (3 ranges).
@@ -79,26 +81,27 @@ All apps: **App Router only, `src/` layout, Server Components default**; no Page
 
 **No `vpc_services` binding, no `service_id`, no `*.{app,com,org}.localhost` Rails hostname, and no Rails client abstraction exists anywhere in the repo.** Generated `cloudflare-env.d.ts` types predate any VPC binding. The only Rails fetch in the codebase is core.app's `rails-health` page using public-style `process.env.RAILS_API_URL` (good hygiene: server component, `AbortSignal.timeout(2000)`, no credential forwarding — a reasonable template for the future VPC client). No browser-side private fetches exist (nothing exists at all).
 
-| Application | Expected Rails Host | VPC binding ready | Server-side fetch ready | Public-origin dependency | Boundary violation | Status |
-|---|---|---|---|---|---|---|
-| info.app | `info.app.localhost` | no | no | no | no | UNKNOWN (app not created) |
-| info.com | `info.com.localhost` | no | no | no | no | UNKNOWN (app not created) |
-| info.org | `info.org.localhost` | no | no | no | no | UNKNOWN (app not created) |
-| help.app | `help.app.localhost` | no | no | no | no | CLIENT LAYER MISSING |
-| help.com | `help.com.localhost` | no | no | no | no | CLIENT LAYER MISSING |
-| help.org | `help.org.localhost` | no | no | no | no | CLIENT LAYER MISSING |
-| news.app | `news.app.localhost` | no | no | no | no | CLIENT LAYER MISSING |
-| news.com | `news.com.localhost` | no | no | no | no | CLIENT LAYER MISSING |
-| news.org | `news.org.localhost` | no | no | no | no | CLIENT LAYER MISSING |
-| docs.app | `docs.app.localhost` | no | no | no | no | CLIENT LAYER MISSING |
-| docs.com | `docs.com.localhost` | no | no | no | no | CLIENT LAYER MISSING |
-| docs.org | `docs.org.localhost` | no | no | no | no | CLIENT LAYER MISSING |
+| Application | Expected Rails Host  | VPC binding ready | Server-side fetch ready | Public-origin dependency | Boundary violation | Status                    |
+| ----------- | -------------------- | ----------------- | ----------------------- | ------------------------ | ------------------ | ------------------------- |
+| info.app    | `info.app.localhost` | no                | no                      | no                       | no                 | UNKNOWN (app not created) |
+| info.com    | `info.com.localhost` | no                | no                      | no                       | no                 | UNKNOWN (app not created) |
+| info.org    | `info.org.localhost` | no                | no                      | no                       | no                 | UNKNOWN (app not created) |
+| help.app    | `help.app.localhost` | no                | no                      | no                       | no                 | CLIENT LAYER MISSING      |
+| help.com    | `help.com.localhost` | no                | no                      | no                       | no                 | CLIENT LAYER MISSING      |
+| help.org    | `help.org.localhost` | no                | no                      | no                       | no                 | CLIENT LAYER MISSING      |
+| news.app    | `news.app.localhost` | no                | no                      | no                       | no                 | CLIENT LAYER MISSING      |
+| news.com    | `news.com.localhost` | no                | no                      | no                       | no                 | CLIENT LAYER MISSING      |
+| news.org    | `news.org.localhost` | no                | no                      | no                       | no                 | CLIENT LAYER MISSING      |
+| docs.app    | `docs.app.localhost` | no                | no                      | no                       | no                 | CLIENT LAYER MISSING      |
+| docs.com    | `docs.com.localhost` | no                | no                      | no                       | no                 | CLIENT LAYER MISSING      |
+| docs.org    | `docs.org.localhost` | no                | no                      | no                       | no                 | CLIENT LAYER MISSING      |
 
 (Also structurally blocked for the nine existing rows until their app source is restored.)
 
 ## 9. Core-Specific Findings
 
-core.app / core.com / core.org are near-identical **today** and contain **no OIDC/RP, no session, no BFF, no cookie-auth logic yet** — only a client-side cookie-consent banner (shared/), health + image-proxy route handlers, and (app only) the rails-health probe. `experimental.authInterrupts` and `server-only`/`client-only` deps signal *intended* auth work. Implications:
+core.app / core.com / core.org are near-identical **today** and contain **no OIDC/RP, no session, no BFF, no cookie-auth logic yet** — only a client-side cookie-consent banner (shared/), health + image-proxy route handlers, and (app only) the rails-health probe. `experimental.authInterrupts` and `server-only`/`client-only` deps signal _intended_ auth work. Implications:
+
 - Nothing currently caches authenticated content (nothing is authenticated); health routes correctly send `no-store`.
 - The moment OIDC/session lands, Core must NOT adopt any read-surface incremental/tag-cache baseline; keep Core's OpenNext cache config explicitly separate.
 - core.org's missing `@/i18n` module is a real defect (typecheck SOURCE FAILURE) that `next build` tolerated only because org/core's build ran without failing on it — verify whether the notifications page is dead code or broken at runtime.
@@ -106,7 +109,7 @@ core.app / core.com / core.org are near-identical **today** and contain **no OID
 
 ## 10. Cache and ISR Findings
 
-Zero use of `revalidate`, `revalidateTag`, `revalidatePath`, `unstable_cache`, `"use cache"`, `force-static/dynamic`, or cached fetch anywhere. `open-next.config.ts` = `defineCloudflareConfig({})` → **no incremental cache, no tag cache, no R2** — which is *correct* for the current all-static/dynamic-on-demand content. Classification: all existing apps = **Static assets only / No persistent Next cache required**. The intended Rails-backed read surfaces will force a decision (ISR + incremental/tag cache vs. per-request fetch) — decide when the Rails client lands, not before. R2 is not recommended today.
+Zero use of `revalidate`, `revalidateTag`, `revalidatePath`, `unstable_cache`, `"use cache"`, `force-static/dynamic`, or cached fetch anywhere. `open-next.config.ts` = `defineCloudflareConfig({})` → **no incremental cache, no tag cache, no R2** — which is _correct_ for the current all-static/dynamic-on-demand content. Classification: all existing apps = **Static assets only / No persistent Next cache required**. The intended Rails-backed read surfaces will force a decision (ISR + incremental/tag cache vs. per-request fetch) — decide when the Rails client lands, not before. R2 is not recommended today.
 
 ## 11. Runtime Compatibility Risks
 
@@ -115,6 +118,7 @@ Grep + call-path review found **no `node:` imports, no fs/socket/child_process u
 ## 12. Environment and Secret Contract
 
 No secret values found committed (gitleaks also runs in CI). Inventory:
+
 - **Public build-time** (`NEXT_PUBLIC_*`, wrangler vars): `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SENTRY_DSN` (empty string placeholder — should be set or removed).
 - **Public runtime vars** (wrangler): `CLOUDFLARE_ENV`, `NODE_ENV`, `BRAND_NAME`.
 - **Server-only runtime**: `RAILS_API_URL` (read in app/core source but **absent from every wrangler `vars` block** — deploy-time gap), `ALLOWED_IMAGE_HOSTS` (same gap), `SENTRY_DSN`.
@@ -124,18 +128,18 @@ No secret values found committed (gitleaks also runs in CI). Inventory:
 
 ## 13. Verification Evidence
 
-| Check | Command | Result |
-|---|---|---|
-| Frozen install | `pnpm install --frozen-lockfile` | **PASS** |
-| Typecheck | `vp run type` | **FAIL — 4 tasks** (SOURCE FAILURE: `shared/cloudflare/image.ts` TS18048 ×5; `org/core` `@/i18n/*` TS2307 ×4). Note: filter list omits cores from routine runs |
-| Lint | `vp lint` | PASS (no findings) |
-| Unit tests | `vp test run` | **PASS — 18 files, 112 tests** |
-| OpenNext build core.app | `vp run --filter …app-core build` | **PASS** (`Worker saved in .open-next/worker.js`) |
-| OpenNext build core.com / core.org | same pattern | **PASS / PASS** |
-| **workerd preview** core.app | `wrangler dev --env development` + fetch | **PASS — HTTP 200 on `/` and `/health`** (actual workerd, not `next start`) |
-| OpenNext build docs.app | `opennextjs-cloudflare build` | **FAIL — SOURCE FAILURE**: "No `open-next.config.ts` file was found" (deleted in working tree) |
-| Next build dev/acme | `next build` | PASS (Vercel target) |
-| Actual deployed Cloudflare evidence | — | **none available in this environment** (no account access attempted) |
+| Check                               | Command                                  | Result                                                                                                                                                         |
+| ----------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frozen install                      | `pnpm install --frozen-lockfile`         | **PASS**                                                                                                                                                       |
+| Typecheck                           | `vp run type`                            | **FAIL — 4 tasks** (SOURCE FAILURE: `shared/cloudflare/image.ts` TS18048 ×5; `org/core` `@/i18n/*` TS2307 ×4). Note: filter list omits cores from routine runs |
+| Lint                                | `vp lint`                                | PASS (no findings)                                                                                                                                             |
+| Unit tests                          | `vp test run`                            | **PASS — 18 files, 112 tests**                                                                                                                                 |
+| OpenNext build core.app             | `vp run --filter …app-core build`        | **PASS** (`Worker saved in .open-next/worker.js`)                                                                                                              |
+| OpenNext build core.com / core.org  | same pattern                             | **PASS / PASS**                                                                                                                                                |
+| **workerd preview** core.app        | `wrangler dev --env development` + fetch | **PASS — HTTP 200 on `/` and `/health`** (actual workerd, not `next start`)                                                                                    |
+| OpenNext build docs.app             | `opennextjs-cloudflare build`            | **FAIL — SOURCE FAILURE**: "No `open-next.config.ts` file was found" (deleted in working tree)                                                                 |
+| Next build dev/acme                 | `next build`                             | PASS (Vercel target)                                                                                                                                           |
+| Actual deployed Cloudflare evidence | —                                        | **none available in this environment** (no account access attempted)                                                                                           |
 
 ## 14. Prioritized Remediation Plan (do not execute now)
 

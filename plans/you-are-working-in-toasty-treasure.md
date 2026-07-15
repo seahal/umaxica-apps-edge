@@ -40,8 +40,10 @@ User decisions (confirmed): audit the **working tree as-is**; report the three i
 ## Execution plan (requires exiting plan mode — builds/installs write to disk)
 
 ### Step 1 — Documentation evidence (WebFetch, primary sources only)
+
 Fetch and note exact titles/sections for version-sensitive conclusions against the installed
 stack (Next 16.2.6 / React 19.2.6 / @opennextjs/cloudflare 1.19.x / Wrangler 4.x):
+
 1. nextjs.org — Next 16 docs: supported versions, Node requirement, caching semantics
    (fetch/revalidate/ISR/dynamic APIs), middleware→proxy rename status, images, upgrade guide
    from 16.2 to current.
@@ -55,7 +57,8 @@ stack (Next 16.2.6 / React 19.2.6 / @opennextjs/cloudflare 1.19.x / Wrangler 4.x
 4. Spot-check github.com/opennextjs releases for the installed 1.19.11 vs current.
 
 ### Step 2 — Static audit matrices (read-only; mostly done, fill gaps)
-- Read git HEAD versions of one deleted docs/help/news config family (`git show HEAD:app/docs/wrangler.jsonc` etc.) to document what the 9 gutted apps *had* — needed for drift analysis and remediation plan — while judging working-tree state as NOT DEPLOYABLE.
+
+- Read git HEAD versions of one deleted docs/help/news config family (`git show HEAD:app/docs/wrangler.jsonc` etc.) to document what the 9 gutted apps _had_ — needed for drift analysis and remediation plan — while judging working-tree state as NOT DEPLOYABLE.
 - Read the 9 `.dev.vars.example` files (names only) + core `env` vars for the environment/secret
   inventory (Phase 13). Check for `NEXT_PUBLIC_*` misuse and the Rails hostname contract
   (search for `*.{app,com,org}.localhost` — expected absent).
@@ -70,7 +73,9 @@ stack (Next 16.2.6 / React 19.2.6 / @opennextjs/cloudflare 1.19.x / Wrangler 4.x
   Sentry (`@sentry/nextjs` 10.x) on Workers needs a doc check.
 
 ### Step 3 — Executable verification (Phase 15; smallest sufficient command set)
+
 Run from repo root with pnpm/vp only, no --force, no lockfile mutation:
+
 1. `pnpm install --frozen-lockfile` (validate reproducibility).
 2. `vp run type` (note: script excludes cores — run cores' `type` via filters too, and record the
    gap as a finding). `vp lint` (check mode), `vp test run`.
@@ -81,10 +86,12 @@ Run from repo root with pnpm/vp only, no --force, no lockfile mutation:
 4. Attempt one gutted app's build (e.g. app/docs) to record the exact failure class
    (expected: SOURCE FAILURE — configs deleted).
 5. dev/acme: `next build` only (Vercel target).
-Classify every failure per the mandated taxonomy. No deploys, no secrets, no compat-date changes.
+   Classify every failure per the mandated taxonomy. No deploys, no secrets, no compat-date changes.
 
 ### Step 4 — Write the final report
+
 Produce exactly the 16 required sections, including:
+
 - 15-row readiness matrix (info×3 = NOT CREATED/UNKNOWN; docs/help/news×9 = judged on working
   tree = BROKEN/mid-refactor with HEAD context noted; core×3 = judged on build+preview evidence).
 - 12-row VPC readiness table with expected Rails Hosts (`docs.app.localhost` etc.) — expected
@@ -95,9 +102,10 @@ Produce exactly the 16 required sections, including:
 - Ordered remediation slices with acceptance gates (restore-or-rebuild decision for the 9 gutted
   apps first, then normalization, then VPC bindings), explicitly keeping Core separate from the
   read surfaces.
-Deliver the report as the final message (and optionally as a markdown file via SendUserFile).
+  Deliver the report as the final message (and optionally as a markdown file via SendUserFile).
 
 ## Verification of the audit itself
+
 - Every version-sensitive claim cites a fetched primary doc (title + section).
 - Matrix rows = exactly 15; failures carry the mandated classification labels.
 - No file outside scratchpad/plans modified; git status unchanged except untracked build outputs
