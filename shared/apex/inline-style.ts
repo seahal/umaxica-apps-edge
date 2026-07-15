@@ -20,3 +20,5 @@ p{margin:0 0 1rem}
 .text-gray-600{color:#4b5563}
 .space-y-4>*+*{margin-top:1rem}
 `;
+
+export const APEX_INLINE_STYLE_CSP_SOURCE = "'sha256-zUscPs9cpq457bXlcAhCsddfbAl1qDXBiHJSsgW/dCU='";

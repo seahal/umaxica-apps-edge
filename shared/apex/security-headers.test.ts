@@ -9,6 +9,7 @@ describe(buildCspHeader, () => {
     expect(csp).toContain("script-src 'self'");
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("style-src 'self'");
+    expect(csp).toContain("'sha256-zUscPs9cpq457bXlcAhCsddfbAl1qDXBiHJSsgW/dCU='");
     expect(csp).toContain('upgrade-insecure-requests');
   });
 

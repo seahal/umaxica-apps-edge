@@ -1,6 +1,7 @@
 import type { RateLimiter } from './rate-limit';
+import { APEX_INLINE_STYLE_CSP_SOURCE } from './inline-style';
 
-const DEFAULT_CSP_STYLE_SRC = "'self'";
+const DEFAULT_CSP_STYLE_SRC = `'self' ${APEX_INLINE_STYLE_CSP_SOURCE}`;
 
 export function buildCspHeader(styleSrc: string = DEFAULT_CSP_STYLE_SRC): string {
   return `default-src 'self'; base-uri 'self'; font-src 'self' data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src ${styleSrc}; style-src-attr 'none'; upgrade-insecure-requests`;
