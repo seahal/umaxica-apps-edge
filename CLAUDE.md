@@ -56,9 +56,18 @@ Most workspaces are Next.js applications; `*/apex` are Hono workers:
 (redirect to a regional `*/core` subdomain, `/health`, `/about`); the
 corresponding `*/core` Next.js app serves the actual regional subdomain, not
 the root. They intentionally share the same top-level domain — do not treat
-that as a collision to resolve. `shared/apex/` holds their common
-middleware/routes (`createApexApp`, health page, security headers, rate
-limiting, CSRF); it is separate from `shared/next/`, `shared/cloudflare/`, etc.
+that as a collision to resolve.
+
+There is no `shared/` directory. Each frame (workspace) owns its own copy of
+its components, types, hooks, and utilities — including code that looks
+identical across frames (e.g. `createApexApp`, health page, security headers,
+rate limiting, and CSRF middleware in each `*/apex`, or `rails-client`/
+`rails-health`/`image-config` in each `*/core`). Do not reintroduce a shared
+module, a `common/`/`core/`/`base/` directory, or a re-export layer to
+de-duplicate this code — duplication across frames is intentional so that one
+frame's requirement changes never force a change in another frame. oxlint's
+`no-restricted-imports` rule (`.oxlintrc.json`) enforces this by rejecting
+`shared/` imports and direct frame-to-frame imports.
 
 ### Service Pattern
 

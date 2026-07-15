@@ -1,5 +1,5 @@
-import type { AssetEnv } from '../../../shared/apex/security-headers';
-import { DEFAULT_BRAND_NAME } from '../../../shared/apex/brand';
+import type { AssetEnv } from './security-headers';
+import { DEFAULT_BRAND_NAME } from './brand';
 
 const ABOUT_DESCRIPTION =
   'umaxica.org is the apex domain of the UMAXICA platform. Services and content are available on dedicated subdomains';

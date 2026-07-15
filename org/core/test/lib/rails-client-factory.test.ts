@@ -1,0 +1,162 @@
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('server-only', () => ({}));
+import { createRailsClient, type RailsFetcher } from '../../src/lib/rails-client';
+
+function makeBinding(response: Response | Error) {
+  const fetch = vi.fn<RailsFetcher['fetch']>(() => {
+    if (response instanceof Error) {
+      return Promise.reject(response);
+    }
+    return Promise.resolve(response);
+  });
+  return { fetch } satisfies RailsFetcher;
+}
+
+describe('org/core rails client factory', () => {
+  it('always requests against the fixed hostname regardless of caller input', async () => {
+    const binding = makeBinding(new Response('ok', { status: 200 }));
+    const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+    await client.fetch('/edge/v0/health');
+
+    const [requestUrl] = binding.fetch.mock.calls[0] as [string, RequestInit];
+    expect(new URL(requestUrl).hostname).toBe('core.org.localhost');
+    expect(new URL(requestUrl).port).toBe('3000');
+  });
+
+  it('rejects an absolute URL from the caller instead of redirecting the origin', async () => {
+    const binding = makeBinding(new Response('ok', { status: 200 }));
+    const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+    const result = await client.fetch('http://evil.example.com/steal');
+
+    expect(result.kind).toBe('invalid-path');
+    expect(binding.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects a protocol-relative path', async () => {
+    const binding = makeBinding(new Response('ok', { status: 200 }));
+    const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+    const result = await client.fetch('//evil.example.com/steal');
+
+    expect(result.kind).toBe('invalid-path');
+    expect(binding.fetch).not.toHaveBeenCalled();
+  });
+
+  it('combines a relative path with the fixed origin correctly', async () => {
+    const binding = makeBinding(new Response('ok', { status: 200 }));
+    const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+    await client.fetch('/edge/v0/widgets?limit=10');
+
+    const [requestUrl] = binding.fetch.mock.calls[0] as [string, RequestInit];
+    expect(requestUrl).toBe('http://core.org.localhost:3000/edge/v0/widgets?limit=10');
+  });
+
+  it.each(['', 'no-leading-slash', '/\\evil.com', '/path\0withnull'])(
+    'rejects malformed path %j',
+    async (path) => {
+      const binding = makeBinding(new Response('ok', { status: 200 }));
+      const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+      const result = await client.fetch(path);
+
+      expect(result.kind).toBe('invalid-path');
+      expect(binding.fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it('supplies a bounded timeout signal on every request', async () => {
+    const binding = makeBinding(new Response('ok', { status: 200 }));
+    const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+    await client.fetch('/edge/v0/health');
+
+    const [, init] = binding.fetch.mock.calls[0] as [string, RequestInit];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('does not forward browser cookies by default', async () => {
+    const binding = makeBinding(new Response('ok', { status: 200 }));
+    const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+    await client.fetch('/edge/v0/health', { headers: { cookie: 'session=secret' } });
+
+    const [, init] = binding.fetch.mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.has('cookie')).toBe(false);
+  });
+
+  it('does not forward Authorization by default', async () => {
+    const binding = makeBinding(new Response('ok', { status: 200 }));
+    const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+    await client.fetch('/edge/v0/health', { headers: { authorization: 'Bearer secret' } });
+
+    const [, init] = binding.fetch.mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.has('authorization')).toBe(false);
+  });
+
+  it('strips Cloudflare Access headers even if a caller supplies them', async () => {
+    const binding = makeBinding(new Response('ok', { status: 200 }));
+    const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+    await client.fetch('/edge/v0/health', {
+      headers: {
+        'cf-access-client-id': 'id',
+        'cf-access-client-secret': 'secret',
+      },
+    });
+
+    const [, init] = binding.fetch.mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.has('cf-access-client-id')).toBe(false);
+    expect(headers.has('cf-access-client-secret')).toBe(false);
+  });
+
+  it('produces a typed http-error result for non-2xx responses', async () => {
+    const binding = makeBinding(new Response('nope', { status: 500 }));
+    const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+    const result = await client.fetch('/edge/v0/health');
+
+    expect(result.kind).toBe('http-error');
+    if (result.kind === 'http-error') {
+      expect(result.status).toBe(500);
+    }
+  });
+
+  it('produces a bounded ok result for successful responses', async () => {
+    const binding = makeBinding(new Response('ok', { status: 200 }));
+    const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+    const result = await client.fetch('/edge/v0/health');
+
+    expect(result.kind).toBe('ok');
+    if (result.kind === 'ok') {
+      expect(result.status).toBe(200);
+    }
+  });
+
+  it('produces an unreachable result when the binding fetch rejects', async () => {
+    const binding = makeBinding(new Error('network down'));
+    const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+    const result = await client.fetch('/edge/v0/health');
+
+    expect(result.kind).toBe('unreachable');
+  });
+
+  it('never requests caching', async () => {
+    const binding = makeBinding(new Response('ok', { status: 200 }));
+    const client = createRailsClient(binding, 'core.org.localhost', 3000);
+
+    await client.fetch('/edge/v0/health');
+
+    const [, init] = binding.fetch.mock.calls[0] as [string, RequestInit];
+    expect(init.cache).toBe('no-store');
+  });
+});

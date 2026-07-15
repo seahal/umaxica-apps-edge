@@ -1,4 +1,4 @@
-import { checkRailsHealth } from '../../../../../../shared/cloudflare/rails-health';
+import { checkRailsHealth } from '../../../lib/rails-health';
 import { connection } from 'next/server';
 import { getRailsClient } from '@/lib/rails-client';
 import { getJitWorkspaceUrl } from '@/lib/jit-url';

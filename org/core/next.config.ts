@@ -1,8 +1,8 @@
 import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
-import { sharedImageConfig } from '../../shared/next/image-config';
-import { imageFontSecurityHeaders } from '../../shared/next/security-headers';
+import { imageConfig } from './image-config';
+import { imageFontSecurityHeaders } from './security-headers';
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   },
   typedRoutes: true,
   cacheComponents: true,
-  images: sharedImageConfig as NextConfig['images'],
+  images: imageConfig as NextConfig['images'],
   headers: imageFontSecurityHeaders as NextConfig['headers'],
   allowedDevOrigins: ['localhost', '*.localhost', '172.18.0.2'],
   logging: {

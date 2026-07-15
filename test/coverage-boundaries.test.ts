@@ -14,10 +14,6 @@ import {
   getJitWorkspaceEnvName as getOrgEnvName,
   getJitWorkspaceUrl as getOrgUrl,
 } from '../org/core/src/lib/jit-url';
-import { getCookie } from '../shared/cookie';
-import { parseConsentedCookie, shouldShowCookieBanner } from '../shared/consentState';
-import { checkRailsHealth } from '../shared/cloudflare/rails-health';
-import { getJitWorkspaceUrl as getSharedJitUrl } from '../shared/web/jit-url';
 import { ServiceWorkerRegistration as AppServiceWorkerRegistration } from '../app/core/src/components/service-worker-registration';
 import { ServiceWorkerRegistration as ComServiceWorkerRegistration } from '../com/core/src/components/service-worker-registration';
 import { ServiceWorkerRegistration as OrgServiceWorkerRegistration } from '../org/core/src/components/service-worker-registration';
@@ -50,50 +46,6 @@ describe('coverage boundaries', () => {
     );
     expect(url('APP', 'CORE', { JIT_APP_CORE_URL: '   ' })).toBeNull();
     expect(url('APP', 'CORE', {})).toBeNull();
-  });
-
-  it('handles empty and encoded cookie values', () => {
-    expect(getCookie('session', '')).toBeNull();
-    expect(getCookie('display name', 'display%20name=Jane%20Doe')).toBe('Jane Doe');
-    expect(getCookie('missing', 'session=abc')).toBeNull();
-  });
-
-  it('maps every consent state', () => {
-    expect(parseConsentedCookie('true')).toBe('accepted');
-    expect(parseConsentedCookie('1')).toBe('accepted');
-    expect(parseConsentedCookie('false')).toBe('denied');
-    expect(parseConsentedCookie('0')).toBe('denied');
-    expect(parseConsentedCookie(null)).toBe('unknown');
-    expect(shouldShowCookieBanner('accepted')).toBe(false);
-    expect(shouldShowCookieBanner('denied')).toBe(true);
-  });
-
-  it('reads the shared JIT URL from process environment by default', () => {
-    vi.stubEnv('JIT_APP_CORE_URL', 'https://shared-jit.example/');
-    expect(getSharedJitUrl('APP', 'CORE')).toBe('https://shared-jit.example');
-    vi.unstubAllEnvs();
-  });
-
-  it('maps Rails health client results', async () => {
-    expect(await checkRailsHealth(null)).toEqual({ kind: 'not-configured' });
-    expect(
-      await checkRailsHealth({ fetch: vi.fn().mockResolvedValue({ kind: 'ok', status: 200 }) }),
-    ).toEqual({ kind: 'ok', status: 200 });
-    expect(
-      await checkRailsHealth({
-        fetch: vi.fn().mockResolvedValue({ kind: 'http-error', status: 503 }),
-      }),
-    ).toEqual({ kind: 'http-error', status: 503 });
-    expect(
-      await checkRailsHealth({
-        fetch: vi.fn().mockResolvedValue({ kind: 'unreachable', errorMessage: 'down' }),
-      }),
-    ).toEqual({ kind: 'unreachable', errorMessage: 'down' });
-    expect(
-      await checkRailsHealth({
-        fetch: vi.fn().mockResolvedValue({ kind: 'invalid-path', reason: 'bad path' }),
-      }),
-    ).toEqual({ kind: 'unreachable', errorMessage: 'bad path' });
   });
 
   it.each([
