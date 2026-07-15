@@ -1,7 +1,7 @@
 /** @jsxImportSource hono/jsx */
 import { Hono } from 'hono';
-import type { ApexEnv } from '../../../shared/apex/create-apex-app';
-import { renderer } from '../../../shared/apex/renderer';
+import type { ApexEnv } from '../src/create-apex-app';
+import { renderer } from '../src/renderer';
 
 describe('Renderer layout', () => {
   const app = new Hono<ApexEnv>();

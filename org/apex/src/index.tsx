@@ -1,6 +1,6 @@
 import { timeout } from 'hono/timeout';
-import { createApexApp } from '../../../shared/apex/create-apex-app';
-import { setMeta } from '../../../shared/apex/seo';
+import { createApexApp } from './create-apex-app';
+import { setMeta } from './seo';
 import {
   buildRegionErrorPayload,
   getDefaultRedirectUrl,

@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --config wrangler.jsonc --port 5301",
+    "dev": "wrangler dev --config wrangler.jsonc --port 5301 --ip 0.0.0.0",
     "build": "wrangler deploy --config wrangler.jsonc --dry-run --outdir dist",
-    "preview": "pnpm run build && wrangler dev --config wrangler.jsonc --local",
+    "preview": "pnpm run build && wrangler dev --config wrangler.jsonc --local --ip 0.0.0.0",
     "deploy": "wrangler deploy --config wrangler.jsonc",
     "deploy:upload": "wrangler versions upload --config wrangler.jsonc",
     "deploy:promote": "wrangler versions deploy --config wrangler.jsonc --yes",

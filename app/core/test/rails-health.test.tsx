@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { RailsHealthView } from '../src/app/(page)/rails-health/rails-health';
-import type { RailsHealthResult } from '../../../shared/cloudflare/rails-health';
+import type { RailsHealthResult } from '../src/lib/rails-health';
 
 const okResult: RailsHealthResult = { kind: 'ok', status: 200 };
 const httpErrorResult: RailsHealthResult = { kind: 'http-error', status: 503 };

@@ -30,7 +30,38 @@
     "react/no-danger": "warn",
     "typescript/no-explicit-any": "error",
     "typescript/no-non-null-assertion": "warn",
-    "typescript/consistent-type-imports": "error"
+    "typescript/consistent-type-imports": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["**/shared/**", "**/shared/*"],
+            "message": "shared/ has been removed. Each frame owns its own components, types, hooks, and utilities — copy the implementation into this frame instead of reintroducing a shared module."
+          },
+          {
+            "group": [
+              "../../app/*",
+              "../../../app/*",
+              "../../../../app/*",
+              "../../com/*",
+              "../../../com/*",
+              "../../../../com/*",
+              "../../org/*",
+              "../../../org/*",
+              "../../../../org/*",
+              "../../net/*",
+              "../../../net/*",
+              "../../../../net/*",
+              "../../dev/*",
+              "../../../dev/*",
+              "../../../../dev/*"
+            ],
+            "message": "Direct imports across frames are not allowed. Each frame must own and duplicate what it needs instead of importing another frame's internals."
+          }
+        ]
+      }
+    ]
   },
   "ignorePatterns": [
     "**/.wrangler/**",

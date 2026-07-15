@@ -1,5 +1,4 @@
 {
-  "exclude": ["shared/**/*"],
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",

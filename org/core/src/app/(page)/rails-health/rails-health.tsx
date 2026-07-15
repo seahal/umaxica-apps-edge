@@ -1,4 +1,4 @@
-import type { RailsHealthResult } from '../../../../../../shared/cloudflare/rails-health';
+import type { RailsHealthResult } from '../../../lib/rails-health';
 
 function renderStateHeading(result: RailsHealthResult) {
   switch (result.kind) {

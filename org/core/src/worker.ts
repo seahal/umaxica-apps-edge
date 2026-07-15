@@ -1,6 +1,6 @@
 // @ts-expect-error OpenNext creates this module during the build step.
 import nextWorker from '../.open-next/worker.js';
-import { sanitizeHealthRequest } from '../../../shared/cloudflare/health-request';
+import { sanitizeHealthRequest } from './lib/health-request';
 
 export default {
   fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext) {
