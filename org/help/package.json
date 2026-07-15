@@ -14,16 +14,17 @@
     "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.19.11",
-    "next": "^16.2.6",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "@opennextjs/cloudflare": "catalog:",
+    "@sentry/nextjs": "^10.51.0",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260523.0",
-    "@types/node": "^25.9.1",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "wrangler": "^4.93.0"
+    "@cloudflare/workers-types": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "wrangler": "catalog:"
   }
 }

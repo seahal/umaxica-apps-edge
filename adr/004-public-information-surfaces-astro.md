@@ -28,14 +28,14 @@ Astro is introduced only for public information surfaces:
 
 The surface split is:
 
-| Surface | Framework | Responsibility |
-| --- | --- | --- |
-| `*/core` | Next.js | RP/BFF, authenticated UI, React Aria, logged-in state, account/org/avatar operations |
-| `*/docs` | Astro | Public documentation and knowledge content |
-| `*/news` | Astro | Public news and announcements |
-| `*/info` | Astro | Public informational pages |
-| `*/help` | Astro | Public help content |
-| Rails Core/Base | Rails | Source of truth, authority, policy, mutation, content JSON authority |
+| Surface         | Framework | Responsibility                                                                       |
+| --------------- | --------- | ------------------------------------------------------------------------------------ |
+| `*/core`        | Next.js   | RP/BFF, authenticated UI, React Aria, logged-in state, account/org/avatar operations |
+| `*/docs`        | Astro     | Public documentation and knowledge content                                           |
+| `*/news`        | Astro     | Public news and announcements                                                        |
+| `*/info`        | Astro     | Public informational pages                                                           |
+| `*/help`        | Astro     | Public help content                                                                  |
+| Rails Core/Base | Rails     | Source of truth, authority, policy, mutation, content JSON authority                 |
 
 Astro surfaces may consume only public, read-only content APIs from Rails
 through the Cloudflare Workers private connectivity boundary. They must not

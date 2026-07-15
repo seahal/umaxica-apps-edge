@@ -2,16 +2,26 @@ packages:
   - app/core
   - app/docs
   - app/help
+  - app/info
   - app/news
   - com/core
   - com/docs
   - com/help
+  - com/info
   - com/news
   - dev/acme
   - org/core
   - org/docs
   - org/help
+  - org/info
   - org/news
+
+allowBuilds:
+  '@sentry/cli': true
+  esbuild: true
+  lefthook: true
+  sharp: true
+  workerd: true
 
 catalog:
   '@cloudflare/workers-types': ^4.20260523.0
@@ -19,10 +29,10 @@ catalog:
   '@types/node': ^25.7.0
   '@types/react': ^19.2.14
   '@types/react-dom': ^19.2.3
-  next: 16.2.6
+  next: ^16.2.0
   nuqs: ^2.8.9
-  react: 19.2.6
-  react-dom: 19.2.6
+  react: ^19.2.0
+  react-dom: ^19.2.0
   vitest: ^4.1.10
   wrangler: ^4.93.0
 

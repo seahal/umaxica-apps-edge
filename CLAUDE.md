@@ -35,14 +35,17 @@ The active workspaces are Next.js applications:
 | `app/docs` | docs.umaxica.app | 5406     |
 | `app/news` | news.umaxica.app | 5407     |
 | `app/help` | help.umaxica.app | 5408     |
+| `app/info` | info.umaxica.app | 5409     |
 | `com/core` | umaxica.com      | 5102     |
 | `com/docs` | docs.umaxica.com | 5106     |
 | `com/news` | news.umaxica.com | 5107     |
 | `com/help` | help.umaxica.com | 5108     |
+| `com/info` | info.umaxica.com | 5109     |
 | `org/core` | umaxica.org      | 5302     |
 | `org/docs` | docs.umaxica.org | 5306     |
 | `org/news` | news.umaxica.org | 5307     |
 | `org/help` | help.umaxica.org | 5308     |
+| `org/info` | info.umaxica.org | 5309     |
 | `dev/acme` | umaxica.dev      | 5502     |
 
 ### Service Pattern

@@ -25,7 +25,6 @@ export default defineConfig({
         '**/.open-next/**',
         '**/next.config.ts',
         '**/open-next.config.ts',
-        '**/shared/cloudflare/image.ts',
         '**/src/i18n/**',
         '**/src/app/**',
       ],

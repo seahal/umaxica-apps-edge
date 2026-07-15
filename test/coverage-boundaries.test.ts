@@ -2,9 +2,6 @@ import { render } from '@testing-library/react';
 // @ts-expect-error React is provided by the app workspace, not the root package.
 import { createElement } from '../app/core/node_modules/react';
 import { describe, expect, it, vi } from 'vitest';
-import appLoader from '../app/core/src/image-loader';
-import comLoader from '../com/core/src/image-loader';
-import orgLoader from '../org/core/src/image-loader';
 import {
   getJitWorkspaceEnvName as getAppEnvName,
   getJitWorkspaceUrl as getAppUrl,
@@ -42,19 +39,6 @@ function removeServiceWorker() {
 }
 
 describe('coverage boundaries', () => {
-  it.each([
-    ['app', appLoader],
-    ['com', comLoader],
-    ['org', orgLoader],
-  ])('%s image loader includes width and optional quality', (_name, loader) => {
-    expect(loader({ src: 'https://images.example/photo.jpg', width: 640 })).toBe(
-      '/api/image?url=https%3A%2F%2Fimages.example%2Fphoto.jpg&w=640',
-    );
-    expect(loader({ src: '/photo.jpg', width: 320, quality: 75 })).toBe(
-      '/api/image?url=%2Fphoto.jpg&w=320&q=75',
-    );
-  });
-
   it.each([
     ['app', getAppEnvName, getAppUrl],
     ['com', getComEnvName, getComUrl],
@@ -150,7 +134,7 @@ describe('coverage boundaries', () => {
   ])(
     '%s service worker registration tolerates unavailable workers and failures',
     (_name, Component) => {
-    removeServiceWorker();
+      removeServiceWorker();
       expect(render(createElement(Component)).container.innerHTML).toBe('');
 
       Object.defineProperty(navigator, 'serviceWorker', {

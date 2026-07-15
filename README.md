@@ -4,35 +4,35 @@
 
 （ ＾ν＾） Hello, World!
 
+A multi-domain monorepo of Next.js applications deployed to Cloudflare Workers
+and Vercel, spanning three domain families: `umaxica.com` (corporate),
+`umaxica.app` (service), and `umaxica.org` (staff).
+
 ## Prerequisites
 
 - Node.js 24.x (`node:24-trixie`)
-- [pnpm](https://pnpm.io/) 10.29+
+- [pnpm](https://pnpm.io/) 11.13.x
 - Docker & Docker Compose (optional)
 
 ## Workspaces
-
-This table describes the target workspace matrix. `info` rows are planned
-public information surfaces and may not exist until the Astro migration slice
-adds them.
 
 | Package    | Role            | Domain             | Dev Port |
 | ---------- | --------------- | ------------------ | -------- |
 | `com/core` | Corporate app   | `umaxica.com`      | 5102     |
 | `com/docs` | Corporate docs  | `docs.umaxica.com` | 5106     |
 | `com/news` | Corporate news  | `news.umaxica.com` | 5107     |
-| `com/info` | Corporate info  | `info.umaxica.com` | 5109     |
 | `com/help` | Corporate help  | `help.umaxica.com` | 5108     |
+| `com/info` | Corporate info  | `info.umaxica.com` | 5109     |
 | `org/core` | Staff app       | `umaxica.org`      | 5302     |
 | `org/docs` | Staff docs      | `docs.umaxica.org` | 5306     |
 | `org/news` | Staff news      | `news.umaxica.org` | 5307     |
-| `org/info` | Staff info      | `info.umaxica.org` | 5309     |
 | `org/help` | Staff help      | `help.umaxica.org` | 5308     |
+| `org/info` | Staff info      | `info.umaxica.org` | 5309     |
 | `app/core` | Service app     | `umaxica.app`      | 5402     |
 | `app/docs` | Service docs    | `docs.umaxica.app` | 5406     |
 | `app/news` | Service news    | `news.umaxica.app` | 5407     |
-| `app/info` | Service info    | `info.umaxica.app` | 5409     |
 | `app/help` | Service help    | `help.umaxica.app` | 5408     |
+| `app/info` | Service info    | `info.umaxica.app` | 5409     |
 | `dev/acme` | Development app | `umaxica.dev`      | 5502     |
 
 ## Quick Start
@@ -49,16 +49,17 @@ docker compose up && docker compose exec core bash
 
 ## Scripts
 
-Toolchain is plain pnpm scripts backed by standalone Oxfmt, Oxlint, Vitest, and tsgo.
+The toolchain is plain pnpm scripts backed by standalone Oxfmt, Oxlint, Vitest,
+and tsgo — nothing wraps `next dev` / `next build`.
 
 ```bash
-pnpm run format            # oxfmt .
-pnpm run format:check      # oxfmt --check .
-pnpm run lint               # oxlint --type-aware --fix .
-pnpm run lint:check         # oxlint --type-aware .
-pnpm run typecheck           # tsgo --noEmit, per app
-pnpm run test                # vitest run
-pnpm run test:cov            # vitest run --coverage
+pnpm run format          # oxfmt .
+pnpm run format:check    # oxfmt --check .
+pnpm run lint            # oxlint --type-aware --fix .
+pnpm run lint:check      # oxlint --type-aware .
+pnpm run typecheck       # tsgo --noEmit, per app
+pnpm run test            # vitest run
+pnpm run test:cov        # vitest run --coverage
 pnpm --filter <ws> run <script>
 ```
 
@@ -68,7 +69,7 @@ pnpm --filter <ws> run <script>
 
 | Tool                                                            | Role                                 | Version   |
 | --------------------------------------------------------------- | ------------------------------------ | --------- |
-| [pnpm](https://pnpm.io/)                                        | Package manager & task orchestration | 10.29.x   |
+| [pnpm](https://pnpm.io/)                                        | Package manager & task orchestration | 11.13.x   |
 | [Next.js](https://nextjs.org/)                                  | Framework, dev server, build         | 16.x      |
 | [Oxfmt](https://oxc.rs/)                                        | Formatter (`pnpm run format`)        | 0.58.x    |
 | [Oxlint](https://oxc.rs/)                                       | Linter (`pnpm run lint`)             | 1.73.x    |
@@ -77,8 +78,6 @@ pnpm --filter <ws> run <script>
 | [Playwright](https://playwright.dev/)                           | Browser/E2E tests                    | 1.59.x    |
 | [Lefthook](https://github.com/evilmartians/lefthook)            | Git hooks                            | 2.1.x     |
 | [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | Cloudflare Workers CLI               | 4.x       |
-
-Each tool is installed and invoked directly; nothing wraps `next dev`/`next build`.
 
 ### Docker / DevContainer
 
@@ -97,6 +96,27 @@ The development environment can be set up via Docker + VS Code DevContainer.
 docker compose up && docker compose exec core bash
 ```
 
+## Testing
+
+- **Vitest** runs with the `happy-dom` environment and globals enabled.
+- Tests live in each workspace's `test/` directory.
+- Setup file: `vitest.setup.ts` (imports `@testing-library/jest-dom`).
+- Testing libraries: `@testing-library/react`, `@testing-library/user-event`.
+
+```bash
+pnpm exec vitest run path/to/file.test.ts   # run a single test file
+pnpm exec vitest run -t "test name"         # run tests matching a name
+```
+
+## TypeScript
+
+Strict mode is enabled across the monorepo. Key compiler options:
+`noUncheckedIndexedAccess`, `noImplicitOverride`, `noFallthroughCasesInSwitch`.
+Module resolution is `Bundler`.
+
+> Do not modify the configurations for Oxlint, Oxfmt, tsgo, or Vitest without
+> explicit user permission.
+
 ## Production Environment
 
 | Platform                                              | Workspaces                | Domains                                     |
@@ -107,12 +127,12 @@ docker compose up && docker compose exec core bash
 ### Deployment
 
 ```bash
-pnpm --filter <workspace> run deploy            # direct deploy
-pnpm --filter <workspace> run deploy:upload      # versioned: upload then promote
+pnpm --filter <workspace> run deploy           # direct deploy
+pnpm --filter <workspace> run deploy:upload    # versioned: upload, then promote
 pnpm --filter <workspace> run deploy:promote
 ```
 
-Cloudflare deploy commands should use the pnpm workspace filter, for example:
+Root-level shortcuts exist for the docs workspaces:
 
 ```bash
 pnpm run deploy:app-docs:upload
@@ -120,22 +140,14 @@ pnpm run deploy:com-docs:upload
 pnpm run deploy:org-docs:upload
 ```
 
-Cloudflare project deploy commands for docs should point at the docs workspace:
+Notes:
 
-```bash
-pnpm --dir app/docs run deploy:upload
-pnpm --dir com/docs run deploy:upload
-pnpm --dir org/docs run deploy:upload
-```
-
-Do not point Cloudflare at the removed `post` workspace. Do not use `npm --dir`;
-npm does not support that flag. If npm must be used by the platform, use
-`npm --prefix app/docs run deploy:upload`.
-
-If Wrangler reports that the CI system expected a `*-post` Worker while the
-workspace config uses `*-docs`, the Cloudflare Workers Build is still connected
-to the removed `post` Worker. Reconnect or recreate that Cloudflare build for
-the matching docs Worker before deploying.
+- Do not point Cloudflare at the removed `post` workspace. If Wrangler reports
+  that CI expected a `*-post` Worker while the workspace config uses `*-docs`,
+  the Cloudflare Workers Build is still connected to the removed `post` Worker —
+  reconnect or recreate that build for the matching docs Worker before deploying.
+- `npm --dir` is not a valid flag. If the platform requires npm, use
+  `npm --prefix app/docs run deploy:upload` instead.
 
 ### Environment Variables
 
@@ -147,9 +159,9 @@ For local Docker Compose development, the workspace URL convention is:
 JIT_{COM,ORG,APP}_{CORE,DOCS,NEWS,INFO,HELP}_URL
 ```
 
-Compose defaults should map those names to the local dev ports for each workspace.
-
-Use the same naming pattern in other workspaces when you need a self URL or cross-workspace link target.
+Compose defaults map those names to the local dev ports for each workspace.
+Use the same naming pattern in other workspaces when you need a self URL or a
+cross-workspace link target.
 
 ## Surface Architecture
 
@@ -157,20 +169,23 @@ Core workspaces stay on Next.js. They own RP/BFF behavior, authenticated UI,
 React Aria surfaces, logged-in state, and account, organization, and avatar
 operations.
 
-Public information workspaces use Astro: `docs`, `news`, `info`, and `help`.
-They are limited to public content, MDX, content collections, SSG/SSR, and image
-optimization.
+Public information workspaces (`docs`, `news`, `info`, and `help`) also use
+Next.js and OpenNext on Cloudflare Workers. They are limited to public content,
+read-only content APIs, SSG/SSR, and image optimization.
 
 Rails Core/Base remains the source of truth for policy, mutation, authority,
-and content JSON APIs. Astro public surfaces may consume only public,
+and content JSON APIs. Public information surfaces may consume only public,
 read-only Rails content APIs through the Cloudflare Workers private connectivity
 boundary. They must not receive Acme refresh tokens, user-scoped secrets, or
 authenticated Core session material.
 
-See [Public Information Surfaces](./docs/public-information-surfaces.md) and
-[ADR 004](./adr/004-public-information-surfaces-astro.md).
+## Review Checklist for Agents
 
-## Acknowledgement
+- [ ] Run `pnpm install` after pulling remote changes and before getting started.
+- [ ] Run `pnpm run format:check`, `pnpm run lint:check`, `pnpm run typecheck`,
+      and `pnpm run test` to validate changes.
+
+## Notes
 
 - Secrets must stay in Rails credentials; do not commit plaintext secrets.
 - WebAuthn origins are controlled by `TRUSTED_ORIGINS`.
