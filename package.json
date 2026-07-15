@@ -11,7 +11,7 @@
     "deploy:app-docs:upload": "pnpm --filter umaxica-apps-edge-app-docs run deploy:upload",
     "deploy:com-docs:upload": "pnpm --filter umaxica-apps-edge-com-docs run deploy:upload",
     "deploy:org-docs:upload": "pnpm --filter umaxica-apps-edge-org-docs run deploy:upload",
-    "typecheck": "pnpm --filter umaxica-apps-edge-apex-app --filter umaxica-apps-edge-apex-com --filter umaxica-apps-edge-apex-net --filter umaxica-apps-edge-apex-org --filter umaxica-apps-edge-app-core --filter umaxica-apps-edge-app-docs --filter umaxica-apps-edge-app-help --filter umaxica-apps-edge-app-news --filter umaxica-apps-edge-com-core --filter umaxica-apps-edge-com-docs --filter umaxica-apps-edge-com-help --filter umaxica-apps-edge-com-news --filter umaxica-apps-edge-dev-acme --filter umaxica-apps-edge-org-core --filter umaxica-apps-edge-org-docs --filter umaxica-apps-edge-org-help --filter umaxica-apps-edge-org-news run typecheck",
+    "typecheck": "pnpm --filter umaxica-apps-edge-apex-app --filter umaxica-apps-edge-apex-com --filter umaxica-apps-edge-apex-net --filter umaxica-apps-edge-apex-org --filter umaxica-apps-edge-app-core --filter umaxica-apps-edge-app-docs --filter umaxica-apps-edge-app-help --filter umaxica-apps-edge-app-news --filter umaxica-apps-edge-com-core --filter umaxica-apps-edge-com-docs --filter umaxica-apps-edge-com-help --filter umaxica-apps-edge-com-news --filter umaxica-apps-edge-apex-dev --filter umaxica-apps-edge-dev-acme --filter umaxica-apps-edge-org-core --filter umaxica-apps-edge-org-docs --filter umaxica-apps-edge-org-help --filter umaxica-apps-edge-org-news run typecheck",
     "test": "vitest run",
     "test:cov": "vitest run --coverage",
     "prepare": "lefthook install"

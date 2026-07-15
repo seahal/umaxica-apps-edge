@@ -12,6 +12,7 @@ packages:
   - com/info
   - com/news
   - dev/acme
+  - dev/apex
   - net/apex
   - org/apex
   - org/core
@@ -33,7 +34,7 @@ catalog:
   '@types/node': ^25.7.0
   '@types/react': ^19.2.14
   '@types/react-dom': ^19.2.3
-  hono: ^4.12.23
+  hono: ^4.12.29
   next: ^16.2.0
   nuqs: ^2.8.9
   react: ^19.2.0

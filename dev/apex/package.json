@@ -1,0 +1,17 @@
+{
+  "name": "umaxica-apps-edge-apex-dev",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev --listen 5501",
+    "deploy": "vercel deploy --prod",
+    "typecheck": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "hono": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:"
+  }
+}
