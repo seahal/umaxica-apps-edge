@@ -18,6 +18,10 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn<() => never>(),
 }));
 
+vi.mock('next/server', () => ({
+  connection: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@/i18n/config', () => ({
   defaultLocale: 'en',
 }));

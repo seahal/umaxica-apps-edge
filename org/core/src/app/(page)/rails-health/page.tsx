@@ -1,11 +1,11 @@
 import { checkRailsHealth } from '../../../../../../shared/cloudflare/rails-health';
+import { connection } from 'next/server';
 import { getRailsClient } from '@/lib/rails-client';
 import { getJitWorkspaceUrl } from '@/lib/jit-url';
 import { RailsHealthView } from './rails-health';
 
-export const dynamic = 'force-dynamic';
-
 export default async function RailsHealthPage() {
+  await connection();
   const result = await checkRailsHealth(getRailsClient());
   const workspaceUrl = getJitWorkspaceUrl('ORG', 'CORE');
 
