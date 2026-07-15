@@ -16,24 +16,36 @@ and Vercel, spanning three domain families: `umaxica.com` (corporate),
 
 ## Workspaces
 
-| Package    | Role            | Domain             | Dev Port |
-| ---------- | --------------- | ------------------ | -------- |
-| `com/core` | Corporate app   | `umaxica.com`      | 5102     |
-| `com/docs` | Corporate docs  | `docs.umaxica.com` | 5106     |
-| `com/news` | Corporate news  | `news.umaxica.com` | 5107     |
-| `com/help` | Corporate help  | `help.umaxica.com` | 5108     |
-| `com/info` | Corporate info  | `info.umaxica.com` | 5109     |
-| `org/core` | Staff app       | `umaxica.org`      | 5302     |
-| `org/docs` | Staff docs      | `docs.umaxica.org` | 5306     |
-| `org/news` | Staff news      | `news.umaxica.org` | 5307     |
-| `org/help` | Staff help      | `help.umaxica.org` | 5308     |
-| `org/info` | Staff info      | `info.umaxica.org` | 5309     |
-| `app/core` | Service app     | `umaxica.app`      | 5402     |
-| `app/docs` | Service docs    | `docs.umaxica.app` | 5406     |
-| `app/news` | Service news    | `news.umaxica.app` | 5407     |
-| `app/help` | Service help    | `help.umaxica.app` | 5408     |
-| `app/info` | Service info    | `info.umaxica.app` | 5409     |
-| `dev/acme` | Development app | `umaxica.dev`      | 5502     |
+| Package    | Role                | Domain             | Dev Port |
+| ---------- | ------------------- | ------------------ | -------- |
+| `com/apex` | Apex/static worker  | `umaxica.com`      | 5101     |
+| `com/core` | Corporate app       | `umaxica.com`      | 5102     |
+| `com/docs` | Corporate docs      | `docs.umaxica.com` | 5106     |
+| `com/news` | Corporate news      | `news.umaxica.com` | 5107     |
+| `com/help` | Corporate help      | `help.umaxica.com` | 5108     |
+| `com/info` | Corporate info      | `info.umaxica.com` | 5109     |
+| `net/apex` | Network apex worker | `umaxica.net`      | 5201     |
+| `org/apex` | Apex/static worker  | `umaxica.org`      | 5301     |
+| `org/core` | Staff app           | `umaxica.org`      | 5302     |
+| `org/docs` | Staff docs          | `docs.umaxica.org` | 5306     |
+| `org/news` | Staff news          | `news.umaxica.org` | 5307     |
+| `org/help` | Staff help          | `help.umaxica.org` | 5308     |
+| `org/info` | Staff info          | `info.umaxica.org` | 5309     |
+| `app/apex` | Apex/static worker  | `umaxica.app`      | 5401     |
+| `app/core` | Service app         | `umaxica.app`      | 5402     |
+| `app/docs` | Service docs        | `docs.umaxica.app` | 5406     |
+| `app/news` | Service news        | `news.umaxica.app` | 5407     |
+| `app/help` | Service help        | `help.umaxica.app` | 5408     |
+| `app/info` | Service info        | `info.umaxica.app` | 5409     |
+| `dev/acme` | Development app     | `umaxica.dev`      | 5502     |
+
+`{com,org,app}/apex` are lightweight Hono workers (root redirect, `/health`,
+`/about`); `{com,org,app}/core` are the Next.js applications behind them at
+regional subdomains. Cloudflare's custom domain for each apex root
+(`umaxica.com` / `.org` / `.app`) must point at the `*-apex` Worker, not
+`*-core` — reassigning production domain routing is a Cloudflare
+dashboard/DNS change outside this repo and must be coordinated before
+deploying `*/apex`.
 
 ## Quick Start
 
