@@ -8,6 +8,7 @@
     "format:check": "oxfmt --check .",
     "lint": "oxlint --type-aware --fix .",
     "lint:check": "oxlint --type-aware .",
+    "check:workers": "node tools/check-workers.mjs",
     "deploy:app-docs:upload": "pnpm --filter umaxica-apps-edge-app-docs run deploy:upload",
     "deploy:com-docs:upload": "pnpm --filter umaxica-apps-edge-com-docs run deploy:upload",
     "deploy:org-docs:upload": "pnpm --filter umaxica-apps-edge-org-docs run deploy:upload",
@@ -23,17 +24,17 @@
     "@types/node": "^26.1.1",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "@vitest/coverage-v8": "4.1.10",
-    "dependency-cruiser": "^18.0.0",
+    "dependency-cruiser": "^18.1.0",
     "happy-dom": "^20.10.6",
     "hono": "catalog:",
-    "knip": "^6.26.0",
+    "knip": "^6.27.0",
     "lefthook": "^2.1.10",
     "oxfmt": "^0.58.0",
-    "oxlint": "^1.73.0",
+    "oxlint": "1.74.0",
     "oxlint-tsgolint": "^0.24.0",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10",
-    "wrangler": "^4.110.0"
+    "wrangler": "^4.111.0"
   },
-  "packageManager": "pnpm@11.13.0+sha512.88d94724d8f2e6c186744a5584c6e59ecac869ec7ba15e9cb4cd628e8dc7066820b2481d8ee3b51ea8da323a7378068aa58c556a3720d32b7c20a051d088363a"
+  "packageManager": "pnpm@11.13.1+sha512.b2fc7683b8a6525414e7d13e1ba28caaddde96bf66ec540bfaeb7e702b81f3e0be4d1f295edf7f9fe0396740a8dce4509c582ddf79891f4543fea32d37645f25"
 }

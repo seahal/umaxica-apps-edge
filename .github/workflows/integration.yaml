@@ -41,7 +41,7 @@ jobs:
       - run: pnpm outdated || true
 
   knip:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
@@ -92,6 +92,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint:check
 
+  check-workers:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node tools/check-workers.mjs
+
   typecheck:
     runs-on: ubuntu-slim
     timeout-minutes: 10
@@ -127,11 +137,23 @@ jobs:
         target:
           - app/apex
           - app/core
+          - app/docs
+          - app/news
+          - app/help
+          - app/info
           - com/apex
           - com/core
+          - com/docs
+          - com/news
+          - com/help
+          - com/info
           - net/apex
           - org/apex
           - org/core
+          - org/docs
+          - org/news
+          - org/help
+          - org/info
           - dev/acme
     steps:
       - uses: actions/checkout@v5
