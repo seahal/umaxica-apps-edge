@@ -52,6 +52,8 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec knip --include unlisted,unresolved,binaries
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
 
   secret-scan:
     runs-on: ubuntu-slim
