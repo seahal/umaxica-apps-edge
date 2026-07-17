@@ -8,12 +8,12 @@
 
 ### A. frame 一覧（= pnpm workspace、21 個）
 
-| frame 群 | shared 依存 |
-|---|---|
-| `{app,com,net,org}/apex` (Hono) | `shared/apex/*`(create-apex-app, seo, brand, security-headers の型) |
-| `{app,com,org}/core` (Next.js) | `shared/next/*`, `shared/cloudflare/{rails-client,rails-health,health-request}` |
-| `{app,com,org}/{docs,news,help,info}` (Next.js) | `shared/next/{image-config,security-headers}`(next.config.ts のみ) |
-| `dev/acme`, `dev/apex` | **shared 依存なし** |
+| frame 群                                        | shared 依存                                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| `{app,com,net,org}/apex` (Hono)                 | `shared/apex/*`(create-apex-app, seo, brand, security-headers の型)             |
+| `{app,com,org}/core` (Next.js)                  | `shared/next/*`, `shared/cloudflare/{rails-client,rails-health,health-request}` |
+| `{app,com,org}/{docs,news,help,info}` (Next.js) | `shared/next/{image-config,security-headers}`(next.config.ts のみ)              |
+| `dev/acme`, `dev/apex`                          | **shared 依存なし**                                                             |
 
 - frame 間の直接 import: **ゼロ**(既に達成済み)
 - `shared/` は workspace ではない。package.json なし、path alias なし、全て深い相対 import(`../../../shared/...`)
@@ -23,22 +23,22 @@
 
 ### B. shared inventory
 
-| ファイル | 種別 | 利用 frame | 移管先 | 備考 |
-|---|---|---|---|---|
-| `apex/create-apex-app.ts` | Hono factory | 4 apex | 各 apex に複製 | csrf/health-page/rate-limit/renderer/security-headers/seo を内部 import |
-| `apex/{csrf,health-page,rate-limit,inline-style,title}.ts` | middleware/util | (transitive) 4 apex | 各 apex に複製 | 直接 import する frame なし |
-| `apex/renderer.tsx` | Hono JSX renderer | 4 apex + net テスト | 各 apex に複製 | |
-| `apex/seo.tsx`, `apex/brand.ts`, `apex/security-headers.ts` | util/型 | 4 apex | 各 apex に複製 | |
-| `next/image-config.ts` | Next config 値 | 12 Next frame | 各 frame の next.config.ts 側に複製 | 17 行の定数 |
-| `next/security-headers.ts` | Next headers 値 | 12 Next frame | 同上 | 23 行 |
-| `cloudflare/rails-client.ts` | API client | 3 core | 各 core の `src/lib/` に複製 | 各 core に既に wrapper `src/lib/rails-client.ts` あり |
-| `cloudflare/rails-health.ts` | API client | 3 core | 各 core に複製 | |
-| `cloudflare/health-request.ts` | util | 3 core (worker.ts) | 各 core に複製 | |
-| `cloudflare/secrets-store.ts` | util | **なし(dead)** | 削除 | 自テストのみ |
-| `web/jit-url.ts` | util | **なし(dead)** | 削除 | 各 core に既に同一実装 `src/lib/jit-url.ts` が存在(複製済み) |
-| `CookieConsentBanner.tsx`, `consentState.ts`, `cookie.ts`, `cookieConsentApi.ts` | HTML string / util | **なし(dead)** | 削除(要確認) | どの frame からも未使用。参照する client script も repo に存在しない |
-| 各 `*.test.ts(x)` | test | — | 実装と共に各 frame の `test/` へ複製、または削除 | |
-| `test/coverage-boundaries.test.ts` (root) | test | shared 数ファイルを import | 書き換え | coverage 100% 閾値を満たすための補完テスト |
+| ファイル                                                                         | 種別               | 利用 frame                 | 移管先                                           | 備考                                                                    |
+| -------------------------------------------------------------------------------- | ------------------ | -------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------- |
+| `apex/create-apex-app.ts`                                                        | Hono factory       | 4 apex                     | 各 apex に複製                                   | csrf/health-page/rate-limit/renderer/security-headers/seo を内部 import |
+| `apex/{csrf,health-page,rate-limit,inline-style,title}.ts`                       | middleware/util    | (transitive) 4 apex        | 各 apex に複製                                   | 直接 import する frame なし                                             |
+| `apex/renderer.tsx`                                                              | Hono JSX renderer  | 4 apex + net テスト        | 各 apex に複製                                   |                                                                         |
+| `apex/seo.tsx`, `apex/brand.ts`, `apex/security-headers.ts`                      | util/型            | 4 apex                     | 各 apex に複製                                   |                                                                         |
+| `next/image-config.ts`                                                           | Next config 値     | 12 Next frame              | 各 frame の next.config.ts 側に複製              | 17 行の定数                                                             |
+| `next/security-headers.ts`                                                       | Next headers 値    | 12 Next frame              | 同上                                             | 23 行                                                                   |
+| `cloudflare/rails-client.ts`                                                     | API client         | 3 core                     | 各 core の `src/lib/` に複製                     | 各 core に既に wrapper `src/lib/rails-client.ts` あり                   |
+| `cloudflare/rails-health.ts`                                                     | API client         | 3 core                     | 各 core に複製                                   |                                                                         |
+| `cloudflare/health-request.ts`                                                   | util               | 3 core (worker.ts)         | 各 core に複製                                   |                                                                         |
+| `cloudflare/secrets-store.ts`                                                    | util               | **なし(dead)**             | 削除                                             | 自テストのみ                                                            |
+| `web/jit-url.ts`                                                                 | util               | **なし(dead)**             | 削除                                             | 各 core に既に同一実装 `src/lib/jit-url.ts` が存在(複製済み)            |
+| `CookieConsentBanner.tsx`, `consentState.ts`, `cookie.ts`, `cookieConsentApi.ts` | HTML string / util | **なし(dead)**             | 削除(要確認)                                     | どの frame からも未使用。参照する client script も repo に存在しない    |
+| 各 `*.test.ts(x)`                                                                | test               | —                          | 実装と共に各 frame の `test/` へ複製、または削除 |                                                                         |
+| `test/coverage-boundaries.test.ts` (root)                                        | test               | shared 数ファイルを import | 書き換え                                         | coverage 100% 閾値を満たすための補完テスト                              |
 
 ### C. 危険な共有(優先度順)
 
@@ -62,14 +62,17 @@
 ## 実装手順
 
 ### Phase 1: baseline
+
 `pnpm install` → `pnpm run format:check` / `lint:check` / `typecheck` / `test` を実行し結果を記録。既存失敗があれば変更前失敗として記録。
 
 ### Phase 2: characterization
+
 既存 shared テスト(csrf/rate-limit/security-headers/health-page/seo/title/rails-client/rails-health/health-request/image-config/next security-headers)が挙動を捕捉済み — これらを複製先で流用する。新規追加は不要と判断するが、複製後に各 frame のテストが green であることを fail-fast で確認。
 
 ### Phase 3–5: frame 群単位の段階移行(コピー → adaptation → import 切替を frame 群ごとに完結)
 
 **① apex 4 frame** (`app/apex`, `com/apex`, `net/apex`, `org/apex`)
+
 - `shared/apex/{create-apex-app,csrf,health-page,rate-limit,renderer,security-headers,seo,inline-style}` を各 frame の `src/` へ複製
 - brand.ts + title.ts → 各 frame で単一の frame-local 実装に統合(例: `src/title.ts`、`DEFAULT_BRAND_NAME` を一本化)。`page-content.tsx` の既存 local `buildApexTitle` と整合させる
 - テスト(`csrf.test.ts`, `rate-limit.test.ts`, `security-headers.test.ts`, `health-page.test.ts`, `__tests__/{seo,title}`)を各 frame の `test/` へ複製
@@ -77,19 +80,23 @@
 - 注意: coverage 100% 閾値のため、複製コードは複製テストで全パスをカバーすること
 
 **② core 3 frame** (`app/core`, `com/core`, `org/core`)
+
 - `shared/cloudflare/{rails-client,rails-health,health-request}` を各 frame の `src/lib/` へ複製(既存 wrapper `src/lib/rails-client.ts` と統合可)
 - 対応テストを各 frame の `test/` へ複製。`app/core/test/rails-health.test.tsx` の import 切替
 - `src/worker.ts`, `rails-health/page.tsx`, `rails-health/rails-health.tsx` の import 切替
 
 **③ Next 12 frame の next.config.ts**
+
 - `sharedImageConfig`(17 行の定数)と `imageFontSecurityHeaders`(23 行)を各 frame にローカル化。40 行程度なので next.config.ts に直接インライン化するか、frame 内 `image-config.ts` として複製
 - 対応テストは各 core frame にのみ複製(docs/news/help/info はテストディレクトリの有無を確認して判断)
 
 **④ dead code 削除**
+
 - cookie-consent 一式・jit-url・secrets-store とテストを削除
 - root `test/coverage-boundaries.test.ts` から shared import(cookie/consentState/rails-health/jit-url)を除去。rails-health のカバレッジ補完が必要なら各 core のテストへ移設
 
 ### Phase 6: shared 削除と設定クリーンアップ
+
 - `shared/` ディレクトリ全削除
 - `vitest.config.ts` の include から `'shared/**/*.test.{ts,tsx}'` を削除
 - root `tsconfig.json` の `"exclude": ["shared/**/*"]` を削除
@@ -97,6 +104,7 @@
 - knip / .dependency-cruiser.cjs / lefthook.yml に shared 固有記述はなし(確認済み)
 
 ### Phase 7: boundary enforcement
+
 - `.oxlintrc.json` に `no-restricted-imports` を追加: `**/shared/**` パターンおよび frame 間相対 import(`../../{app,com,org,net,dev}/`)を禁止
 - 曖昧な共有ディレクトリ(common/base 等)の新設禁止はレビュー規約として CLAUDE.md に明記
 

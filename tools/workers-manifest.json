@@ -1,0 +1,21 @@
+{
+  "$comment": "Classification of Cloudflare/Vercel workspaces. Checked by tools/check-workers.mjs. railsBacked: OpenNext apps with the Rails VPC binding. contentSurface: OpenNext apps that must NOT carry the VPC binding until they actually fetch from Rails (add the binding and a per-frame rails-client copy together). standalone: Hono apex workers, no Rails. external: Vercel-hosted, no wrangler config.",
+  "vpcBinding": "UMAXICA_APPS_EDGE_CF_WORKERS_VPC",
+  "railsBacked": ["app/core", "com/core", "org/core"],
+  "contentSurface": [
+    "app/docs",
+    "app/news",
+    "app/help",
+    "app/info",
+    "com/docs",
+    "com/news",
+    "com/help",
+    "com/info",
+    "org/docs",
+    "org/news",
+    "org/help",
+    "org/info"
+  ],
+  "standalone": ["app/apex", "com/apex", "net/apex", "org/apex"],
+  "external": ["dev/acme", "dev/apex"]
+}
