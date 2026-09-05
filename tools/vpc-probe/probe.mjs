@@ -28,23 +28,23 @@
 //
 // This list is generated from the frames and pinned by
 // `test/rails-connection-invariants.test.ts`, so it cannot drift from
-// `PRIVATE_RAILS_ORIGIN` and `RAILS_LIVENESS_PATH`.
+// `PRIVATE_RAILS_ORIGIN` and `RAILS_HEALTH_API_PATH`.
 const RAILS_TARGETS = [
-  { key: 'APP/CORE', url: 'http://core.app.localhost:3000/health/liveness.json' },
-  { key: 'APP/DOCS', url: 'http://docs.app.localhost:3000/health/liveness.json' },
-  { key: 'APP/NEWS', url: 'http://news.app.localhost:3000/health/liveness.json' },
-  { key: 'APP/HELP', url: 'http://help.app.localhost:3000/health/liveness.json' },
-  { key: 'APP/INFO', url: 'http://info.app.localhost:3000/health/liveness.json' },
-  { key: 'COM/CORE', url: 'http://core.com.localhost:3000/health/liveness.json' },
-  { key: 'COM/DOCS', url: 'http://docs.com.localhost:3000/health/liveness.json' },
-  { key: 'COM/NEWS', url: 'http://news.com.localhost:3000/health/liveness.json' },
-  { key: 'COM/HELP', url: 'http://help.com.localhost:3000/health/liveness.json' },
-  { key: 'COM/INFO', url: 'http://info.com.localhost:3000/health/liveness.json' },
-  { key: 'ORG/CORE', url: 'http://core.org.localhost:3000/health/liveness.json' },
-  { key: 'ORG/DOCS', url: 'http://docs.org.localhost:3000/health/liveness.json' },
-  { key: 'ORG/NEWS', url: 'http://news.org.localhost:3000/health/liveness.json' },
-  { key: 'ORG/HELP', url: 'http://help.org.localhost:3000/health/liveness.json' },
-  { key: 'ORG/INFO', url: 'http://info.org.localhost:3000/health/liveness.json' },
+  { key: 'APP/CORE', url: 'http://core.app.localhost:3000/api/v0/health.json' },
+  { key: 'APP/DOCS', url: 'http://docs.app.localhost:3000/api/v0/health.json' },
+  { key: 'APP/NEWS', url: 'http://news.app.localhost:3000/api/v0/health.json' },
+  { key: 'APP/HELP', url: 'http://help.app.localhost:3000/api/v0/health.json' },
+  { key: 'APP/INFO', url: 'http://info.app.localhost:3000/api/v0/health.json' },
+  { key: 'COM/CORE', url: 'http://core.com.localhost:3000/api/v0/health.json' },
+  { key: 'COM/DOCS', url: 'http://docs.com.localhost:3000/api/v0/health.json' },
+  { key: 'COM/NEWS', url: 'http://news.com.localhost:3000/api/v0/health.json' },
+  { key: 'COM/HELP', url: 'http://help.com.localhost:3000/api/v0/health.json' },
+  { key: 'COM/INFO', url: 'http://info.com.localhost:3000/api/v0/health.json' },
+  { key: 'ORG/CORE', url: 'http://core.org.localhost:3000/api/v0/health.json' },
+  { key: 'ORG/DOCS', url: 'http://docs.org.localhost:3000/api/v0/health.json' },
+  { key: 'ORG/NEWS', url: 'http://news.org.localhost:3000/api/v0/health.json' },
+  { key: 'ORG/HELP', url: 'http://help.org.localhost:3000/api/v0/health.json' },
+  { key: 'ORG/INFO', url: 'http://info.org.localhost:3000/api/v0/health.json' },
 ];
 
 const TIMEOUT_MS = 15_000;

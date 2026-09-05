@@ -138,28 +138,15 @@ try {
   fail('manifest.webmanifest', 'not valid JSON');
 }
 
-// health.json exists only on the three info frames.
-if (existsSync(clientDir + 'health.json')) {
-  try {
-    const h = JSON.parse(read('health.json') ?? '{}');
-    if (
-      h.status === 'OK' &&
-      ['app', 'com', 'org'].includes(h.service) &&
-      h.frame === 'info' &&
-      /^\d{4}-\d{2}-\d{2}T/u.test(h.time)
-    ) {
-      pass('health.json', `identity literals (service=${h.service})`);
-    } else fail('health.json', 'identity literals wrong');
-  } catch {
-    fail('health.json', 'not valid JSON');
-  }
-}
+// `/health.json` is apex-only. Content frames answer liveness on `/health`.
+if (existsSync(clientDir + 'health.json'))
+  fail('health.json', 'must not be prerendered on a content frame');
 
-// The service worker precaches `/offline/` — it must be a real prerendered file.
+// The service worker precaches `/offline` and `/offline/` — whichever spelling the host serves as 2xx.
 const serviceWorker = read('service-worker.js');
-if (serviceWorker && serviceWorker.includes("'/offline/'"))
-  pass('service-worker.js', 'precaches /offline/');
-else fail('service-worker.js', 'OFFLINE_URL != /offline/');
+if (serviceWorker && serviceWorker.includes("'/offline'") && serviceWorker.includes("'/offline/'"))
+  pass('service-worker.js', 'precaches /offline and /offline/');
+else fail('service-worker.js', 'OFFLINE_URLS missing');
 
 // 404 + offline: single-locale ja, one conforming <title>, no inline script.
 for (const file of ['404.html', 'offline/index.html']) {

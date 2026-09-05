@@ -288,16 +288,24 @@ describe('development-container security contract', () => {
      * gitignored `.env` is exactly how it is supposed to get one. What must stay
      * true is that this is the ONLY such interpolation, and that no compose file
      * ever assigns a credential a literal value.
+     *
+     * Comment lines are excluded: only real assignments can leak a credential,
+     * and the comments around the tunnel token quote the withdrawn
+     * `${EDGE_CLOUDFLARED_TOKEN:-${CLOUDFLARED_TOKEN:-}}` fallback in order to
+     * explain why it must not come back.
      */
     const interpolated = read('compose.yaml')
       .split('\n')
-      .filter((line) => /\$\{[^}]*(?:TOKEN|SECRET|API_KEY|PASSWORD)/u.test(line))
-      .map((line) => line.trim());
+      .map((line) => line.trim())
+      .filter((line) => !line.startsWith('#'))
+      .filter((line) => /\$\{[^}]*(?:TOKEN|SECRET|API_KEY|PASSWORD)/u.test(line));
     expect(interpolated).toEqual([
       // The host's gh identity, borrowed rather than copied: no literal, and
       // `:-` so a machine without one still resolves the configuration.
       'GH_TOKEN: ${GH_TOKEN:-}',
-      "TUNNEL_TOKEN: '${EDGE_CLOUDFLARED_TOKEN:-${CLOUDFLARED_TOKEN:-}}'",
+      // One variable, no fallback chain. Global uses this same name in its own
+      // `.env`, for a different tunnel; see adr/014-edge-owned-development-tunnel.md.
+      "TUNNEL_TOKEN: '${CLOUDFLARED_TOKEN:-}'",
     ]);
     for (const path of composeFiles) {
       const literals = read(path)

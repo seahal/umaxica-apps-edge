@@ -9,7 +9,7 @@ describe('service worker asset', () => {
       resolve(import.meta.dirname, '..', 'public/service-worker.js'),
       'utf8',
     );
-    expect(worker).toContain("const OFFLINE_URL = '/offline'");
+    expect(worker).toContain("const OFFLINE_URLS = ['/offline', '/offline/']");
     expect(worker).not.toContain('response.ok');
   });
 });

@@ -21,6 +21,10 @@ current documentation rather than working from memory:
 
 ## What is load-bearing here
 
+- **Health is four `text/plain` server routes**, not JSON and not a React page:
+  `/health` (human aggregate), `/health/startups`, `/health/livenesses`,
+  `/health/readinesses`. They skip the generic rate limiter (exact pathname
+  only). Rails JSON under `/health/*.json` stays blocked in `core-dispatch.ts`.
 - **`src/worker.ts` is the entrypoint, not the framework.** wrangler's `main` is
   this file. It classifies the path, rate-limits once, dispatches Rails-owned
   paths over the VPC binding, and strips `Cookie` in and `Set-Cookie` out around

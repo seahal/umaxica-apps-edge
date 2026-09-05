@@ -175,18 +175,35 @@ services:
     image: docker.io/cloudflare/cloudflared:2026.8.2
     command: tunnel --protocol quic --metrics 0.0.0.0:2000 run
     environment:
-      # Prefer the Edge-specific token; a single-tunnel local setup may only have the
-      # generic CLOUDFLARED_TOKEN in .env.
+      # CLOUDFLARED_TOKEN, from THIS repository's gitignored root `.env`. Global
+      # uses the same variable name in its own `.env`; each Compose project reads
+      # the file next to its own compose file, so one name can and must hold two
+      # different tunnels' tokens. What is forbidden is the same VALUE in both.
       #
-      # Neither carries a `:?` guard, and that is not an oversight. Compose
-      # interpolates the whole file whichever services you name, so a required
-      # variable here would stop `podman compose -f compose.yaml up core` on every
-      # machine that never intends to run a tunnel — which, now that the connector
-      # is shared rather than an opt-in overlay, is most of them. The requirement is
-      # enforced where it is actually a requirement: `scripts/dev-start --tunnel`
-      # refuses to start without a token, and cloudflared itself exits non-zero on
+      # There is exactly one variable and no fallback chain. Until 2026-09-04 this
+      # read `${EDGE_CLOUDFLARED_TOKEN:-${CLOUDFLARED_TOKEN:-}}`, and on a machine
+      # that had only Global's value it resolved silently to Global's token, so
+      # this connector joined Global's tunnel as a replica from a network with no
+      # route to Rails. Cloudflare cannot tell such a replica from a healthy one —
+      # a tunnel token is a "join this tunnel" credential — and requests go to the
+      # nearest replica rather than being load-balanced, so both repositories
+      # failed intermittently at once. An unset token must leave this tunnel down,
+      # never take over another one. See adr/014-edge-owned-development-tunnel.md.
+      #
+      # Because the variable name no longer distinguishes the two repositories,
+      # `scripts/dev-start --tunnel` compares the tunnel UUID inside this token
+      # against every cloudflared container already running on the host and
+      # refuses to add a second connector to one tunnel.
+      #
+      # No `:?` guard, and that is not an oversight. Compose interpolates the
+      # whole file whichever services you name, so a required variable here would
+      # stop `podman compose -f compose.yaml up core` on every machine that never
+      # intends to run a tunnel — which, now that the connector is shared rather
+      # than an opt-in overlay, is most of them. The requirement is enforced where
+      # it is actually a requirement: `scripts/dev-start --tunnel` refuses to
+      # start without CLOUDFLARED_TOKEN, and cloudflared itself exits non-zero on
       # an empty one, bounded by `restart: on-failure:3`.
-      TUNNEL_TOKEN: '${EDGE_CLOUDFLARED_TOKEN:-${CLOUDFLARED_TOKEN:-}}'
+      TUNNEL_TOKEN: '${CLOUDFLARED_TOKEN:-}'
     restart: on-failure:3
     cpus: 0.5
     mem_limit: 256m

@@ -7,7 +7,6 @@ import { describe, expect, it, vi } from 'vitest';
 // @ts-expect-error React is provided by the app workspace, not the root package.
 import { createElement } from '../app/core/node_modules/react';
 import { renderToStaticMarkup } from '../app/core/node_modules/react-dom/server';
-import { setCloudflareContext } from './__mocks__/opennext-cloudflare';
 
 // Every workspace resolves `next/font/google` to the same physical package, so
 // mocking that resolved path once covers all 16 root layouts. A bare
@@ -152,6 +151,17 @@ function viteApps(): { workspace: string; family: string; role: string; tld: str
     .sort((a, b) => a.workspace.localeCompare(b.workspace));
 }
 
+/** Every Astro public content surface, derived from tracked Base layouts. */
+function astroApps(): { workspace: string; family: string; role: string; tld: string }[] {
+  return trackedFiles()
+    .filter((file) => file.endsWith('/src/layouts/Base.astro'))
+    .map((file) => {
+      const [family = '', role = ''] = file.split('/');
+      return { workspace: `${family}/${role}`, family, role, tld: FAMILY_TLD[family] ?? '' };
+    })
+    .sort((a, b) => a.workspace.localeCompare(b.workspace));
+}
+
 /** Every Next.js deployment unit, derived from tracked root layouts. */
 function nextApps(): { workspace: string; family: string; role: string; tld: string }[] {
   return trackedFiles()
@@ -197,7 +207,7 @@ describe('root layout metadata', () => {
   const apps = nextApps();
 
   it('covers every content frame, across both bundlers', () => {
-    expect([...apps, ...viteApps()].map((app) => app.workspace).sort()).toEqual(
+    expect([...apps, ...viteApps(), ...astroApps()].map((app) => app.workspace).sort()).toEqual(
       [...EXPECTED_FRAMES].sort(),
     );
   });
@@ -438,31 +448,53 @@ describe('rate limited 429 documents', () => {
     });
   });
 
-  const satellites = trackedFiles().filter(
-    (file) => file.endsWith('/src/middleware.ts') && !file.includes('/core/'),
-  );
+  /*
+   * The twelve Astro content surfaces (adr/015). Like the Cores they answer a
+   * hand-written 429, and like the Cores the check runs at whatever their own
+   * first touch is — here `src/middleware.ts`, because an Astro unit has no
+   * `worker.ts`. That is the asymmetry adr/010 recorded, carried across the move
+   * off TanStack Start.
+   *
+   * The guard drives `src/lib/rate-limit.ts` with an injected limiter — the same
+   * shape as the two guards above — rather than driving the middleware, which
+   * would need an Astro `APIContext` and the `cloudflare:workers` module, neither
+   * of which exists in this root suite. Keeping the limiter a parameter of
+   * `checkRateLimit` is what makes that possible.
+   *
+   * This replaces a guard that filtered `/src/middleware.ts` while excluding
+   * `/core/` and asserted the count against `nextApps()`. Next.js has since left
+   * the repository entirely, so that assertion became `12 === 0`; worse, the
+   * filter silently re-aimed itself at the Astro middleware, whose export is
+   * `onRequest`, not `middleware`. Matching on a filename could not see that the
+   * rate limiting these twelve units owe had been dropped in the conversion.
+   * Matching on `src/lib/rate-limit.ts` — the file that has to exist for the unit
+   * to limit anything at all — can.
+   */
+  const contentSurfaces = astroApps().map((app) => app.workspace);
 
-  it('covers every Next.js satellite middleware', () => {
-    // The satellites are the non-core frames. A frame that has left Next.js has
-    // no `src/middleware.ts` at all — its rate limiter moved into the server
-    // entry, the same move the Cores made (adr/010) — so it is counted out here
-    // and checked by the TanStack guard at the end of this file instead.
-    expect(satellites.length).toBe(nextApps().filter((app) => app.role !== 'core').length);
+  it('covers every astro content surface', () => {
+    expect(
+      trackedFiles()
+        .filter((file) => file.endsWith('/src/lib/rate-limit.ts') && !file.includes('/core/'))
+        .map((file) => file.split('/').slice(0, 2).join('/'))
+        .sort((a, b) => a.localeCompare(b)),
+    ).toEqual(contentSurfaces);
   });
 
-  it.each(satellites)('%s serves a full 429 document', async (file) => {
-    setCloudflareContext({ env: { RATE_LIMITER: blocked } });
-    const { middleware } = (await import(/* @vite-ignore */ `../${file}`)) as {
-      middleware: (request: Request) => Promise<Response>;
-    };
+  it.each(contentSurfaces)('%s serves a full 429 document', async (workspace) => {
+    const { checkRateLimit } = (await import(
+      /* @vite-ignore */ `../${workspace}/src/lib/rate-limit.ts`
+    )) as { checkRateLimit: (request: Request, limiter: unknown) => Promise<Response | null> };
 
-    const response = await middleware(new Request('https://example.test/'));
-    expect(response.status).toBe(429);
+    const response = await checkRateLimit(new Request('https://example.test/'), blocked);
+    expect(response?.status).toBe(429);
+    expect(response?.headers.get('content-type')).toContain('text/html');
+    expect(response?.headers.get('cache-control')).toBe('no-store');
 
-    expectTitleContract(await response.text(), {
-      tld: FAMILY_TLD[file.split('/')[0] ?? ''] ?? '',
+    expectTitleContract(await (response as Response).text(), {
+      tld: FAMILY_TLD[workspace.split('/')[0] ?? ''] ?? '',
       requirePageSpecific: true,
-      label: file,
+      label: `${workspace} 429`,
     });
   });
 });
@@ -473,13 +505,15 @@ describe('rate limited 429 documents', () => {
 //
 // This file used to end with two guards that drove the four Cloudflare apex
 // workers and dev/apex through `app.request()` and asserted the title contract,
-// the content types, the exact `/health.json` and `/revision` key sets and the
+// the content types, the `/revision` key set and the
 // root redirect status. The response was the subject, so under this
 // repository's three-layer split they belong to Hurl, not to Vitest:
 //
-//   /about, /health, /health.html, /offline, 404   -> <unit>/api/title-contract.hurl
-//   /health.json and /revision key sets            -> the same file, as
-//                                                     `jsonpath "$.*" count`
+//   /about, /health, /offline, 404                 -> <unit>/api/title-contract.hurl
+//   /health.html and /health.json are HTML 404     -> the same file
+//   /revision text identity                        -> Playwright e2e/revision.spec.ts
+//   /api/v0/revision.json key set                  -> <unit>/api/revision-api.hurl
+//                                                     and title-contract.hurl (`$.title`)
 //   the root redirect and its Location             -> <unit>/api/routes.hurl
 //   the 500 document (needs a throwing route)      -> <unit>/test/title-contract.ts
 //   dev/apex, all of the above                     -> dev/apex/test/*.ts, which is
@@ -516,6 +550,48 @@ describe('rate limited 429 documents', () => {
  * the one trap this migration actually hit stays closed — a title on the root
  * route plus a title in a failure document produces TWO `<title>` elements.
  */
+describe('Astro content-surface title contract', () => {
+  const apps = astroApps();
+  const read = (relativePath: string) => readFileSync(join(repoRoot, relativePath), 'utf8');
+
+  it.each(apps)('$workspace names the brand once, in one place', ({ workspace, tld }) => {
+    const source = read(`${workspace}/src/lib/title.ts`);
+    expect(source, `${workspace}: BRAND_TITLE must match the deployment family`).toContain(
+      `export const BRAND_TITLE = 'UMAXICA (${tld})'`,
+    );
+    expect(source).toContain('return `${pageTitle} — ${BRAND_TITLE}`;');
+  });
+
+  it.each(apps)(
+    '$workspace titles the layout from the page, not a root default',
+    ({ workspace }) => {
+      const layout = read(`${workspace}/src/layouts/Base.astro`);
+      expect(layout).toContain('<title>{title}</title>');
+      expect(layout).not.toMatch(/brandTitle\(/u);
+    },
+  );
+
+  it.each(apps)('$workspace titles both public documents and the 404', ({ workspace, tld }) => {
+    const pages = [
+      `${workspace}/src/pages/ja/index.astro`,
+      `${workspace}/src/pages/ja/about.astro`,
+      `${workspace}/src/layouts/StatusSplash.astro`,
+      `${workspace}/src/pages/404.astro`,
+    ];
+    for (const page of pages) {
+      const source = read(page);
+      expect(source, `${page}: declares no title`).toMatch(/brandTitle\(/u);
+    }
+    const notFound = read(`${workspace}/src/pages/404.astro`);
+    expect(notFound).toContain('HTTP 404');
+    expectTitleContract(`<title>ページが見つかりません — UMAXICA (${tld})</title>`, {
+      tld,
+      requirePageSpecific: true,
+      label: `${workspace} 404`,
+    });
+  });
+});
+
 describe('TanStack Start title contract', () => {
   const apps = viteApps();
   const read = (relativePath: string) => readFileSync(join(repoRoot, relativePath), 'utf8');

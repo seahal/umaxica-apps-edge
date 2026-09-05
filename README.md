@@ -241,19 +241,15 @@ git clone https://github.com/seahal/umaxica-apps-edge.git
 cd umaxica-apps-edge
 docker compose config    # or: podman compose config -- resolves as-is
 
-PODMAN_COMPOSE_PROVIDER=/usr/bin/podman-compose \
-devcontainer up \
-  --docker-path /usr/bin/podman \
-  --docker-compose-path /usr/bin/podman-compose \
-  --workspace-folder .
+scripts/devcontainer-up
 ```
 
-`EDGE_CLOUDFLARED_TOKEN` in the gitignored root `.env` is only needed if you
+`CLOUDFLARED_TOKEN` in the gitignored root `.env` is only needed if you
 actually want the Cloudflare Tunnel connector; without it the connector starts
 with an empty token and everything else is unaffected.
 
-There is no launcher script. `PODMAN_COMPOSE_PROVIDER` and `--docker-path` are
-both mandatory and have no `devcontainer.json` equivalent; run the command as
+The launcher supplies the mandatory Podman options and serializes Dev Container
+Feature builds against the CLI's host-global temporary image name. Run it as
 the normal rootless user, never through `sudo`. See
 [Dev Containers CLI startup on rootless Podman](docs/development/devcontainer-cli-podman-startup.md).
 
@@ -384,8 +380,8 @@ via `exec`.
 
 The standard Dev Container starts an Edge-owned Tunnel connector. Put its
 dedicated connector token in the gitignored root `.env` as
-`EDGE_CLOUDFLARED_TOKEN`; this is not a Cloudflare API token and it must not
-be reused from Global. `vpc_services` remains independent and exists only in
+`CLOUDFLARED_TOKEN`; this is not a Cloudflare API token, and it must not be
+the value Global uses for the same variable name in its own `.env`. `vpc_services` remains independent and exists only in
 the explicit `env.vpc` development environment; production remains
 fail-closed.
 

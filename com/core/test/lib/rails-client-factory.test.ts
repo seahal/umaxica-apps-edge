@@ -143,7 +143,7 @@ describe('com/core rails client factory', () => {
     );
     const client = createRailsClient(binding, 'http://core.com.localhost:3000');
 
-    const result = await client.fetch('/health/liveness.json');
+    const result = await client.fetch('/api/v0/health.json');
 
     expect(result.kind).toBe('unreachable');
     if (result.kind === 'unreachable') {
@@ -158,7 +158,7 @@ describe('com/core rails client factory', () => {
     );
     const client = createRailsClient(binding, 'http://core.com.localhost:3000');
 
-    const result = await client.fetch('/health/liveness.json');
+    const result = await client.fetch('/api/v0/health.json');
 
     expect(result.kind).toBe('http-error');
   });
@@ -221,9 +221,9 @@ describe('com/core rails client factory', () => {
     const binding = makeBinding(new Response('ok', { status: 200 }));
     const client = createRailsClient(binding, 'http://core.com.localhost:3000');
 
-    await client.fetch('/health/liveness.json');
+    await client.fetch('/api/v0/health.json');
 
     const [requestUrl] = binding.fetch.mock.calls[0] as [string, RequestInit];
-    expect(requestUrl).toBe('http://core.com.localhost:3000/health/liveness.json');
+    expect(requestUrl).toBe('http://core.com.localhost:3000/api/v0/health.json');
   });
 });

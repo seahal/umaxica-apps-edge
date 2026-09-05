@@ -84,9 +84,11 @@ const PREVIEW_PORT = 8787;
  * counting every Rails-backed frame rather than silently skipping a class.
  */
 export function railsBackedWorkspaces(manifest = loadManifest()) {
-  return [...manifest.railsBacked, ...(manifest.railsBackedVite ?? [])].sort((a, b) =>
-    a.localeCompare(b),
-  );
+  return [
+    ...manifest.railsBacked,
+    ...(manifest.railsBackedVite ?? []),
+    ...(manifest.railsBackedAstro ?? []),
+  ].sort((a, b) => a.localeCompare(b));
 }
 
 /*
@@ -96,7 +98,11 @@ export function railsBackedWorkspaces(manifest = loadManifest()) {
  * that loses the route is a FAIL here rather than a silent skip: a Rails-backed
  * frame with no `/health` cannot report the connection at all.
  */
-const HEALTH_ROUTE_PATHS = ['src/app/health/route.ts', 'src/routes/health.ts'];
+const HEALTH_ROUTE_PATHS = [
+  'src/app/health/route.ts',
+  'src/routes/health.ts',
+  'src/pages/health.ts',
+];
 
 export function loadSurfaces(manifest = loadManifest()) {
   return railsBackedWorkspaces(manifest).map((ws) => {
@@ -1124,7 +1130,7 @@ async function checkHttpSurface(report, surface, baseUrl, gatePrefix) {
     // A Rails-backed frame with no `/health` cannot report the connection at
     // all, so this is a FAIL rather than a skip.
     report.record(`${gatePrefix} /health`, surface.key, FAIL, 'frame has no /health route');
-    return { kind: null, status: 0, statusProblem: null };
+    return { kind: null, status: 0, statusProblem: null, body: '' };
   }
 
   const health = await httpGet(`${baseUrl}/health`, 30_000).catch((e) => ({
@@ -1134,13 +1140,18 @@ async function checkHttpSurface(report, surface, baseUrl, gatePrefix) {
 
   const kind = parseRailsHealthJson(health.body);
 
-  // The Edge half, read from the same document. `status: 'ok'` is the top-level
-  // verdict and is only ever `ok` when both halves are.
+  // The Edge half, read from the same document. JSON frames still carry
+  // `edge.status`. Astro and Hono probe documents are text/plain:
+  // `status: ok` plus `liveness: ok`.
   let edgeOk = false;
-  try {
-    edgeOk = JSON.parse(health.body)?.edge?.status === 'ok';
-  } catch {
-    edgeOk = false;
+  if (/^status: ok$/mu.test(health.body) && /^liveness: ok$/mu.test(health.body)) {
+    edgeOk = true;
+  } else {
+    try {
+      edgeOk = JSON.parse(health.body)?.edge?.status === 'ok';
+    } catch {
+      edgeOk = false;
+    }
   }
   report.record(
     `${gatePrefix} /health`,
@@ -1157,7 +1168,7 @@ async function checkHttpSurface(report, surface, baseUrl, gatePrefix) {
     }
   }
 
-  return { kind, status: health.status, statusProblem };
+  return { kind, status: health.status, statusProblem, body: health.body };
 }
 
 // Fifteen dev servers at once is what root `pnpm dev` already does, and
@@ -1206,10 +1217,17 @@ async function runNextBatch(report, surfaces) {
       }
 
       report.record('Local dev server', surface.key, PASS, `listening on ${surface.port}`);
-      const { kind, status } = await checkHttpSurface(report, surface, baseUrl, 'Local');
+      const { kind, status, body } = await checkHttpSurface(report, surface, baseUrl, 'Local');
 
       const localRailsEnabled = process.env.EDGE_LOCAL_RAILS_ENABLED === '1';
-      if (!localRailsEnabled && kind === 'not-configured') {
+      if (typeof body === 'string' && /^status:/mu.test(body) && kind === null) {
+        report.record(
+          'Local /health rails',
+          surface.key,
+          SKIP,
+          'runtime /health is text/plain and does not carry Rails',
+        );
+      } else if (!localRailsEnabled && kind === 'not-configured') {
         report.record(
           'Local /health rails',
           surface.key,
@@ -1336,14 +1354,21 @@ async function runPreviewSurface(report, surface, { script, gate, withVpc, port,
 
       report.record('bundler build', surface.key, PASS, 'built and started on workerd');
 
-      const { kind } = await checkHttpSurface(
+      const { kind, body } = await checkHttpSurface(
         report,
         surface,
         baseUrl,
         withVpc ? 'Preview(vpc)' : 'Preview',
       );
 
-      if (withVpc) {
+      if (typeof body === 'string' && /^status:/mu.test(body) && kind === null) {
+        report.record(
+          gate,
+          surface.key,
+          SKIP,
+          'runtime /health is text/plain and does not carry Rails',
+        );
+      } else if (withVpc) {
         report.record(
           gate,
           surface.key,
@@ -1754,32 +1779,33 @@ async function checkTunnelSurface(report, surface) {
 async function checkTunnelApex(report, surface, base, landing, authHeaders) {
   const { key, brand } = surface;
 
-  const health = await httpGet(`${base}/health.json`, 15_000, authHeaders).catch((e) => ({
+  const health = await httpGet(`${base}/health`, 15_000, authHeaders).catch((e) => ({
     status: 0,
     body: String(e),
   }));
-  let service = null;
-  let environment = null;
-  try {
-    const parsed = JSON.parse(health.body);
-    service = parsed.service;
-    // The development server reports `environment`; the deployed production
-    // Worker's payload has no such field. So this one string distinguishes
-    // "the Tunnel answered" from "the Worker still owns the hostname" — a
-    // distinction `service` alone cannot make, since both report the brand.
-    environment = parsed.environment ?? null;
-  } catch {
-    service = null;
-  }
-  const identityOk = health.status === 200 && service === brand && environment === 'development';
+  const htmlGone = await httpGet(`${base}/health.html`, 15_000, authHeaders).catch((e) => ({
+    status: 0,
+    body: String(e),
+  }));
+  const jsonGone = await httpGet(`${base}/health.json`, 15_000, authHeaders).catch((e) => ({
+    status: 0,
+    body: String(e),
+  }));
+  const goneOk = (res) =>
+    res.status === 404 && !(res.headers?.get?.('content-type') ?? '').includes('json');
+  const identityOk =
+    health.status === 200 &&
+    (health.headers?.get?.('content-type') ?? '').startsWith('text/plain') &&
+    goneOk(htmlGone) &&
+    goneOk(jsonGone);
   report.record(
     'Tunnel identity',
     key,
     identityOk ? PASS : FAIL,
     identityOk
-      ? `/health.json service=${service} environment=development (dev server, not the Worker)`
-      : `/health.json HTTP ${health.status} service=${service ?? '<unparsed>'} (want ${brand}) ` +
-          `environment=${environment ?? '<absent — deployed Worker still owns this hostname>'}`,
+      ? `/health text/plain; /health.html ${htmlGone.status}; /health.json ${jsonGone.status}`
+      : `/health HTTP ${health.status}; /health.html ${htmlGone.status}; /health.json ${jsonGone.status} ` +
+          `(want /health 200 text/plain and the other two 404 HTML)`,
   );
 
   // `/` is a 301 by design, to a hardcoded absolute URL. `net` alone redirects
@@ -1808,8 +1834,9 @@ async function checkTunnelApex(report, surface, base, landing, authHeaders) {
 }
 
 /**
- * `{"service":"app","frame":"info",...}` from a content frame's `/health.json`,
- * or null if the route is absent or answered with something else.
+ * Apex-shaped `{service, frame}` JSON, or null. No surface serves
+ * `/health.json`; a leftover copy would still parse here and FAIL if the brand
+ * did not match.
  */
 function parseSurfaceIdentityJson(body) {
   try {
@@ -1832,10 +1859,9 @@ async function checkTunnelNext(report, surface, base, landing, authHeaders) {
   // return. An ingress entry that sent `info.umaxica.com` to the `app` port
   // would satisfy the check above exactly like a correct one.
   //
-  // `/health.json` closes that with a build-time `service` literal — the same
-  // mechanism the apexes already had. A frame that does not carry the route yet
-  // reports WARN rather than PASS, because "the brand was not checked" and "the
-  // brand is correct" must not look the same in the matrix.
+  // No surface serves `/health.json`. Brand mix-up on a content frame is
+  // therefore UNPROVEN (WARN), not PASS: the HTML cannot distinguish
+  // app/com/org, and `/health` is liveness, not identity.
   const health = await httpGet(`${base}/health.json`, 15_000, authHeaders).catch((e) => ({
     status: 0,
     body: String(e),

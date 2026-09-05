@@ -1,31 +1,26 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "umaxica-apps-edge-org-news",
-  "main": "./src/server.ts",
   "workers_dev": true,
   "compatibility_date": "2026-05-13",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "version_metadata": {
     "binding": "REVISION"
   },
-  // No `directory` and no `binding`: this is the INPUT config, and `vite build`
-  // writes an output wrangler.json whose `assets.directory` points at the client
-  // build. Setting it here would describe a directory the deployed Worker never
-  // uses, and `wrangler deploy` must not be passed `--config` for the same
-  // reason. See adr/012-apex-vite-build-and-static-assets.md.
+  // No `main`: the Astro Cloudflare adapter generates the Worker entry for the
+  // on-demand routes and writes the deployable `dist/astro` wrangler.json.
+  // This file supplies bindings, vars and compat settings only.
   //
   // Nothing reads an ASSETS binding: assets are matched by Cloudflare BEFORE the
   // Worker runs, so the Worker never has to serve one itself.
   //
-  // `html_handling: "none"` keeps `/` reachable. Cloudflare matches assets
-  // first, so a stray index.html in the build output could answer `/` in place
-  // of the index route — silently, and only in production.
-  // `not_found_handling: "none"` lets the Worker produce the 404 document, which
-  // is what carries the title and the security headers.
-  // `run_worker_first` is deliberately NOT set: it would invoke the Worker for
-  // every asset request, turning free static-asset serving into billed
-  // invocations.
-  "assets": { "html_handling": "none", "not_found_handling": "none" },
+  // Astro emits directory-style HTML (`/ja/index.html`). Cloudflare must map
+  // `/ja/` onto that file. `html_handling: "none"` (the TanStack pin) left
+  // `/ja/` as a 404 with an empty body — measured 2026-09-02. There is no root
+  // `index.html`, so `/` still falls through to the on-demand negotiator.
+  // `not_found_handling: "404-page"` serves the prerendered `404.html`.
+  // `run_worker_first` is deliberately NOT set.
+  "assets": { "html_handling": "auto-trailing-slash", "not_found_handling": "404-page" },
   "observability": {
     "enabled": false,
     "head_sampling_rate": 1,
@@ -85,7 +80,7 @@
     //
     // Wrangler treats a VPC Service as a resource with no local simulator, so any
     // environment that names one forces a remote proxy session, and that session
-    // needs an interactive `wrangler login` rather than an API token. `vite dev`
+    // needs an interactive `wrangler login` rather than an API token. `astro dev`
     // runs the Worker in workerd, so it would open one — which is why this tier
     // exists rather than reusing `development`.
     //

@@ -18,6 +18,19 @@ describe('Rails client edge cases', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('reports an abort timeout as timeout, not unreachable', async () => {
+    const client = createRailsClient(
+      {
+        fetch: vi.fn(() =>
+          Promise.reject(new DOMException('The operation was aborted.', 'TimeoutError')),
+        ),
+      },
+      'http://core.example.localhost:3000',
+    );
+
+    await expect(client.fetch('/health')).resolves.toEqual({ kind: 'timeout' });
+  });
+
   it('reports non-Error transport failures without losing their message', async () => {
     const client = createRailsClient(
       { fetch: vi.fn(() => Promise.reject('socket unavailable')) },

@@ -142,28 +142,32 @@ describe('com/core worker.ts dispatch', () => {
     expect(checkRateLimit.mock.calls[0]?.[1]).toBe(env.RATE_LIMITER);
   });
 
-  it.each(['/assets/index-abc123.js', '/assets/style-abc123.css', '/favicon.ico'])(
-    'exempts %s from the limiter',
-    async (path) => {
-      // `/assets/` is where Vite writes this frame's hashed output, and the
-      // favicon is the one unhashed file a document references. An
-      // image-optimisation route would be a real Worker route — a page with many
-      // images could spend its whole budget on its own thumbnails — so it would
-      // have to be exempted here too. This frame has none:
-      // and it has no image-optimisation route at all.
-      appFetch.mockResolvedValue(new Response('asset', { status: 200 }));
+  it.each([
+    '/assets/index-abc123.js',
+    '/assets/style-abc123.css',
+    '/favicon.ico',
+    '/health/startups',
+    '/health/livenesses',
+    '/api/v0/health.json',
+  ])('exempts %s from the limiter', async (path) => {
+    // `/assets/` is where Vite writes this frame's hashed output, and the
+    // favicon is the one unhashed file a document references. An
+    // image-optimisation route would be a real Worker route — a page with many
+    // images could spend its whole budget on its own thumbnails — so it would
+    // have to be exempted here too. This frame has none:
+    // and it has no image-optimisation route at all.
+    appFetch.mockResolvedValue(new Response('asset', { status: 200 }));
 
-      const response = await worker.fetch(
-        new Request(`https://jp.umaxica.com${path}`),
-        makeEnv(),
-        ctx,
-      );
+    const response = await worker.fetch(
+      new Request(`https://jp.umaxica.com${path}`),
+      makeEnv(),
+      ctx,
+    );
 
-      expect(checkRateLimit).not.toHaveBeenCalled();
-      expect(appFetch).toHaveBeenCalledTimes(1);
-      expect(response.status).toBe(200);
-    },
-  );
+    expect(checkRateLimit).not.toHaveBeenCalled();
+    expect(appFetch).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(200);
+  });
 
   /*
    * The three responses `worker.ts` produces ITSELF, rather than passing through
@@ -369,14 +373,62 @@ describe('com/core worker.ts dispatch', () => {
     expect(response.status).toBe(404);
   });
 
-  it('leaves the existing /health route reachable through the application (not blocked)', async () => {
-    appFetch.mockResolvedValue(new Response('{"status":"ok"}', { status: 200 }));
-    const request = new Request('https://jp.umaxica.com/health');
+  it.each(['/health', '/health/startups', '/health/livenesses', '/health/readinesses'])(
+    'leaves %s reachable through the application (not blocked)',
+    async (path) => {
+      appFetch.mockResolvedValue(new Response('ok\n', { status: 200 }));
+      const request = new Request(`https://jp.umaxica.com${path}`);
 
-    const response = await worker.fetch(request, makeEnv(), ctx);
+      const response = await worker.fetch(request, makeEnv(), ctx);
 
-    expect(appFetch).toHaveBeenCalledTimes(1);
-    expect(response.status).toBe(200);
+      expect(appFetch).toHaveBeenCalledTimes(1);
+      expect(response.status).toBe(200);
+    },
+  );
+
+  /*
+   * The exempt set is the three probes that cannot fail and cannot reach a
+   * downstream hop. These five look adjacent to it and are metered anyway,
+   * which is the half of the rule a list of exemptions cannot state:
+   *
+   *   /health, /health/readinesses     fetch Rails over the VPC binding
+   *                                    (`src/routes/health.ts`,
+   *                                    `src/routes/health.readinesses.ts`). An
+   *                                    exemption here is an unauthenticated,
+   *                                    uncounted path into the Rails origin.
+   *   /revision, /api/v0/revision.json deployment metadata, not probes.
+   *   /                                the ordinary case, pinned alongside them
+   *                                    so a regression that exempts everything
+   *                                    fails here rather than silently passing.
+   */
+  it.each(['/health', '/health/readinesses', '/revision', '/api/v0/revision.json', '/'])(
+    'meters %s',
+    async (path) => {
+      checkRateLimit.mockResolvedValue(new Response('Too Many Requests', { status: 429 }));
+
+      const response = await worker.fetch(
+        new Request(`https://jp.umaxica.com${path}`),
+        makeEnv(),
+        ctx,
+      );
+
+      expect(checkRateLimit).toHaveBeenCalledTimes(1);
+      expect(response.status).toBe(429);
+      expect(appFetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not exempt lookalike health paths from the limiter', async () => {
+    checkRateLimit.mockResolvedValue(new Response('Too Many Requests', { status: 429 }));
+
+    const response = await worker.fetch(
+      new Request('https://jp.umaxica.com/healthiness'),
+      makeEnv(),
+      ctx,
+    );
+
+    expect(response.status).toBe(429);
+    expect(appFetch).not.toHaveBeenCalled();
   });
 
   it('forwards a non-GET RAILS-owned request with a body without corruption or buffering', async () => {

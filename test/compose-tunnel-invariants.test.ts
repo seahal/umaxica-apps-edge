@@ -137,26 +137,55 @@ describe('Edge-owned tunnel connector', () => {
   });
 
   /*
-   * The Edge-specific token is still what the connector prefers; the generic
-   * CLOUDFLARED_TOKEN is accepted as a fallback, for a local setup that runs a
-   * single tunnel and has no separate Edge value.
-   *
-   * Neither may carry a `:?` guard any more. Compose interpolates the whole file
-   * whichever services are named, so now that the connector shares `compose.yaml`
-   * with `core`, a required variable would stop `podman compose up core` on every
-   * machine that never runs a tunnel. `scripts/dev-start --tunnel` is where the
-   * requirement is enforced instead, and it has to look in `.env` as well as in
-   * the shell, because compose reads that file and bash does not.
+   * The tunnel token is exactly one variable with no fallback chain. Global uses
+   * the same variable name in its own `.env`, which is fine — each Compose
+   * project reads the file beside its own compose file, so one name holds two
+   * different tunnels. What broke on 2026-09-04 was the fallback
+   * `${EDGE_CLOUDFLARED_TOKEN:-${CLOUDFLARED_TOKEN:-}}`: on a machine carrying
+   * only Global's value it silently made this connector a replica of Global's
+   * tunnel from a network with no route to Rails — indistinguishable to
+   * Cloudflare from a healthy replica, and broken for both repositories. Any
+   * `:-` chain between two credential variables can do that again, so none may
+   * appear here. See ADR 014.
    */
-  it('prefers the Edge-specific token and refuses to start a tunnel without one', () => {
-    expect(composeBase).toMatch(
-      /TUNNEL_TOKEN: ['"]\$\{EDGE_CLOUDFLARED_TOKEN:-\$\{CLOUDFLARED_TOKEN:-\}\}['"]/u,
-    );
+  it('reads the tunnel token from exactly one variable, with no fallback chain', () => {
+    expect(composeBase).toMatch(/TUNNEL_TOKEN: ['"]\$\{CLOUDFLARED_TOKEN:-\}['"]/u);
+    // A second `${` inside the TUNNEL_TOKEN value is a fallback chain.
+    expect(composeBase).not.toMatch(/TUNNEL_TOKEN:[^\n]*\$\{[^}]*\$\{/u);
+  });
+
+  /*
+   * The token may still not carry a `:?` guard. Compose interpolates the whole
+   * file whichever services are named, so now that the connector shares
+   * `compose.yaml` with `core`, a required variable would stop `podman compose up
+   * core` on every machine that never runs a tunnel. `scripts/dev-start --tunnel`
+   * is where the requirement is enforced instead, and it has to look in `.env` as
+   * well as in the shell, because compose reads that file and bash does not.
+   */
+  it('refuses to start a tunnel without a token', () => {
     expect(composeBase).not.toMatch(/CLOUDFLARED_TOKEN:\?/u);
 
     const devStart = read('scripts/dev-start');
-    expect(devStart).toMatch(/--tunnel requires EDGE_CLOUDFLARED_TOKEN/u);
-    expect(devStart).toContain("grep -Eq '^(EDGE_)?CLOUDFLARED_TOKEN=.+' .env");
+    expect(devStart).toMatch(/--tunnel requires CLOUDFLARED_TOKEN/u);
+    expect(devStart).toContain("sed -n 's/^CLOUDFLARED_TOKEN=//p' .env");
+  });
+
+  /*
+   * Sharing the variable name with Global means the name itself can no longer
+   * catch a copied value, so `dev-start --tunnel` decodes the tunnel UUID from
+   * the token and compares it against the connectors already running on this
+   * host. That comparison is now the only thing standing between a pasted `.env`
+   * and a repeat of 2026-09-04.
+   */
+  it('refuses to add a second connector to a tunnel that already has one', () => {
+    const devStart = read('scripts/dev-start');
+    expect(devStart).toMatch(/tunnel_uuid_of\(\)/u);
+    expect(devStart).toMatch(/already has a connector on this host/u);
+    // Every cloudflared container on the host counts, not only this compose
+    // project's own.
+    expect(devStart).toMatch(
+      /podman ps --format '\{\{\.Names\}\}'[^\n]*\n?[^\n]*grep -i cloudflare/u,
+    );
   });
 });
 
@@ -241,9 +270,18 @@ describe('secret hygiene', () => {
        * the equivalent for a Vite frame, denied in the client environment by the
        * Start plugin. Either satisfies the invariant; neither is optional.
        */
-      expect(source, `${client} must be server-only`).toMatch(
-        /import '(?:server-only|@tanstack\/react-start\/server-only)'/u,
+      const isAstro = existsSync(
+        join(repoRoot, client.replace(/src\/lib\/rails-client\.ts$/u, 'astro.config.mjs')),
       );
+      if (isAstro) {
+        expect(source, `${client} must not import a Start/Next server-only marker`).not.toMatch(
+          /import '(?:server-only|@tanstack\/react-start\/server-only)'/u,
+        );
+      } else {
+        expect(source, `${client} must be server-only`).toMatch(
+          /import '(?:server-only|@tanstack\/react-start\/server-only)'/u,
+        );
+      }
 
       for (const header of [
         'cookie',

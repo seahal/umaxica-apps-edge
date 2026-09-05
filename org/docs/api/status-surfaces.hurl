@@ -1,12 +1,9 @@
-# The two documents a user meets when something is wrong: the 404 and the
-# offline page.
+# The three documents a user meets when something is wrong: the 404, the
+# offline page, and the server-error splash.
 #
-# The React components behind them are rendered and asserted in
-# `test/status-surfaces.test.tsx`, which is the right layer for their markup.
-# What that layer cannot show is whether Next actually serves them — whether
-# `global-not-found.tsx` is wired to an unmatched path and whether `/offline`
-# is a real route rather than a component nothing routes to. That is what these
-# requests prove.
+# Markup lives in `src/pages/404.astro`, `offline.astro`, and `500.astro`.
+# These requests prove those files are actually served on the matching paths
+# (unmatched URL, `/offline`, `/500`), not only that the templates exist.
 
 GET {{base}}/__definitely_not_found__
 HTTP 404
@@ -37,3 +34,16 @@ header "content-type" matches /^text\/html/
 xpath "string(//html/@lang)" == "ja"
 xpath "string(//title)" == "オフライン — UMAXICA (ORG)"
 xpath "//h1" exists
+
+# `/500` is the server-error splash. Reload is forbidden (a herd of retries
+# would load a failing origin). Recovery is a different host.
+GET {{base}}/500
+HTTP *
+[Asserts]
+header "content-type" matches /^text\/html/
+xpath "string(//html/@lang)" == "ja"
+xpath "string(//title)" == "サーバーエラー — UMAXICA (ORG)"
+xpath "//h1" exists
+body contains "稼働状況を見る"
+body contains "https://status.umaxica.dev/"
+body not contains "再読み込み"

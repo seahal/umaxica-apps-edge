@@ -58,8 +58,8 @@ ISR ではなくなったので、決め直しであって移植ではない:
 - binding は capability であり、Rails を fetch しない worker には付与しない。
   5 つの apex Worker は `standalone` のままで、binding を持たない。
 - 15 フレームは既に全て `railsBackedVite` で、binding を持っている。公開系 12
-  surface でそれを使っているのは今のところ `/health` の Rails liveness
-  (`src/lib/rails-health.ts`、ADR 009)だけで、コンテンツ取得はまだ入っていない。
+  surface でそれを使っているのは今のところ `/health` の Rails Health API
+  (`src/lib/rails-health.ts`、ADR 016)だけで、コンテンツ取得はまだ入っていない。
   入れるときは既存の `src/lib/rails-client.ts` の中に足す — 分類の移動は不要で、
   `contentSurface` は空のまま(Rails を見ない frame が存在しないため)。
 - 分類と wrangler 設定の整合は `pnpm run check:workers`(CI の `check-workers`

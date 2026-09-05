@@ -4,38 +4,17 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, envField } from 'astro/config';
 
 /*
- * Astro pilot for the twelve content frames (plans/tanstack-start-agile-reddy.md,
- * Phase 1). Juxtaposed with the TanStack Start build in this unit, not replacing
- * it: this config owns its own `srcDir`, `publicDir` and `outDir` so `vite build`
- * and `astro build` never touch each other's files.
+ * Astro on Cloudflare Workers for this public content surface (adr/015).
  *
- * Decisions carried over from the TanStack Start unit deliberately:
- *
- * - `output: 'static'`. Every HTML route is prerendered at build time. Only two
- *   routes opt out with `export const prerender = false`: `/health` (Rails
- *   liveness probe over the Workers VPC binding — machine endpoint, 200/503) and
- *   `/` (Accept-Language negotiation → 302 to /ja/ or /en/). Everything else is
- *   a file on Cloudflare's asset layer, served without invoking the Worker.
- *
- * - Security headers live in `public-astro/_headers`, matched by Cloudflare
- *   before the Worker runs. The CSP is the same policy the TanStack unit set
- *   per-request in `src/security-headers.ts`, minus the nonce: with
- *   `build.inlineStylesheets: 'never'` and no `is:inline` scripts, every script
- *   and style is a same-origin file, so `script-src 'self'` / `style-src 'self'`
- *   need no nonce and no hash. The two on-demand routes set their own headers.
- *
- * - Region (jp/us) is a build-time input, not a runtime one. `PUBLIC_REGION`
- *   selects the canonical origin, exactly as the TanStack unit hardcoded
- *   `CANONICAL_ORIGIN` per unit. One build per region; the ops choice of one
- *   Worker on two custom domains vs two deployments is deferred (plan §16).
- *
- * - Language (ja/en) is a URL path prefix. Both locales are prefixed and there
- *   is no default route — `/` negotiates. `<html lang>` always agrees with the
- *   routed locale (unlike the apex units; see adr/011).
+ * - `output: 'static'`. HTML routes prerender at build time. `/health` and `/`
+ *   opt out with `export const prerender = false`.
+ * - Security headers live in `public/_headers`.
+ * - Region (jp/us) is a build-time `PUBLIC_REGION` input.
+ * - Language (ja/en) is a URL path prefix; `/` negotiates.
  */
 export default defineConfig({
-  srcDir: './src-astro',
-  publicDir: './public-astro',
+  srcDir: './src',
+  publicDir: './public',
   outDir: './dist/astro',
   // Content pages use the trailing-slash form everywhere it matters — canonical
   // tags, hreflang, nav links, sitemap, `start_url` — but the setting stays
@@ -50,8 +29,9 @@ export default defineConfig({
 
   output: 'static',
   adapter: cloudflare({
-    configPath: './wrangler.astro.jsonc',
-    platformProxy: { enabled: true, configPath: './wrangler.astro.jsonc' },
+    configPath: './wrangler.jsonc',
+    inspectorPort: 9310,
+    platformProxy: { enabled: true, configPath: './wrangler.jsonc' },
     // A Workers VPC Service has no local simulator, so any build that tries to
     // resolve the binding opens a remote proxy session that only an interactive
     // `wrangler login` can authenticate. Prerendering never touches a binding —
@@ -66,15 +46,6 @@ export default defineConfig({
   // This unit holds no session state; the adapter's KV session binding is inert
   // but declaring it off keeps the generated wrangler config honest.
   session: false,
-
-  i18n: {
-    locales: ['ja', 'en'],
-    defaultLocale: 'ja',
-    routing: {
-      prefixDefaultLocale: true,
-      redirectToDefaultLocale: false,
-    },
-  },
 
   build: {
     // Force every stylesheet to an external same-origin file so the CSP can be
@@ -96,6 +67,26 @@ export default defineConfig({
   },
 
   vite: {
-    plugins: [tailwindcss()],
+    // Behind a Cloudflare Tunnel the dev server sees the public hostname in the
+    // Host header; Vite blocks unknown hosts by default. `info` is one global
+    // surface — `info.umaxica.{brand}`, no region label. Not `true`, which
+    // disables DNS-rebinding protection.
+    server: {
+      allowedHosts: ['info.umaxica.org'],
+    },
+    plugins: [
+      tailwindcss(),
+      // workerd's Vite module runner invalidates deps_ssr mid-reload when the
+      // optimizer discovers `astro/assets/services/noop` on first request
+      // (passthrough image service). Pre-include it so `astro dev` does not
+      // crash with "The file does not exist at .../deps_ssr/server-*.js".
+      {
+        name: 'ssr-optimize-passthrough-image',
+        configEnvironment(name) {
+          if (name === 'client') return;
+          return { optimizeDeps: { include: ['astro/assets/services/noop'] } };
+        },
+      },
+    ],
   },
 });

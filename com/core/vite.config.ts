@@ -101,10 +101,10 @@ export default defineConfig(({ command }) => ({
   resolve: { tsconfigPaths: true },
   // The Cloudflare Tunnel forwards the browser's Host unchanged, so `vite dev`
   // sees the public hostname and refuses it: Vite allowlists Hosts to block DNS
-  // rebinding against a dev server. Only this unit's own tunnel hostname is
+  // rebinding against a dev server. Only this unit's own two tunnel hostnames are
   // listed — never `true` and never a wildcard, which would give that defence
   // up. `server` is read while serving only, so `vite build` is unaffected.
-  server: { allowedHosts: ['us.umaxica.com'] },
+  server: { allowedHosts: ['jp.umaxica.com', 'us.umaxica.com'] },
   plugins: [
     tailwindcss(),
     cloudflare({

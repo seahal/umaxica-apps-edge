@@ -10,7 +10,7 @@
 # Asserting on a real response closes that gap. Read the header values here as
 # the contract; `security-headers.ts` is one implementation of it.
 
-GET {{base}}/
+GET {{base}}/ja/
 HTTP 200
 [Asserts]
 header "content-security-policy" contains "default-src 'self'"
@@ -24,14 +24,11 @@ header "content-security-policy" contains "object-src 'none'"
 header "content-security-policy" contains "upgrade-insecure-requests"
 # THIS RUNNER STARTS A DEV SERVER, and the development policy is the loose one.
 # `script-src` and `style-src` carry 'unsafe-inline' here, and `script-src` also
-# carries 'unsafe-eval', because Vite injects inline scripts of its own and both
-# the dev bundle and React's development build call eval().
+# carries 'unsafe-eval', because Vite injects inline scripts of its own.
 #
-# A PRODUCTION response carries none of the three: it names a per-request nonce
-# instead, which TanStack stamps on the one inline script it emits. No client
-# talking to a dev server can observe that, so the production half —
-# 'unsafe-inline' absent, a nonce present and unique per response — is asserted
-# in test/content-security-policy.test.ts.
+# Production answers from `public/_headers` (`script-src 'self'` / `style-src
+# 'self'`, no nonce). A client talking to `astro dev` cannot observe that, so
+# the production half is not asserted here.
 #
 # The negative assertions below are the part with teeth: the loosening must stay
 # confined to those two directives whichever server is answering.
@@ -72,6 +69,17 @@ header "x-content-type-options" == "nosniff"
 header "x-frame-options" == "DENY"
 header "referrer-policy" == "no-referrer"
 
+
+
+# The server-error document must carry the same headers as the 404.
+GET {{base}}/500
+HTTP *
+[Asserts]
+header "content-security-policy" contains "default-src 'self'"
+header "content-security-policy" contains "frame-ancestors 'none'"
+header "x-content-type-options" == "nosniff"
+header "x-frame-options" == "DENY"
+header "referrer-policy" == "no-referrer"
 
 # And on a JSON route handler, which does not go through the page renderer at
 # all.

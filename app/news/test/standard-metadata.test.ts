@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { CANONICAL_ORIGIN } from '../src/lib/canonical';
-import { handlers } from './utils/routes';
+import { handlers } from './utils/handlers';
 
 const host = 'news-jp.umaxica.app';
 const unitRoot = resolve(import.meta.dirname, '..');
@@ -30,7 +30,7 @@ describe('standard metadata', () => {
     const sitemap = await handlers.sitemap();
     expect(sitemap.headers.get('content-type')).toContain('xml');
     const sitemapBody = await sitemap.text();
-    expect(sitemapBody).toContain(`<loc>https://${host}/</loc>`);
+    expect(sitemapBody).toContain(`<loc>https://${host}/ja/</loc>`);
     expect(sitemapBody).toContain('<changefreq>weekly</changefreq>');
     expect(sitemapBody).toContain('<priority>0.5</priority>');
   });
@@ -40,18 +40,14 @@ describe('standard metadata', () => {
     expect(manifest.headers.get('content-type')).toContain('application/manifest+json');
     await expect(manifest.json()).resolves.toMatchObject({
       name: 'UMAXICA News (app)',
-      start_url: '/',
+      start_url: '/ja/',
       display: 'standalone',
       icons: [expect.objectContaining({ src: '/favicon.ico' })],
     });
 
-    // `/health` itself — shape, both status halves and the absence of any Rails
-    // detail — is covered by `test/health-route.test.ts`. Here it is only
-    // asserted that the route exists and is the JSON, no-store surface this
-    // frame's metadata promises.
     const response = await handlers.health();
-    expect(response.headers.get('content-type')).toContain('application/json');
-    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(response.headers.get('content-type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('cache-control')).toBe('no-store');
   });
 
   it('contains the required browser assets', () => {
@@ -62,6 +58,6 @@ describe('standard metadata', () => {
     const worker = readFileSync(resolve(unitRoot, 'public/service-worker.js'), 'utf8');
     expect(worker).toContain("event.request.mode !== 'navigate'");
     expect(worker).toContain('fetch(event.request).catch');
-    expect(worker).toContain('cache.add(OFFLINE_URL)');
+    expect(worker).toContain('cache.add(url)');
   });
 });

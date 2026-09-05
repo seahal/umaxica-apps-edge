@@ -1,15 +1,9 @@
 /*
- * The UMAXICA brand title contract, in the one place this unit composes it.
+ * The UMAXICA brand title contract, ported verbatim from `src/lib/title.ts`.
  *
- * Next's Metadata API had `title.template = '%s — UMAXICA (APP)'` and
- * `title.absolute` to escape it. TanStack Router has neither: `head.meta` takes
- * a finished string, and nested titles simply override ancestors. So the suffix
- * is composed here instead, and `test/title-contract.test.tsx` pins the result
- * against the same regex the repository-wide suite uses.
- *
- * The separator is an EM DASH (U+2014) with a single space on each side. It is
- * not a hyphen and not an EN DASH; `test/html-title-contract.test.ts` matches on
- * the exact character.
+ * The separator is an EM DASH (U+2014) with a single space on each side — not a
+ * hyphen, not an EN DASH. `api/title-contract.hurl` and the repository-wide
+ * suite match the exact character.
  */
 export const BRAND_TITLE = 'UMAXICA (APP)';
 

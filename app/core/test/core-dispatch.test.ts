@@ -43,6 +43,8 @@ describe(`${FRAME} classifyCorePath`, () => {
     // Rails-owned, prefix matched.
     ['/api/v0/session', 'rails'],
     ['/api/v0', 'rails'],
+    ['/api/v0/health.json', 'next'],
+    ['/api/v0/revision.json', 'next'],
     ['/web/v0/thing', 'rails'],
     ['/edge/v0/widgets', 'rails'],
     ['/oidc/callback', 'rails'],
@@ -54,6 +56,9 @@ describe(`${FRAME} classifyCorePath`, () => {
     ['/csp-violation-report', 'rails'],
     // Intentional Edge overrides of paths Rails also serves.
     ['/health', 'next'],
+    ['/health/startups', 'next'],
+    ['/health/livenesses', 'next'],
+    ['/health/readinesses', 'next'],
     ['/health/liveness.json', 'blocked'],
     ['/health/readiness.json', 'blocked'],
     ['/health/startup.json', 'blocked'],
@@ -73,7 +78,11 @@ describe(`${FRAME} classifyCorePath`, () => {
     // The asymmetry that makes the unified health entry point possible: BLOCKED
     // is a raw `startsWith('/health/')`, so `/health` itself reaches Next.
     expect(classifyCorePath('/health')).toBe('next');
+    expect(classifyCorePath('/health/startups')).toBe('next');
+    expect(classifyCorePath('/health/livenesses')).toBe('next');
+    expect(classifyCorePath('/health/readinesses')).toBe('next');
     expect(classifyCorePath('/health/')).toBe('blocked');
+    expect(classifyCorePath('/health/liveness.json')).toBe('blocked');
   });
 });
 
