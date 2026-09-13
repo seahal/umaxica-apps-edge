@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { RailsClient, RailsClientResult } from '../../src/lib/rails-client';
-import { createRailsEntriesClient } from '../../src/lib/rails-entries';
+import { RAILS_JSON_MAX_CHARS, createRailsEntriesClient } from '../../src/lib/rails-entries';
 
 const entry = {
   public_id: 'entry-1',
@@ -152,6 +152,63 @@ describe('Rails entries client', () => {
       kind: 'invalid-contract',
     });
     expect(JSON.stringify(fetch.mock.calls)).not.toContain('cursor');
+  });
+
+  it('rejects malformed collection envelopes and entries inside a page', async () => {
+    for (const value of [
+      null,
+      { data: {}, page: firstPage.page },
+      { data: [], page: [] },
+      { ...firstPage, data: [null] },
+      { ...firstPage, data: [{ ...entry, public_id: '' }] },
+    ]) {
+      const { entries } = client({
+        kind: 'ok',
+        status: 200,
+        response: Response.json(value),
+      });
+      await expect(entries.fetchEntriesPage({ locale: 'ja' })).resolves.toMatchObject({
+        kind: 'invalid-contract',
+      });
+    }
+  });
+
+  it('bounds declared and streamed JSON bodies while tolerating an invalid length header', async () => {
+    const declaredTooLarge = client({
+      kind: 'ok',
+      status: 200,
+      response: new Response('{}', {
+        headers: {
+          'content-type': 'application/json',
+          'content-length': String(RAILS_JSON_MAX_CHARS + 1),
+        },
+      }),
+    });
+    await expect(
+      declaredTooLarge.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({ kind: 'invalid-contract' });
+
+    const invalidLength = client({
+      kind: 'ok',
+      status: 200,
+      response: new Response(JSON.stringify(entry), {
+        headers: { 'content-type': 'application/json', 'content-length': 'unknown' },
+      }),
+    });
+    await expect(
+      invalidLength.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({ kind: 'ok' });
+
+    const streamedTooLarge = client({
+      kind: 'ok',
+      status: 200,
+      response: new Response('x'.repeat(RAILS_JSON_MAX_CHARS + 1), {
+        headers: { 'content-type': 'application/json' },
+      }),
+    });
+    await expect(
+      streamedTooLarge.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({ kind: 'invalid-contract' });
   });
 
   it('maps an invalid-path client result to upstream-error without its reason', async () => {

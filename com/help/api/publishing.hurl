@@ -63,7 +63,7 @@ header "x-robots-tag" contains "noindex"
 header "x-umaxica-publishing-status" not exists
 xpath "string(//html/@lang)" == "ja"
 xpath "count(//title)" == 1
-xpath "string(//title)" matches /^.+ — UMAXICA \(APP\)$/
+xpath "string(//title)" matches /^.+ — UMAXICA \(COM\)$/
 body contains "HTTP 503"
 body not contains "localhost"
 body not contains "UMAXICA_APPS_EDGE_CF_WORKERS_VPC"

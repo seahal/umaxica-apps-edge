@@ -101,23 +101,8 @@ services:
     userns_mode: keep-id:uid=1000,gid=1000
     security_opt:
       - no-new-privileges:true
-      # SELinux Enforcing (Fedora/RHEL) 対応。標準環境の成立条件なので、
-      # ローカル override ではなくこちらに置く。
-      #
-      # このファイルの bind mount はワークスペースを渡す `.` の 1 本だけで、
-      # :z / :Z を付けていない。ホスト側リポジトリは user_home_t の
-      # ままなので container_t のコンテナからは読めない。uid/gid は keep-id で
-      # 一致していて DAC は通っており、落ちているのは MAC の側だけ
-      # (`ls /home/edge/workspace` がディレクトリ一覧すら出せない)。
-      #
-      # :z を付ける手もあるが、それはホスト側リポジトリを
-      # container_file_t へ「再ラベル」してしまう。label=disable はこの
-      # コンテナ 1 つに閉じ、ホストのラベルを一切書き換えないのでこちらを取る。
-      # SELinux を使っていないホスト (Ubuntu 等) では Docker / Podman とも
-      # 単に無視されるため、無条件に置いて安全。
-      - label=disable
-    cap_drop:
-      - ALL
+      - seccomp=unconfined
+      - "unmask=/proc/*"
     environment:
       CLOUDFLARE_ENV: development
       # gh CLI の API 認証。トークン本体はこのファイルに書かず、ホスト側の
