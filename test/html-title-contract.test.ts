@@ -443,24 +443,18 @@ describe('rate limited 429 documents', () => {
   });
 
   /*
-   * The twelve Astro content surfaces (adr/015). Like the Cores they answer a
-   * hand-written 429, and like the Cores the check runs at whatever their own
-   * first touch is — here `src/middleware.ts`, because an Astro unit has no
-   * `worker.ts`. That is the asymmetry adr/010 recorded, carried across the move
-   * off TanStack Start.
+   * The twelve TanStack public content surfaces. Like the Cores they answer a
+   * hand-written 429, and like the Cores the check runs at their own request
+   * boundary — here `src/request-handler.ts`.
    *
    * The guard drives `src/lib/rate-limit.ts` with an injected limiter — the same
-   * shape as the two guards above — rather than driving the middleware, which
-   * would need an Astro `APIContext` and the `cloudflare:workers` module, neither
-   * of which exists in this root suite. Keeping the limiter a parameter of
-   * `checkRateLimit` is what makes that possible.
+   * shape as the two guards above — rather than starting a framework server.
+   * Keeping the limiter a parameter of `checkRateLimit` makes this root suite
+   * independent of each unit's runtime adapter.
    *
-   * This replaces a guard that filtered `/src/middleware.ts` while excluding
-   * `/core/` and asserted the count against `nextApps()`. Next.js has since left
-   * the repository entirely, so that assertion became `12 === 0`; worse, the
-   * filter silently re-aimed itself at the Astro middleware, whose export is
-   * `onRequest`, not `middleware`. Matching on a filename could not see that the
-   * rate limiting these twelve units owe had been dropped in the conversion.
+   * This replaces a guard that filtered framework-specific middleware while
+   * excluding `/core/`. Matching on the owned rate-limit helper keeps the test
+   * about the contract instead of a framework entrypoint.
    * Matching on `src/lib/rate-limit.ts` — the file that has to exist for the unit
    * to limit anything at all — can.
    */

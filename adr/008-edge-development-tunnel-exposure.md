@@ -424,7 +424,7 @@ comes from the gitignored `.env`.
 
 The 2026-08-11 amendment put `/health.json` on `{app,com,org}/info` so a tunnel
 hostname mix-up was visible in the response. That made `info` the only content
-surface with a second health document. The twelve Astro frames now share one
+surface with a second health document. The twelve TanStack public frames now share one
 liveness contract: `/health` (Edge + Rails). `/health.json` stays on the apex
 workers, where `service` is part of `createApexApp`.
 

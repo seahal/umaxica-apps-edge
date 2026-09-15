@@ -40,7 +40,7 @@ Body is the version id plus a trailing newline, for example:
 a33a8248-b055-41a7-a91f-d65d116b474c
 ```
 
-When version metadata is missing (typical `vite dev` / `astro dev` without a
+When version metadata is missing (typical `vite dev` without a
 Worker version), the body is the non-JSON sentinel:
 
 ```text

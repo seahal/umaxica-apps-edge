@@ -103,7 +103,7 @@ const varyOnNegotiation: MiddlewareHandler = async (c, next) => {
  *
  * `/health` and `/health/readinesses` are deliberately absent. They answer from
  * this isolate on an apex Worker, but they reach Rails over the Workers VPC
- * binding on a Core and on an Astro surface, and this exemption is written once
+ * binding on a Core and on a TanStack public surface, and this exemption is written once
  * for all twenty units rather than per family: a set that means "cheap here,
  * an uncounted path into Rails there" is not a rule anyone can check. Readiness
  * is the probe whose job is to answer "do not send me traffic"; being throttled

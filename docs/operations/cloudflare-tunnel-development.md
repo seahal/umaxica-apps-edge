@@ -17,7 +17,7 @@ shape. The operational sections above the logs are current and are kept that way
 ## Note: `/rails-health` was merged into `/health` (2026-08-12)
 
 `/rails-health` no longer exists on any frame. Public health is now four
-`text/plain` endpoints shared by Rails, Hono, Astro, and TanStack Start:
+`text/plain` endpoints shared by Rails, Hono, and TanStack Start:
 
 ```text
 GET /health                 human-readable aggregate (not a Kubernetes probe)

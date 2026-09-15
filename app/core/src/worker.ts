@@ -97,7 +97,7 @@ function isHealthPath(pathname: string): boolean {
  * and is not a correct answer for liveness or startup.
  *
  * The same three paths are the exempt set in every apex `create-apex-app.ts`
- * and every Astro surface's `src/middleware.ts`. One rule, twenty units.
+ * and every TanStack public surface's `src/request-handler.ts`. One rule, twenty units.
  */
 function isUnmeteredProbe(pathname: string): boolean {
   return (
