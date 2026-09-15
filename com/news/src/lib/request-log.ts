@@ -94,7 +94,8 @@ export function withRequestIdRequest(request: Request, requestId: string): Reque
 }
 
 export function normalizeEdgeMethod(method: string): EdgeRequestMethod {
-  switch (method.toUpperCase()) {
+  const upper = method.toUpperCase();
+  switch (upper) {
     case 'GET':
     case 'HEAD':
     case 'POST':
@@ -102,7 +103,7 @@ export function normalizeEdgeMethod(method: string): EdgeRequestMethod {
     case 'PATCH':
     case 'DELETE':
     case 'OPTIONS':
-      return method.toUpperCase();
+      return upper;
     default:
       return 'OTHER';
   }
