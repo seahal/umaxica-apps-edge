@@ -87,18 +87,41 @@ describe('Rails entries client', () => {
     });
   });
 
-  it.each([
-    [404, 'not-found'],
-    [500, 'upstream-error'],
-  ] as const)('classifies Rails HTTP %i as %s', async (status, kind) => {
-    const { entries } = client({
-      kind: 'http-error',
-      status,
-      response: new Response(null, { status }),
-    });
+  it.each([[500, 'upstream-error']] as const)(
+    'classifies Rails HTTP %i as %s',
+    async (status, kind) => {
+      const { entries } = client({
+        kind: 'http-error',
+        status,
+        response: new Response(null, { status }),
+      });
 
-    await expect(entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' })).resolves.toMatchObject({
-      kind,
+      await expect(
+        entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+      ).resolves.toMatchObject({
+        kind,
+      });
+    },
+  );
+
+  it('treats an Entry 404 as confirmed absence but a collection 404 as upstream failure', async () => {
+    const entryClient = client({
+      kind: 'http-error',
+      status: 404,
+      response: new Response(null, { status: 404 }),
+    });
+    await expect(
+      entryClient.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({ kind: 'not-found', upstreamStatus: 404 });
+
+    const collectionClient = client({
+      kind: 'http-error',
+      status: 404,
+      response: new Response(null, { status: 404 }),
+    });
+    await expect(collectionClient.entries.fetchEntriesPage({ locale: 'ja' })).resolves.toEqual({
+      kind: 'upstream-error',
+      upstreamStatus: 404,
     });
   });
 

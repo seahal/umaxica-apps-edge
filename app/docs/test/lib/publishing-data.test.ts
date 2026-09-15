@@ -88,6 +88,11 @@ describe('readEntriesPage', () => {
     await expect(readEntriesPage('ja', 9, env)).resolves.toEqual({ kind: 'not-found' });
   });
 
+  it('keeps a collection HTTP 404 as an upstream error', async () => {
+    const { env } = envWith(new Response(null, { status: 404 }));
+    await expect(readEntriesPage('ja', 1, env)).resolves.toEqual({ kind: 'error', status: 502 });
+  });
+
   it('carries no Rails body, taxonomy or private host into the view', async () => {
     const { env } = envWith(
       Response.json({ data: [entry()], page: { current: 1, previous: null, next: null, last: 1 } }),

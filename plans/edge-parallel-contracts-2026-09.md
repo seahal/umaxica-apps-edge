@@ -207,6 +207,22 @@ CSRF origin判定も同じunit内の導出値を参照し、allowlistを二重�
 TanStack入口はこのsliceの対象外である。実装と受入結果は
 `evidence/2026-09-15-core-host-boundary.md`に記録する。
 
+**P2c — Edge-owned request boundary completed.** 5 apex、3 Core、12 public frameに、
+未知Hostをlimiter・外向き通信・routerより前に421で拒否する入口を適用した。正規custom host、
+現行Workerのpreview host、非productionのlocal hostは設定由来で許可し、`X-Forwarded-Host`は
+使わない。apexは固定版Honoの公式`bodyLimit({ maxSize: 65_536 })`を使い、public/Coreは
+parserへ渡す前にContent-LengthなしのstreamもUTF-8 byteで読み、上限超過を413、非identity
+Content-Encodingを415とした。CoreのRails-owned中継はこの上限から除外し、通常のapplication
+requestだけをCookie除去後にbounded Requestへ再構成する。各入口の応答生成は3,000msで、
+timeout時は固定503とし、signal、timer、遅延reject、reader解放を回帰へ置いた。
+
+TDDのgreenはapex各16件、Core各54件、public各35件のfocused Vitestで、対象20面すべて
+passした。変更pathのOxfmt・Oxlint・type-aware Oxlint、apex/Coreのtypecheckもpassした。
+publicのunit-wide typecheckは既存の`test/uncovered-components.test.tsx`型エラーで停止し、
+unit-wide lintは既存生成`.astro`型宣言の診断で停止した。Hostの偽プレビュー受入を追加で
+検出・修正し、stage差分とpre-commit hookを通過させた。実装・検証の詳細はP2境界commitに
+記録され、Rails、JWT、VPC、production変更はない。
+
 ### P3 — TanStack locale/region/public shell
 
 現状保留。Rails Preference実装とCookie定義を固定SHAから確認できるまで、`lx`規則、Cookie
@@ -274,6 +290,18 @@ files were checked for identity. Production Cloudflare bindings, live Rails,
 and browser E2E were not exercised. This slice is independently reversible;
 the remaining P5 work is the TanStack offline policy and its browser/runtime
 verification.
+
+**P4c — Public 404 contract completed.** 12 public cells now distinguish the
+fixed endpoint shapes already present in `rails-entries.ts`: a 404 from the
+detail path `/api/v0/entries/{public_id}` confirms that the requested Entry is
+absent, while a 404 from the collection path `/api/v0/entries` does not identify
+a missing page and remains an upstream error. The latter reaches the existing
+public mapping as 502; the former remains 404. No Rails error field or new
+route was invented. The three-file focused suite (`rails-entries`, publishing
+API and publishing data) passed 59 tests in every cell, and the collection
+404-to-502 behavior is asserted at the page view boundary. The twelve copies
+were checked for identity. This is an independently reversible client contract
+slice; the Rails fixed SHA and live response contract remain unverified.
 
 ### P5 — TanStack offlineとCore透過中継
 

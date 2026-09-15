@@ -198,12 +198,15 @@ async function readJson(
 async function map<T>(
   result: RailsClientResult,
   parse: (value: unknown) => T | null,
+  notFoundIsConfirmed: boolean,
 ): Promise<RailsEntriesResult<T>> {
   if (result.kind === 'timeout') return { kind: 'timeout' };
   if (result.kind === 'unreachable') return { kind: 'unreachable' };
   if (result.kind === 'invalid-path') return { kind: 'upstream-error' };
   if (result.kind === 'http-error') {
-    if (result.status === 404) return { kind: 'not-found', upstreamStatus: 404 };
+    if (result.status === 404 && notFoundIsConfirmed) {
+      return { kind: 'not-found', upstreamStatus: 404 };
+    }
     return { kind: 'upstream-error', upstreamStatus: result.status };
   }
 
@@ -241,6 +244,7 @@ export function createRailsEntriesClient(rails: RailsClient): RailsEntriesClient
       return map(
         await rails.fetch(path, { headers: { Accept: 'application/json' } }),
         parseRailsEntriesPage,
+        false,
       );
     },
 
@@ -251,6 +255,7 @@ export function createRailsEntriesClient(rails: RailsClient): RailsEntriesClient
           headers: { Accept: 'application/json' },
         }),
         parseRailsEntry,
+        true,
       );
     },
   };

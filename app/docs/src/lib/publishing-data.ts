@@ -20,8 +20,10 @@ import { entriesPath, entryPath } from './publishing-routes';
  * display fields and public URLs only — never the Entry `body` object, the
  * taxonomy, an upstream status or error text, and never the private Rails host.
  *
- * A Rails 404 is `not-found` (the route throws the router's not-found signal);
- * every other failure is `error` with the outward status the route applies.
+ * A confirmed Entry 404 is `not-found` (the route throws the router's not-found
+ * signal). A collection 404 is an upstream error because it does not confirm
+ * that a requested page or resource is absent. Every other failure is `error`
+ * with the outward status the route applies.
  */
 
 export interface EntrySummaryView {
