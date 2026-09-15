@@ -35,3 +35,24 @@ test('falls back only when a navigation cannot reach the network', async ({ page
     await context.setOffline(false);
   }
 });
+
+test('keeps an HTTP error as an error document', async ({ page }) => {
+  await page.goto('/this-page-does-not-exist');
+  await expect(page.getByRole('heading', { name: 'ページが見つかりません' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'オフラインです' })).toHaveCount(0);
+});
+
+test('does not replace a reserved API navigation with the offline document', async ({
+  page,
+  context,
+}) => {
+  await page.goto('/');
+  await page.evaluate(async () => navigator.serviceWorker.ready);
+  await page.reload();
+  await context.setOffline(true);
+  try {
+    await expect(page.goto('/api/v0/session')).rejects.toThrow();
+  } finally {
+    await context.setOffline(false);
+  }
+});

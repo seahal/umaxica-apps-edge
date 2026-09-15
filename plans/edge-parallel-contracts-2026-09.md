@@ -286,6 +286,28 @@ Rails中継ではstatus/Location/Set-Cookie/Content-Type/body、Cookie/CSRF、PO
 
 想定commit: `test: lock offline and Rails passthrough boundaries`
 
+**P5a — TanStack offline boundary completed.** The fifteen TanStack cells now
+serve a fixed, nonce-free offline HTML response only for same-origin GET
+document navigations whose network fetch rejects. HTTP 404/500 responses remain
+HTTP error documents. API, Rails-owned, OIDC, sign-out, health, metadata,
+cross-origin, non-GET, JS/CSS and RPC requests never receive the HTML fallback.
+Only the fixed response is stored in a namespaced Cache Storage entry; old
+entries owned by this SW may be removed, while unrelated origin caches remain.
+The online `/offline` route remains for its normal HTTP contract, but it is not
+the response cached by the SW, so authentication, Preference and request nonce
+state cannot enter the offline document.
+
+The TDD red state was the new SW contract test against the previous
+`offline-v1` implementation. Green verification is the complete suite in all
+fifteen frames, plus Chromium e2e in all fifteen frames: public cells passed
+15 tests each and Core cells passed 10 tests each. The source and shared test
+copies were hash-checked. A first parallel Vitest attempt hit the machine's
+thread/process limit; the same checks were rerun sequentially and passed. The
+P5 Core passthrough portion is covered by the completed P4b dispatch slice and
+its 3-Core Vitest/Hurl regression evidence. This slice is independently
+reversible; production Cloudflare, workerd binding and live Rails remain
+unverified.
+
 ### P6 — 回帰、build、docs、最終審査
 
 対象: 20面の必要なunit check/typecheck/test/build、Hurl、利用可能なPlaywright、root

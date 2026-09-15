@@ -68,7 +68,7 @@ describe('standard metadata', () => {
   it('ships the browser assets the documents reference', () => {
     expect(statSync(resolve(unitRoot, 'public/favicon.ico')).size).toBeGreaterThan(0);
     const worker = readFileSync(resolve(unitRoot, 'public/service-worker.js'), 'utf8');
-    expect(worker).toContain("event.request.mode !== 'navigate'");
+    expect(worker).toContain("request.mode !== 'navigate'");
     expect(worker).toContain('fetch(event.request).catch');
     expect(worker).toContain("const OFFLINE_URL = '/offline'");
   });

@@ -3,9 +3,10 @@ import { createFileRoute } from '@tanstack/react-router';
 import { brandTitle } from '../lib/title';
 
 /*
- * The document the service worker caches at install and serves for a
- * navigation that cannot reach the network. It must stay an ordinary route so
- * the service worker has something to cache.
+ * This online route remains ordinary for direct links and the HTTP contract.
+ * The service worker's offline fallback is a fixed response from
+ * `public/service-worker.js`, so the cached document has no request nonce,
+ * preference, authentication or application shell state.
  *
  * Locale-less, like the failure documents: it is fetched once, before anyone
  * knows which language the failed navigation was in, so it speaks the default
