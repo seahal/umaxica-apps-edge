@@ -1,53 +1,100 @@
 /**
- * The first `maxChars` characters of a response body, decoded as UTF-8.
+ * Reads a response body as UTF-8 while enforcing a byte limit.
  *
- * `await response.text()` followed by `.slice()` reads the WHOLE body into
- * memory before discarding all but the prefix, which is the opposite of what the
- * callers need and of what their comments used to claim: a Rails error page of
- * any size was buffered in full just to check whether its first twenty
- * characters say `ProxyError`. This decodes from the stream and stops, then
- * cancels the rest so the connection is not left open.
+ * The reader is attached directly to the response body. A `Response.clone()`
+ * creates a tee, and cancelling only one branch can leave the other branch
+ * pending indefinitely in some runtimes. Callers give this helper a response
+ * whose body they no longer need, so a direct reader keeps ownership explicit.
  *
- * `TextDecoderStream` rather than a byte reader with a `TextDecoder` after it:
- * it makes the stream `ReadableStream<string>`, which is both correctly typed
- * (`Response.body` is `ReadableStream<any>`, so a byte reader hands back
- * unchecked chunks) and correct across a multi-byte character, which a byte
- * count cut at an arbitrary offset is not.
- *
- * Shared by `rails-client.ts` and `core-dispatch.ts` because both classify the
- * same `ProxyError: <code>` body and must bound it the same way. It is the whole
- * of this module on purpose — the two callers are the only consumers, and
- * neither owns the concern more than the other.
- *
- * Pass a response the caller does not need intact, or a `clone()` of one.
+ * The optional signal is the same signal used for the fetch. It remains active
+ * while the body is being read, so receiving headers does not end the request's
+ * timeout window. Cancellation is started without awaiting an upstream
+ * cancellation promise; a broken or slow source must not turn cleanup into a
+ * second hang.
  */
-export async function readBoundedText(response: Response, maxChars: number): Promise<string> {
-  const body = response.body;
+export async function readBoundedText(
+  response: Response,
+  maxBytes: number,
+  signal?: AbortSignal,
+): Promise<string> {
+  if (signal?.aborted) {
+    throw signal.reason ?? new DOMException('The operation was aborted.', 'AbortError');
+  }
+  if (!Number.isInteger(maxBytes) || maxBytes < 0) {
+    throw new RangeError('maxBytes must be a non-negative integer');
+  }
+
+  // workers-types exposes Response.body without a concrete byte type. The
+  // Fetch body contract is bytes, and this assertion is guarded by the null
+  // check before the generic reader is used.
+  const body = response.body as ReadableStream<Uint8Array> | null;
   if (body === null) {
     return '';
   }
 
-  const reader = body.pipeThrough(new TextDecoderStream()).getReader();
-  let text = '';
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  const parts: string[] = [];
+  let bytesRead = 0;
+  let complete = false;
+  let done = false;
+
+  const readChunk = async () => {
+    if (signal === undefined) {
+      return reader.read();
+    }
+    if (signal.aborted) {
+      throw signal.reason ?? new DOMException('The operation was aborted.', 'AbortError');
+    }
+
+    let onAbort: (() => void) | undefined;
+    const aborted = new Promise<never>((_, reject) => {
+      onAbort = () => {
+        reject(signal.reason ?? new DOMException('The operation was aborted.', 'AbortError'));
+      };
+      signal.addEventListener('abort', onAbort, { once: true });
+    });
+
+    try {
+      return await Promise.race([reader.read(), aborted]);
+    } finally {
+      if (onAbort !== undefined) {
+        signal.removeEventListener('abort', onAbort);
+      }
+    }
+  };
 
   try {
-    while (text.length < maxChars) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      text += value;
+    while (!done) {
+      const result = await readChunk();
+      if (result.done) {
+        done = true;
+        complete = true;
+        continue;
+      }
+
+      const { value } = result;
+      bytesRead += value.byteLength;
+      if (bytesRead > maxBytes) {
+        throw new RangeError('response body exceeds byte limit');
+      }
+      parts.push(decoder.decode(value, { stream: true }));
     }
+
+    parts.push(decoder.decode());
+    return parts.join('').trim();
   } finally {
+    if (!complete) {
+      try {
+        void reader.cancel().catch(() => undefined);
+      } catch {
+        // The body may already have failed or been cancelled by its source.
+      }
+    }
     try {
-      await reader.cancel();
+      reader.releaseLock();
     } catch {
-      /*
-       * Cancelling is a courtesy to the connection, not part of the result, so a
-       * cancel that rejects must not turn a completed read into a failure.
-       * Node's `pipeThrough` swallows the upstream rejection already; workerd
-       * makes no such promise, and this is the runtime that matters.
-       */
+      // A read still pending during abort owns the lock until the source settles.
     }
   }
-
-  return text.slice(0, maxChars).trim();
 }

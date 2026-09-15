@@ -12,13 +12,13 @@ import { PRIVATE_RAILS_ORIGIN } from './publishing-cell';
  *
  * Everything the invariant suite pins is here: the credential strip, the
  * relative-path validation, `redirect: 'manual'` (a Rails redirect is an
- * upstream error, never followed), `cache: 'no-store'`, the 5 s timeout, and
+ * upstream error, never followed), `cache: 'no-store'`, the 2 s timeout, and
  * the `ProxyError` → `unreachable` classification.
  *
  * The origin is this cell's `PRIVATE_RAILS_ORIGIN` (`src/lib/publishing-cell.ts`).
  */
 
-const RAILS_FETCH_TIMEOUT_MS = 5000;
+const RAILS_FETCH_TIMEOUT_MS = 2000;
 
 // Stripped from every outbound request, always. Never relay a caller's
 // credentials to Rails — a browser session cookie or an inbound Access token
@@ -37,8 +37,8 @@ export interface RailsFetcher {
 export type RailsClientInit = Pick<RequestInit, 'method' | 'headers' | 'body'>;
 
 export type RailsClientResult =
-  | { kind: 'ok'; status: number; response: Response }
-  | { kind: 'http-error'; status: number; response: Response }
+  | { kind: 'ok'; status: number; response: Response; signal?: AbortSignal }
+  | { kind: 'http-error'; status: number; response: Response; signal?: AbortSignal }
   | { kind: 'timeout' }
   | { kind: 'unreachable'; errorMessage: string }
   | { kind: 'invalid-path'; reason: string };
@@ -58,6 +58,12 @@ function readLocalFlag(name: string): string | undefined {
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function isTimeoutError(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && Reflect.get(error, 'name') === 'TimeoutError'
+  );
 }
 
 function hasControlCharacter(path: string): boolean {
@@ -92,26 +98,40 @@ function validateRelativePath(path: string): string | null {
   return null;
 }
 
-const PROXY_ERROR_MAX_CHARS = 200;
+const PROXY_ERROR_MAX_BYTES = 200;
 
 /**
  * The `ProxyError: <code>` that Workers VPC returns when it cannot reach the
  * private origin, or null for any other response. Only a 500 with a `text/plain`
- * body is inspected, and the body is read from a clone.
+ * body is inspected, and the body is consumed because no caller needs it.
  */
-async function readProxyError(response: Response): Promise<string | null> {
+type ProxyErrorResult =
+  | { kind: 'none' }
+  | { kind: 'proxy-error'; errorMessage: string }
+  | { kind: 'timeout' };
+
+async function readProxyError(response: Response, signal: AbortSignal): Promise<ProxyErrorResult> {
   if (response.status !== 500) {
-    return null;
+    return { kind: 'none' };
   }
   if (!response.headers.get('content-type')?.startsWith('text/plain')) {
-    return null;
+    return { kind: 'none' };
+  }
+  const contentEncoding = response.headers.get('content-encoding');
+  if (contentEncoding !== null && contentEncoding.trim().toLowerCase() !== 'identity') {
+    return { kind: 'none' };
   }
 
   try {
-    const body = await readBoundedText(response.clone(), PROXY_ERROR_MAX_CHARS);
-    return /^ProxyError:\s*\w+/iu.test(body) ? body : null;
-  } catch {
-    return null;
+    const body = await readBoundedText(response, PROXY_ERROR_MAX_BYTES, signal);
+    return /^ProxyError:\s*\w+/iu.test(body)
+      ? { kind: 'proxy-error', errorMessage: body }
+      : { kind: 'none' };
+  } catch (error) {
+    if (isTimeoutError(error) || signal.aborted) {
+      return { kind: 'timeout' };
+    }
+    return { kind: 'none' };
   }
 }
 
@@ -136,6 +156,7 @@ export function createRailsClient(fetcher: RailsFetcher, origin: string): RailsC
         return { kind: 'invalid-path', reason: 'path resolved outside the fixed origin' };
       }
 
+      const signal = AbortSignal.timeout(RAILS_FETCH_TIMEOUT_MS);
       try {
         const response = await fetcher.fetch(url.toString(), {
           ...(init?.method === undefined ? {} : { method: init.method }),
@@ -143,20 +164,23 @@ export function createRailsClient(fetcher: RailsFetcher, origin: string): RailsC
           headers: buildSanitizedHeaders(init),
           redirect: 'manual',
           cache: 'no-store',
-          signal: AbortSignal.timeout(RAILS_FETCH_TIMEOUT_MS),
+          signal,
         });
 
         if (!response.ok) {
-          const proxyError = await readProxyError(response);
-          if (proxyError) {
-            return { kind: 'unreachable', errorMessage: proxyError };
+          const proxyError = await readProxyError(response, signal);
+          if (proxyError.kind === 'timeout') {
+            return { kind: 'timeout' };
           }
-          return { kind: 'http-error', status: response.status, response };
+          if (proxyError.kind === 'proxy-error') {
+            return { kind: 'unreachable', errorMessage: proxyError.errorMessage };
+          }
+          return { kind: 'http-error', status: response.status, response, signal };
         }
 
-        return { kind: 'ok', status: response.status, response };
+        return { kind: 'ok', status: response.status, response, signal };
       } catch (error) {
-        if (error instanceof DOMException && error.name === 'TimeoutError') {
+        if (isTimeoutError(error) || signal.aborted) {
           return { kind: 'timeout' };
         }
         return { kind: 'unreachable', errorMessage: getErrorMessage(error) };

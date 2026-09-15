@@ -21,7 +21,7 @@ import type { RailsClient, RailsClientResult } from './rails-client';
  */
 
 /** A JSON body larger than this is a contract violation, not a slow page. */
-export const RAILS_JSON_MAX_CHARS = 1_048_576;
+export const RAILS_JSON_MAX_BYTES = 1_048_576;
 
 export interface RailsEntry {
   public_id: string;
@@ -172,19 +172,25 @@ function entriesPath(options: FetchEntriesPageOptions): string | null {
 /**
  * The body as JSON, or `invalid` when it is empty, oversized or not JSON. A
  * declared `Content-Length` above the limit is refused before the body is read;
- * an undeclared one is read only up to the limit.
+ * an undeclared one is read only up to the byte limit.
  */
 async function readJson(
   response: Response,
-): Promise<{ kind: 'ok'; value: unknown } | { kind: 'invalid' }> {
+  signal?: AbortSignal,
+): Promise<{ kind: 'ok'; value: unknown } | { kind: 'invalid' } | { kind: 'timeout' }> {
   const declared = Number(response.headers.get('content-length'));
-  if (Number.isFinite(declared) && declared > RAILS_JSON_MAX_CHARS) return { kind: 'invalid' };
+  if (Number.isFinite(declared) && declared > RAILS_JSON_MAX_BYTES) return { kind: 'invalid' };
+  if (!isJsonMediaType(response.headers.get('content-type'))) return { kind: 'invalid' };
+  const contentEncoding = response.headers.get('content-encoding');
+  if (contentEncoding !== null && contentEncoding.trim().toLowerCase() !== 'identity') {
+    return { kind: 'invalid' };
+  }
   try {
-    const text = await readBoundedText(response.clone(), RAILS_JSON_MAX_CHARS + 1);
-    if (text.length > RAILS_JSON_MAX_CHARS) return { kind: 'invalid' };
+    const text = await readBoundedText(response, RAILS_JSON_MAX_BYTES, signal);
     const value: unknown = JSON.parse(text);
     return { kind: 'ok', value };
-  } catch {
+  } catch (error) {
+    if (isTimeoutError(error) || signal?.aborted) return { kind: 'timeout' };
     return { kind: 'invalid' };
   }
 }
@@ -201,7 +207,8 @@ async function map<T>(
     return { kind: 'upstream-error', upstreamStatus: result.status };
   }
 
-  const decoded = await readJson(result.response);
+  const decoded = await readJson(result.response, result.signal);
+  if (decoded.kind === 'timeout') return { kind: 'timeout' };
   if (decoded.kind === 'invalid') {
     return { kind: 'invalid-contract', upstreamStatus: result.status };
   }
@@ -209,6 +216,21 @@ async function map<T>(
   return parsed === null
     ? { kind: 'invalid-contract', upstreamStatus: result.status }
     : { kind: 'ok', value: parsed, upstreamStatus: result.status };
+}
+
+function isJsonMediaType(contentType: string | null): boolean {
+  if (contentType === null) return false;
+  const separator = contentType.indexOf(';');
+  const mediaType = (separator === -1 ? contentType : contentType.slice(0, separator))
+    .trim()
+    .toLowerCase();
+  return mediaType === 'application/json';
+}
+
+function isTimeoutError(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && Reflect.get(error, 'name') === 'TimeoutError'
+  );
 }
 
 export function createRailsEntriesClient(rails: RailsClient): RailsEntriesClient {

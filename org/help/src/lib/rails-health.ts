@@ -1,3 +1,4 @@
+import { readBoundedText } from './bounded-text';
 import type { RailsClient, RailsClientResult } from './rails-client';
 
 /*
@@ -21,7 +22,7 @@ import type { RailsClient, RailsClientResult } from './rails-client';
  */
 const RAILS_HEALTH_API_PATH = '/api/v0/health.json';
 
-const JSON_BODY_MAX_CHARS = 65536;
+const JSON_BODY_MAX_BYTES = 65536;
 
 export type HealthStatus = 'pass' | 'warn' | 'fail';
 
@@ -89,7 +90,7 @@ export async function checkRailsHealth(client: RailsClient | null): Promise<Rail
 
 async function interpretHealthResult(result: RailsClientResult): Promise<RailsHealthReport> {
   if (result.kind === 'ok' || result.kind === 'http-error') {
-    return interpretHttpHealth(result.status, result.response);
+    return interpretHttpHealth(result.status, result.response, result.signal);
   }
   return { kind: 'unreachable' };
 }
@@ -97,6 +98,7 @@ async function interpretHealthResult(result: RailsClientResult): Promise<RailsHe
 async function interpretHttpHealth(
   httpStatus: number,
   response: Response,
+  signal?: AbortSignal,
 ): Promise<RailsHealthReport> {
   if (httpStatus >= 300 && httpStatus < 400) {
     return { kind: 'invalid-contract', status: httpStatus };
@@ -109,22 +111,29 @@ async function interpretHttpHealth(
   if (!isJsonMediaType(response.headers.get('content-type'))) {
     return { kind: 'invalid-contract', status: httpStatus };
   }
+  const contentEncoding = response.headers.get('content-encoding');
+  if (contentEncoding !== null && contentEncoding.trim().toLowerCase() !== 'identity') {
+    return { kind: 'invalid-contract', status: httpStatus };
+  }
 
-  return interpretJsonHealth(httpStatus, response);
+  return interpretJsonHealth(httpStatus, response, signal);
 }
 
 async function interpretJsonHealth(
   httpStatus: number,
   response: Response,
+  signal?: AbortSignal,
 ): Promise<RailsHealthReport> {
-  let text: string;
-  try {
-    text = await response.text();
-  } catch {
+  const declared = Number(response.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > JSON_BODY_MAX_BYTES) {
     return { kind: 'invalid-contract', status: httpStatus };
   }
 
-  if (text.length > JSON_BODY_MAX_CHARS) {
+  let text: string;
+  try {
+    text = await readBoundedText(response, JSON_BODY_MAX_BYTES, signal);
+  } catch (error) {
+    if (isTimeoutError(error) || signal?.aborted) return { kind: 'unreachable' };
     return { kind: 'invalid-contract', status: httpStatus };
   }
 
@@ -222,4 +231,10 @@ function isJsonMediaType(contentType: string | null): boolean {
     .trim()
     .toLowerCase();
   return mediaType === 'application/json';
+}
+
+function isTimeoutError(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && Reflect.get(error, 'name') === 'TimeoutError'
+  );
 }

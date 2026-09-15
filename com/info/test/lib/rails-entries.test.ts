@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { RailsClient, RailsClientResult } from '../../src/lib/rails-client';
-import { RAILS_JSON_MAX_CHARS, createRailsEntriesClient } from '../../src/lib/rails-entries';
+import { RAILS_JSON_MAX_BYTES, createRailsEntriesClient } from '../../src/lib/rails-entries';
 
 const entry = {
   public_id: 'entry-1',
@@ -138,6 +138,30 @@ describe('Rails entries client', () => {
     });
   });
 
+  it('requires JSON media type and identity content encoding', async () => {
+    const wrongMediaType = client({
+      kind: 'ok',
+      status: 200,
+      response: new Response(JSON.stringify(entry), {
+        headers: { 'content-type': 'text/plain' },
+      }),
+    });
+    await expect(
+      wrongMediaType.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({ kind: 'invalid-contract' });
+
+    const encoded = client({
+      kind: 'ok',
+      status: 200,
+      response: new Response(JSON.stringify(entry), {
+        headers: { 'content-type': 'application/json', 'content-encoding': 'gzip' },
+      }),
+    });
+    await expect(
+      encoded.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({ kind: 'invalid-contract' });
+  });
+
   it('rejects a cursor-era collection envelope', async () => {
     const { entries, fetch } = client({
       kind: 'ok',
@@ -180,7 +204,7 @@ describe('Rails entries client', () => {
       response: new Response('{}', {
         headers: {
           'content-type': 'application/json',
-          'content-length': String(RAILS_JSON_MAX_CHARS + 1),
+          'content-length': String(RAILS_JSON_MAX_BYTES + 1),
         },
       }),
     });
@@ -202,13 +226,36 @@ describe('Rails entries client', () => {
     const streamedTooLarge = client({
       kind: 'ok',
       status: 200,
-      response: new Response('x'.repeat(RAILS_JSON_MAX_CHARS + 1), {
+      response: new Response('x'.repeat(RAILS_JSON_MAX_BYTES + 1), {
         headers: { 'content-type': 'application/json' },
       }),
     });
     await expect(
       streamedTooLarge.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
     ).resolves.toMatchObject({ kind: 'invalid-contract' });
+  });
+
+  it('maps a timeout during body reading after headers to timeout', async () => {
+    const controller = new AbortController();
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        pull() {
+          return new Promise<void>(() => {
+            // Keep the body pending until the request signal aborts it.
+          });
+        },
+      }),
+      { headers: { 'content-type': 'application/json' } },
+    );
+    const { entries } = client({ kind: 'ok', status: 200, response, signal: controller.signal });
+    const resultPromise = entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' });
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    controller.abort(new DOMException('timed out', 'TimeoutError'));
+
+    await expect(resultPromise).resolves.toEqual({ kind: 'timeout' });
   });
 
   it('maps an invalid-path client result to upstream-error without its reason', async () => {

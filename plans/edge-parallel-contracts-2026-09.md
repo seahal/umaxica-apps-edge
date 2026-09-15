@@ -227,6 +227,29 @@ requestテストから再開する。
 
 想定commit: `feat: enforce bounded Rails client contracts`
 
+**P4a — public content client boundary completed.** The twelve public cells now
+use a direct UTF-8 byte reader for Rails response bodies. The fixed external
+request signal is 2,000 ms and is carried from the client into Entries and
+Health body reads, so headers arriving before a stalled body do not end the
+timeout window. Entries require the existing JSON shape, an
+`application/json` media type, identity content encoding, and a 1,048,576-byte
+body. Health keeps its existing 65,536-byte JSON contract and reports a body
+timeout as unreachable. The existing fixed origin, credential stripping,
+manual redirects, VPC-only public transport, and status mapping remain in
+place; no Internet fallback or Rails change was introduced.
+
+The TDD red state was four failures in the new byte/signal tests against the
+character reader. The green state is the complete public suite for each cell:
+27 test files and 290 tests passed, plus the focused client/reader suites of
+five files and 93 tests per cell. A body timeout after headers was injected
+through the client result signal; an actual delayed-header timeout was tested
+with the fixed 2,000 ms signal. The twelve shared-file copies were checked for
+identity. Unit-wide lint/typecheck still encounter generated `.astro` lint
+diagnostics and an existing `test/uncovered-components.test.tsx` type error;
+the changed files pass targeted Oxfmt and Oxlint checks. This slice is approved
+and independently reversible, but Core client/dispatch and the 1 MiB
+production HTTP evidence remain separate P4/P5 work.
+
 ### P5 — TanStack offlineとCore透過中継
 
 対象: 15 frameのSW、3 CoreのRails-owned path tests。Hono offline撤去とは別に扱う。

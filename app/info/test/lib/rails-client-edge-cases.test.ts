@@ -31,6 +31,36 @@ describe('Rails client edge cases', () => {
     await expect(client.fetch('/health')).resolves.toEqual({ kind: 'timeout' });
   });
 
+  it('aborts a request that has not produced headers after 2000 ms', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetch = vi.fn(
+        (_input: string, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            const signal = init?.signal;
+            if (signal === undefined || signal === null) {
+              reject(new Error('missing timeout signal'));
+              return;
+            }
+            signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+          }),
+      );
+      const client = createRailsClient({ fetch }, 'http://core.example.localhost:3000');
+      const resultPromise = client.fetch('/health');
+      const signal = fetch.mock.calls[0]?.[1]?.signal;
+
+      expect(signal).toBeInstanceOf(AbortSignal);
+      if (!(signal instanceof AbortSignal)) return;
+      await vi.advanceTimersByTimeAsync(1999);
+      expect(signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+
+      await expect(resultPromise).resolves.toEqual({ kind: 'timeout' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('reports non-Error transport failures without losing their message', async () => {
     const client = createRailsClient(
       { fetch: vi.fn(() => Promise.reject('socket unavailable')) },
