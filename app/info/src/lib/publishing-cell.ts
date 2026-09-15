@@ -23,12 +23,14 @@ export const PUBLISHING_AUDIENCE: PublishingAudience = 'app';
 export const BRAND_TITLE = 'UMAXICA (APP)';
 
 /**
- * This unit's public origin per region. Region is a build-time input
- * (`PUBLIC_REGION`), never a path segment; `src/lib/canonical.ts` picks one.
+ * This unit has one global public origin. The two keys keep the shared
+ * canonical and host-policy shape used by the regional cells, but both resolve
+ * to the same `info.umaxica.<brand>` host; no request or build value selects a
+ * region for info.
  */
 export const CANONICAL_ORIGINS = {
-  jp: 'https://info-jp.umaxica.app',
-  us: 'https://info-us.umaxica.app',
+  jp: 'https://info.umaxica.app',
+  us: 'https://info.umaxica.app',
 } as const;
 
 /*

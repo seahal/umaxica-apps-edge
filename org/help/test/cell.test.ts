@@ -33,10 +33,17 @@ describe('this unit’s publishing cell', () => {
 
   it('derives every cell-owned value from that one cell', () => {
     expect(BRAND_TITLE).toBe(`UMAXICA (${PUBLISHING_AUDIENCE.toUpperCase()})`);
-    expect(CANONICAL_ORIGINS).toEqual({
-      jp: `https://${PUBLISHING_SURFACE}-jp.umaxica.${PUBLISHING_AUDIENCE}`,
-      us: `https://${PUBLISHING_SURFACE}-us.umaxica.${PUBLISHING_AUDIENCE}`,
-    });
+    const expectedCanonicalOrigins =
+      PUBLISHING_SURFACE === 'info'
+        ? {
+            jp: `https://info.umaxica.${PUBLISHING_AUDIENCE}`,
+            us: `https://info.umaxica.${PUBLISHING_AUDIENCE}`,
+          }
+        : {
+            jp: `https://${PUBLISHING_SURFACE}-jp.umaxica.${PUBLISHING_AUDIENCE}`,
+            us: `https://${PUBLISHING_SURFACE}-us.umaxica.${PUBLISHING_AUDIENCE}`,
+          };
+    expect(CANONICAL_ORIGINS).toEqual(expectedCanonicalOrigins);
     expect(PRIVATE_RAILS_ORIGIN).toBe(
       `http://${PUBLISHING_SURFACE}.${PUBLISHING_AUDIENCE}.localhost:3000`,
     );

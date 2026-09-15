@@ -60,7 +60,10 @@ describe('twelve-cell publishing matrix', () => {
       };
       const deps = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
       expect(deps, unit).toContain('@tanstack/react-start');
-      expect(deps.filter((name) => name.includes('astro')), unit).toEqual([]);
+      expect(
+        deps.filter((name) => name.includes('astro')),
+        unit,
+      ).toEqual([]);
     }
   });
 
@@ -69,9 +72,16 @@ describe('twelve-cell publishing matrix', () => {
     expect(cell).toContain(`PUBLISHING_SURFACE: PublishingSurface = '${surface}';`);
     expect(cell).toContain(`PUBLISHING_AUDIENCE: PublishingAudience = '${audience}';`);
     expect(cell).toContain(`BRAND_TITLE = 'UMAXICA (${audience.toUpperCase()})';`);
-    expect(cell).toContain(`jp: 'https://${surface}-jp.umaxica.${audience}'`);
-    expect(cell).toContain(`us: 'https://${surface}-us.umaxica.${audience}'`);
-    expect(cell).toContain(`PRIVATE_RAILS_ORIGIN = 'http://${surface}.${audience}.localhost:3000';`);
+    if (surface === 'info') {
+      expect(cell).toContain(`jp: 'https://info.umaxica.${audience}'`);
+      expect(cell).toContain(`us: 'https://info.umaxica.${audience}'`);
+    } else {
+      expect(cell).toContain(`jp: 'https://${surface}-jp.umaxica.${audience}'`);
+      expect(cell).toContain(`us: 'https://${surface}-us.umaxica.${audience}'`);
+    }
+    expect(cell).toContain(
+      `PRIVATE_RAILS_ORIGIN = 'http://${surface}.${audience}.localhost:3000';`,
+    );
   });
 
   it('keeps every other shared file byte-identical across the twelve', () => {
@@ -98,15 +108,20 @@ describe('twelve-cell publishing matrix', () => {
     }
   });
 
-  it.each(CELLS)('$unit keeps the browser-facing staff origin separate from the VPC hop', ({ unit }) => {
-    const wrangler = read(`${unit}/wrangler.jsonc`);
-    const origins = [...wrangler.matchAll(/"RAILS_STAFF_BASE_ORIGIN": "([^"]+)"/gu)].map((m) => m[1]);
-    expect(origins.length).toBeGreaterThan(0);
-    for (const origin of origins) {
-      expect(origin).toMatch(/^https:\/\//u);
-      expect(origin).not.toMatch(/\.localhost/u);
-    }
-  });
+  it.each(CELLS)(
+    '$unit keeps the browser-facing staff origin separate from the VPC hop',
+    ({ unit }) => {
+      const wrangler = read(`${unit}/wrangler.jsonc`);
+      const origins = [...wrangler.matchAll(/"RAILS_STAFF_BASE_ORIGIN": "([^"]+)"/gu)].map(
+        (m) => m[1],
+      );
+      expect(origins.length).toBeGreaterThan(0);
+      for (const origin of origins) {
+        expect(origin).toMatch(/^https:\/\//u);
+        expect(origin).not.toMatch(/\.localhost/u);
+      }
+    },
+  );
 });
 
 describe('Publishing contract, asserted on the one shared implementation', () => {

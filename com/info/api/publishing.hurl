@@ -22,9 +22,9 @@ HTTP 200
 header "content-type" matches /^text\/html/
 header "cache-control" not exists
 xpath "string(//html/@lang)" == "ja"
-xpath "string(//link[@rel='canonical']/@href)" == "https://info-jp.umaxica.com/ja/"
-xpath "string(//link[@rel='alternate'][@hreflang='en']/@href)" == "https://info-jp.umaxica.com/en/"
-xpath "string(//link[@rel='alternate'][@hreflang='x-default']/@href)" == "https://info-jp.umaxica.com/ja/"
+xpath "string(//link[@rel='canonical']/@href)" == "https://info.umaxica.com/ja/"
+xpath "string(//link[@rel='alternate'][@hreflang='en']/@href)" == "https://info.umaxica.com/en/"
+xpath "string(//link[@rel='alternate'][@hreflang='x-default']/@href)" == "https://info.umaxica.com/ja/"
 xpath "count(//header//nav//a[@href='/ja/'])" == 1
 xpath "count(//header//nav//a[@href='/ja/entries/'])" == 1
 xpath "count(//header//nav//a[@href='/ja/search/'])" == 1
@@ -33,7 +33,7 @@ GET {{base}}/en/
 HTTP 200
 [Asserts]
 xpath "string(//html/@lang)" == "en"
-xpath "string(//link[@rel='canonical']/@href)" == "https://info-jp.umaxica.com/en/"
+xpath "string(//link[@rel='canonical']/@href)" == "https://info.umaxica.com/en/"
 xpath "count(//header//nav//a[@href='/en/search/'])" == 1
 xpath "count(//a[@href='/ja/entries/'])" == 0
 
@@ -122,7 +122,7 @@ xpath "string(//html/@lang)" == "ja"
 xpath "count(//search/form[@method='get'][@action='/ja/search/'])" == 1
 xpath "count(//form//input[@name='q'][@id='search-query'])" == 1
 xpath "count(//label[@for='search-query'])" == 1
-xpath "string(//link[@rel='canonical']/@href)" == "https://info-jp.umaxica.com/ja/search/"
+xpath "string(//link[@rel='canonical']/@href)" == "https://info.umaxica.com/ja/search/"
 xpath "count(//meta[@name='robots'])" == 0
 
 # Results stay in this cell and this locale, and link by public_id.

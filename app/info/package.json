@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "EDGE_LOCAL_NODE_RUNTIME=1 CLOUDFLARE_ENV=local PUBLIC_REGION=jp vite dev --port 5403 --host",
-    "dev:vpc": "CLOUDFLARE_ENV=vpc PUBLIC_REGION=jp vite dev --port 5403 --host",
-    "build": "CLOUDFLARE_ENV= PUBLIC_REGION=jp vite build",
+    "dev": "EDGE_LOCAL_NODE_RUNTIME=1 CLOUDFLARE_ENV=local vite dev --port 5403 --host",
+    "dev:vpc": "CLOUDFLARE_ENV=vpc vite dev --port 5403 --host",
+    "build": "CLOUDFLARE_ENV= vite build",
     "preview": "pnpm run build && CLOUDFLARE_ENV= vite preview --port 5403",
     "deploy": "pnpm run build && CLOUDFLARE_ENV= wrangler deploy",
     "deploy:upload": "pnpm run build && CLOUDFLARE_ENV= wrangler versions upload",

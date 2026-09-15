@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CANONICAL_ORIGINS } from '../src/lib/publishing-cell';
+import { CANONICAL_ORIGINS, PUBLISHING_SURFACE } from '../src/lib/publishing-cell';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -8,19 +8,22 @@ afterEach(() => {
 });
 
 describe('canonical region', () => {
-  it('selects the US origin only for an explicit us build value', async () => {
+  it('keeps global cells on one origin and selects the US origin for regional cells', async () => {
     vi.stubEnv('PUBLIC_REGION', 'us');
     vi.resetModules();
-    await expect(import('../src/lib/canonical')).resolves.toHaveProperty(
-      'CANONICAL_ORIGIN',
-      CANONICAL_ORIGINS.us,
-    );
+    const us = await import('../src/lib/canonical');
 
     vi.stubEnv('PUBLIC_REGION', 'other');
     vi.resetModules();
-    await expect(import('../src/lib/canonical')).resolves.toHaveProperty(
-      'CANONICAL_ORIGIN',
-      CANONICAL_ORIGINS.jp,
-    );
+    const fallback = await import('../src/lib/canonical');
+
+    if (PUBLISHING_SURFACE === 'info') {
+      expect(us.CANONICAL_ORIGIN).toBe(CANONICAL_ORIGINS.jp);
+      expect(fallback.CANONICAL_ORIGIN).toBe(CANONICAL_ORIGINS.jp);
+      return;
+    }
+
+    expect(us.CANONICAL_ORIGIN).toBe(CANONICAL_ORIGINS.us);
+    expect(fallback.CANONICAL_ORIGIN).toBe(CANONICAL_ORIGINS.jp);
   });
 });

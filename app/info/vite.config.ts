@@ -75,15 +75,7 @@ function forwardLocalRailsFlags(config: { vars?: Record<string, unknown> }): voi
  */
 const wantsRemoteBindings = process.env['CLOUDFLARE_ENV'] === 'vpc';
 
-/*
- * Region (jp/us) is a build-time input, never a path segment. It selects the
- * canonical origin in `src/lib/canonical.ts`, and it is replaced with a literal
- * here so one build serves one region. Anything but `us` is `jp`.
- */
-const publicRegion = process.env['PUBLIC_REGION'] === 'us' ? 'us' : 'jp';
-
 export default defineConfig(({ command }) => ({
-  define: { 'import.meta.env.PUBLIC_REGION': JSON.stringify(publicRegion) },
   // The Cloudflare Tunnel forwards the browser's Host unchanged, so `vite dev`
   // sees the public hostname and refuses it: Vite allowlists Hosts to block DNS
   // rebinding. Only this unit's own tunnel hostnames are listed — never `true`.
