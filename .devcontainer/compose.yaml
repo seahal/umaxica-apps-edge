@@ -101,8 +101,9 @@ services:
     userns_mode: keep-id:uid=1000,gid=1000
     security_opt:
       - no-new-privileges:true
+      - label=disable
       - seccomp=unconfined
-      - "unmask=/proc/*"
+      - 'unmask=/proc/*'
     environment:
       CLOUDFLARE_ENV: development
       # gh CLI の API 認証。トークン本体はこのファイルに書かず、ホスト側の

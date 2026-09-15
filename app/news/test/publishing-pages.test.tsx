@@ -214,6 +214,15 @@ describe('/{lang}/entries/{public_id}/', () => {
     expect(html).not.toContain('/welcome');
   });
 
+  it('uses the title as a missing summary and leaves structured bodies uninterpreted', async () => {
+    rails(Response.json(entry({ summary: null, body: { blocks: [{ type: 'callout' }] } })));
+    const html = await renderDocument('/ja/entries/01ABC/');
+
+    expect(html).toContain('<meta name="description" content="ようこそ"');
+    expect(html).toContain(UI.ja.entryBodyStructured);
+    expect(html).not.toContain('ENTRY-BODY-MARKER');
+  });
+
   it('forwards the English locale to Rails', async () => {
     const fetch = rails(Response.json(entry({ locale: 'en', title: 'Welcome' })));
     const html = await renderDocument('/en/entries/01ABC/');
@@ -284,10 +293,10 @@ describe('/{lang}/search/', () => {
   });
 
   it('says so when nothing matches, and escapes the query', async () => {
-    const html = await renderDocument('/en/search/?q=%3Cscript%3Ezzzz');
+    const html = await renderDocument('/en/search/?q=%3C_script%3E_probe');
     expect(html).toContain(
-      UI.en.searchNoResults('<script>zzzz').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
+      UI.en.searchNoResults('<_script>_probe').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
     );
-    expect(html).not.toContain('<script>zzzz');
+    expect(html).not.toContain('<_script>_probe');
   });
 });

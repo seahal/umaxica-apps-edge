@@ -209,6 +209,17 @@ describe('rails health api consumer', () => {
     expect(report.kind).toBe('invalid-contract');
   });
 
+  it('reports invalid-contract when checks is an array', async () => {
+    const report = await checkRailsHealth(
+      makeClient({
+        kind: 'ok',
+        status: 200,
+        response: jsonResponse(200, { ...PASS_DOCUMENT, checks: [] }),
+      }),
+    );
+    expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
+  });
+
   it.each([
     ['missing', undefined],
     ['without a timezone', '2026-09-05T09:33:29'],
@@ -358,11 +369,29 @@ describe('rails health api consumer', () => {
         status: 200,
         response: jsonResponse(200, {
           status: 'pass',
+          timestamp: PASS_DOCUMENT.timestamp,
           checks: {
             startup: { status: 'pass' },
             liveness: { status: 'pass' },
             readiness: { status: 'degraded' },
           },
+        }),
+      }),
+    );
+    expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
+  });
+
+  it.each([
+    ['null', null],
+    ['an array', []],
+  ])('reports invalid-contract when readiness is %s', async (_label, readiness) => {
+    const report = await checkRailsHealth(
+      makeClient({
+        kind: 'ok',
+        status: 200,
+        response: jsonResponse(200, {
+          ...PASS_DOCUMENT,
+          checks: { ...PASS_DOCUMENT.checks, readiness },
         }),
       }),
     );

@@ -293,10 +293,10 @@ describe('/{lang}/search/', () => {
   });
 
   it('says so when nothing matches, and escapes the query', async () => {
-    const html = await renderDocument('/en/search/?q=%3Cscript%3Ezzzz');
+    const html = await renderDocument('/en/search/?q=%3C_script%3E_probe');
     expect(html).toContain(
-      UI.en.searchNoResults('<script>zzzz').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
+      UI.en.searchNoResults('<_script>_probe').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
     );
-    expect(html).not.toContain('<script>zzzz');
+    expect(html).not.toContain('<_script>_probe');
   });
 });

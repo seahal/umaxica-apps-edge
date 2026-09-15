@@ -182,4 +182,11 @@ describe('readEntry', () => {
       status: 500,
     });
   });
+
+  it('fails closed when the staff origin is absent for an Entry edit link', async () => {
+    const { env } = envWith(Response.json(entry()));
+    delete env.RAILS_STAFF_BASE_ORIGIN;
+
+    await expect(readEntry('ja', '01ABC', env)).resolves.toEqual({ kind: 'error', status: 500 });
+  });
 });
