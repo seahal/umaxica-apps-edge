@@ -96,6 +96,17 @@ approved, so this route/SEO integration remains P3b NO-GO. No Accept-Language
 fallback change, JWT decode, authentication stub or anonymous dashboard route is
 added in the meantime.
 
+The independent Paraglide boundary is implemented in all fifteen TanStack
+units. Each unit owns its `project.inlang`, message catalog and generated
+output configuration, using only the `custom-edge-locale` and `baseLocale`
+strategies. The public twelve retain their existing path locale adapter and
+public URL/SEO contract. Core validates `lx` or the Rails `language` Cookie
+before stripping the incoming Cookie and passes only a request-local internal
+display-locale header to server-side Paraglide middleware. The client reads
+the validated HTML `lang`; locale switching does not persist to Cookie, JWT,
+DB, localStorage or URL. This generated/request-isolated boundary does not
+approve the deferred public `lx` URL integration.
+
 The three `info` public cells are global-host cells. Their existing Vite
 allowlists and the recorded tunnel table use `info.umaxica.{app,com,org}` with
 no region label. The `info` cell-owned canonical origin is therefore the same
@@ -145,9 +156,8 @@ headers, cookies, authorization, body or exception text.
 The following remain outside this accepted parallel slice:
 
 - Core JWT/JWKS, OIDC, session, refresh, revocation, AAL and final authorization;
-- TanStack public locale URL migration, Paraglide request isolation wiring,
-  invalid-`lx` URL normalization, region links and authentication-dependent
-  dashboard routes;
+- TanStack public locale URL migration, invalid-`lx` URL normalization, region
+  links and authentication-dependent dashboard routes;
 - canonical, hreflang, sitemap and any query-based SEO policy;
 - production binding presence, real workerd/VPC behavior, live Rails response
   schemas, request-ID adoption by Rails, and production deployment;
@@ -169,9 +179,15 @@ Implemented Edge-only slices are recorded by commits `4929730c`, `5bc6538c`,
 `f8fadf08`, `0f83b4d6` and `86404e2e`, with their per-stage tests and evidence
 in `evidence/`. The fixed Rails Preference contract is now audited, and the
 info global-host correction is implemented in `84d6f22f` with its own evidence.
+The Paraglide catalog and request-isolation boundary is implemented in
+`197b5e8b`, with its own evidence.
 The public locale URL/SEO integration remains explicitly P3b NO-GO. P6's
 combined verification is recorded in
 `evidence/2026-09-15-edge-final-verification.md`. This ADR is the current
 summary of the transport, timeout, body, Cookie, entry, logging and offline
-boundaries for the parallel work. The type-only follow-up is `d9c32ce2`, and
-the documentation/evidence closure is `bd3d3ec5`.
+boundaries for the parallel work. The type-only follow-up is `d9c32ce2`; the
+earlier documentation/evidence commits are `bd3d3ec5`, `f41b9634`,
+`3fc469fd` and `46c778d4`. The final P3d verification and current remaining
+holds are recorded in
+`evidence/2026-09-15-paraglide-locale-boundary.md` and
+`evidence/2026-09-15-edge-final-verification.md`.

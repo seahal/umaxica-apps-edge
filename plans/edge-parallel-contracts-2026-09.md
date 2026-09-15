@@ -35,7 +35,10 @@ P0のbaseline以降、次の工程commitがローカルに積まれている。
 `48712246`（計画）、`4929730c`、`5bc6538c`、`eca6a58b`、`963377c3`、
 `f92e2c8e`、`8fc13a12`、`9b78df1e`、`88a2f907`、`f8fadf08`、
 `0f83b4d6`、`86404e2e`、`d9c32ce2`、`bd3d3ec5`、`f41b9634`、
-`3fc469fd`、`46c778d4`、`84d6f22f`。
+`3fc469fd`、`46c778d4`、`84d6f22f`、`197b5e8b`。
+
+P3dのParaglide生成境界とCoreのrequest-local locale接続まで、公開URL/SEO契約から
+切り離せる範囲を追加実装した。P3bの公開`lx` URL接続は引き続き保留である。
 
 引継ぎ時に `pnpm-workspace.yaml`、`pnpm-lock.yaml`、12 public unit の
 `wrangler.jsonc`、および root の一部文書に、所有者を確認できない未commit差分が
@@ -144,6 +147,7 @@ root configへの置換は行わない。
 - 12面public clientと3面Core clientの2秒制限、byte本文上限、schema/HTTP写像の境界。
 - Core Rails-owned透過中継の2秒制限、504/503区別、所有権・header・Cookie・bodyの回帰。
 - TanStack offlineのpath除外と個人化response非cacheの回帰。
+- TanStack 15面のParaglide生成カタログ、request isolation、Cookie保存なしのlocale境界。
 - 現行ADR/docsとの整合記録、実行した検証のevidence。
 
 ### 今回やらないこと
@@ -155,8 +159,9 @@ DB/migration・認証設定、deadline propagation、CORS許可、retry/circuit 
 
 ### Rails完成待ちまたは実環境待ち
 
-- Rails Preferenceの参照契約は指定SHAで確認済み。TanStackの`lx` routing、SSR/CSR初期locale、
-  request isolationへの接続は、現行のpath localeと未承認のquery canonical方針が衝突するため保留。
+- Rails Preferenceの参照契約は指定SHAで確認済み。TanStackの公開`lx` routing、公開SSR/CSR初期locale、
+  invalid `lx` URL正規化への接続は、現行のpath localeと未承認のquery canonical方針が衝突するため保留。
+  Core 3面のrequest-local locale境界と、15面の生成カタログ自体はP3dでRails不要の範囲を実装した。
 - Rails-owned URLの残存routeとauth/base linkの最終照合。
 - production VPC/Bindingの存在、実RailsのContent-Type/schema/status、Railsがrequest IDを
   採用するか、実ネットワークのtimeout/途中切断。
@@ -283,8 +288,8 @@ unit-wide lintは既存生成`.astro`型宣言の診断で停止した。Hostの
 なり、現在の`/ja/` canonicalと矛盾する。
 
 query付きcanonicalを採用する明確な承認はまだない。path URLからquery URLへの移行、旧URLの
-redirect、相互hreflang、sitemap、Paraglide導入とrequest isolation、無効`lx`の有限な同一origin
-正規化は一つの公開URL/SEO工程として審査するまで変更しない。認証依存のdashboard接続と
+redirect、相互hreflang、sitemap、公開画面への`lx`接続、無効`lx`の有限な同一origin正規化は
+一つの公開URL/SEO工程として審査するまで変更しない。認証依存のdashboard接続と
 region linkも同じく保留し、現在の認証ガードを弱めない。
 
 判定: **P3aはGO（契約確認のみ）、P3bはNO-GO（公開URL・SEO契約未承認）**。P3全体を完了扱い
@@ -310,6 +315,36 @@ invariant、各infoのHurl metadata、変更pathのformat/lintがgreenになる�
 
 実装と検証は `84d6f22f` で完了した。結果は
 `evidence/2026-09-15-info-global-host.md` に記録する。
+
+#### P3d — Paraglide生成境界とrequest isolation（完了、P3bとは分離）
+
+Railsの指定SHAで確認した`ja`/`en`、`language` Cookie、`lx`の正規化を根拠に、公開URLの
+採否を決めずにTanStackの翻訳実装境界だけを進める。15面それぞれに`project.inlang`、
+`messages/{ja,en}.json`、Paraglide Vite plugin、ローカルの生成出力設定を置き、unit固有の
+単独build/test境界を維持する。strategyは`custom-edge-locale`と`baseLocale`だけとし、
+Cookie、Accept-Language、navigator、localStorage、path prefixをParaglideのfallbackや
+永続化へ使わない。
+
+12 public面は既存の`/{lang}/...` route、canonical、hreflang、sitemapを維持したまま、既存の
+URL locale adapterから生成メッセージを参照する。公開`lx`をroute表示へ接続する変更はP3bの
+審査対象なので行わない。公開面の表示locale resolverと境界テストは、Rails契約の値を固定する
+純粋処理として実装し、公開URL移行の判断とは分離する。
+
+3 Core面は、Worker入口で`lx`またはRails発行の`language` Cookieを検証してからCookieを
+TanStackへ渡さず、request-localな内部locale headerへ変換する。偽造された同名内部headerは
+上書きし、server-side Paraglide middlewareのrequest isolationと、HTMLの`lang`を基準にした
+client strategyを使う。`setLocale()`はCookie、JWT、DB、localStorage、URLを書き換えない。
+認証Cookie、JWT decode、dashboard認証はこの工程に含めない。
+
+TDDでは旧辞書前提のroot title invariantが6件FAILになったため、生成catalog/page title契約を
+検査する最小更新を行いgreenへ戻した。15面のunit test、変更pathのformat/lint、Paraglide
+invariant、Coreの同時`ja`/`en` request isolationを確認した。P3dの受入は「生成catalogが各unitで
+再現可能」「Coreのlocaleがrequest-local」「Cookie保存なし」「公開URL/SEO未変更」である。
+
+判定: **GO（Paraglide生成境界とCore request isolationの独立slice）**。`197b5e8b`で実装・
+テスト・commitを完了した。P3bの公開`lx` URL/SEO接続、invalid `lx` URL正規化、region link、
+認証依存shellはNO-GOのまま残す。詳細は
+`evidence/2026-09-15-paraglide-locale-boundary.md`に記録する。
 
 ### P4 — API clientと通信上限
 
@@ -424,35 +459,40 @@ architecture/dependency/evidence/invariant、ADR/docsと未解決課題。
 `pnpm run test:api`、CSP/SW/hydrationはChromiumが利用可能な場合に`pnpm run test:e2e`を実行。
 実行不能、既存失敗、Rails未接続はPASSにしない。production相当buildとVite devを混同しない。
 
-想定commit: `docs: record Edge verification and remaining holds`
+想定commit: `docs: record final Edge verification and remaining holds`
 
-**実施結果（2026-09-15）**。20 unitのproduction相当build、専用portのHurl、
-sequential Playwright、unit test、worker manifest/generated checksを実行した。
+**実施結果（2026-09-15、P3d後）**。20 unitのproduction相当build、各unitの専用port Hurl、
+sequential Playwright、unit test、worker manifest/generated checks、root invariantを実行した。
 最終結果と既存環境要因によるFAILは
 `evidence/2026-09-15-edge-final-verification.md`に集約する。
 
-- `pnpm run build`: 20 unitすべてPASS。Wranglerがsandbox内のログpathへ書けない警告は
-  あったが、build artifactは生成され、deployは行っていない。
-- `pnpm run test:api`: 20 unitすべてPASS。各runnerは専用local serverを自身で起動・停止し、
-  Railsやproduction endpointには接続していない。
-- `pnpm -r --workspace-concurrency=1 run test:e2e`: 20 unitすべてPASS。初回並列実行の
-  `org/news`一件のtimeoutとmachine process制限は、同unitの再実行とsequential実行で解消を確認した。
-- `pnpm run check:workers`、`check:architecture`、`check:deps`、`knip`、`check:generated`、
-  変更pathのOxfmt/Oxlint/type-aware Oxlint: PASS。
-- `pnpm run test`: 20 unit fan-outはPASS。root invariantは623 passed / 1 skipped / 1 failedで、
-  `test/dependency-architecture-invariants.test.ts`のdependency-cruiser spawn `EPERM`がbaselineから継続した。
-- `pnpm run check` / `pnpm run lint`: 既存の無視対象生成`.astro`診断でFAIL。
-  `pnpm run lint:types`: Wrangler `listen EPERM`でFAIL。`check:spelling`はbaseline同様16件の
-  fixture/tool markerでFAIL。
-- `pnpm run check:size`: 12 public bundleが約120.65–120.68 kB gzipで、112 kB budgetを超過した。
-  owner-unknownの依存差分を含む現環境で、旧sourceと現sourceの比較buildも同じ超過を再現したため、
-  budgetを変更せず後続課題として保留した。
+- `pnpm -r --workspace-concurrency=1 run build`: 20 unitすべてPASS。Wranglerのsandbox内ログpath
+  警告はあったがartifactは生成され、deployは行っていない。
+- `pnpm -r --workspace-concurrency=1 run test`: 20 unitすべてPASS。apexは各107または88、
+  Coreはapp/com各432・org439、public 12面は各369 tests。
+- `pnpm exec vitest run --dir test`: root invariant 18 files、626 passed / 1 skipped。
+- `pnpm --dir <unit> run test:api`: 20 unitすべてPASS。各runnerは専用local serverだけを起動し、
+  Railsやproduction endpointへ接続していない。
+- `pnpm --dir <unit> run test:e2e`: 20 unitすべてPASS、Chromium 239 cases。sandboxのbind制限を
+  切り分けたうえで、各unitをsequentialに実行した。
+- `pnpm run check:workers`、`check:generated`、`check:architecture`、`check:deps`、`knip`、
+  `check:spelling`: PASS。変更pathのOxfmt/Oxlint/type-aware OxlintとP3dのpre-commit hookもPASS。
+- unitごとのtypecheck: apex 5面とCore 3面はPASS。public 12面は既存の
+  `test/uncovered-components.test.tsx(22,24)`の型エラーでFAILし、Paraglide由来の型エラーはない。
+- `pnpm run check`: 既存の無視対象生成`.astro`のformat診断でapp/docsにて停止。baselineから継続。
+- `pnpm run check:size`: apex 5面は48.46–48.56 kB gzip / 52 kBでPASS。Coreは
+  129.82/129、129.83/129、132.97/129 kBでFAIL、public 12面は122.65–122.69/112 kBでFAIL。
+  publicの変更前比較は約120.66–120.68 kBで既にbudget超過し、Paraglide後の増分を確認した。
+  budget変更や無関係な最適化は行わず、性能後続課題として保留する。
+- `git diff --check`とcommit直前のstaged差分レビュー: PASS。owner-unknownの差分は未stageのまま。
 
-P6の文書整合と最終自己審査は完了した。P3aのRails Preference契約監査は完了し、P3cのinfo
-global host境界も `84d6f22f` で完了した。一方、P3bの公開locale URL接続は現行path canonicalと
-未承認のquery canonicalが衝突するためNO-GOのまま、production binding、実workerd/VPC、live
-Rails、Railsのrequest ID採用、既存browserへのHono SW撤去rollout、SEO方針は保留である。P6は
-実装全体をproduction-readyとする判定ではない。
+P6の文書整合と最終自己審査は完了した。P3aのRails Preference契約監査、P3cのinfo global host
+境界、P3dのParaglide生成/request isolation境界は完了した。一方、P3bの公開locale URL接続は
+現行path canonicalと未承認のquery canonicalが衝突するためNO-GOのまま、JWT/authentication、
+production binding、実workerd/VPC、live Rails、Railsのrequest ID採用、既存browserへのHono SW
+撤去rollout、SEO方針は保留である。size budgetとpublic fixture typecheckも既存またはP3d後に
+確認された後続課題として、今回の完了判定を広げる理由にはしない。P6は実装全体をproduction-ready
+とする判定ではない。
 
 ## TDDと検証の配置
 
@@ -524,13 +564,26 @@ Rails、Railsのrequest ID採用、既存browserへのHono SW撤去rollout、SEO
   Rails接続なしでbyte reader/timer/body/schemaをテストできるためGO。
 - P5は、SW sourceとCore dispatchの純粋なpath境界をlocal fixtureで検証できるためGO。
 - P3aは指定SHAのPreference実装・テスト・ADRを静的に照合できたためGO。P3bは現行path
-  canonicalと未承認のquery canonicalが衝突するためNO-GOとした。Paraglideのrequest isolation、
-  invalid `lx`のURL正規化、locale URL、SEO、認証依存shellは実装しない。
+  canonicalと未承認のquery canonicalが衝突するためNO-GOとした。公開locale URL、invalid `lx`の
+  URL正規化、SEO、認証依存shellは実装しない。後続のP3dでは、この判断に触れないParaglide生成
+  catalogとCore request isolationだけを独立して実装する。
 - P6のproduction build、専用port Hurl、Chromium、実workerd/VPC、Rails統合は、各工程で
   実行可能性を再確認してから判定する。P0のGOはこれらを実施済みという意味ではない。
 
 P0レビュー後の判定は、Rails待ちのP3bを切り離した **P1/P2/P4/P5とP3a/P3cの限定GO** である。
 全20面の最終完成、公開locale URLの移行、production readinessのGOではない。
+
+### P3d 実装後の再審査
+
+- **GO（生成境界とCore request isolation限定）**。固定Rails SHAのlocale/Cookie契約を根拠に、
+  15面のParaglide catalogとunit内plugin設定、Core 3面の検証済みdisplay locale header、
+  server/clientのrequest isolationを実装した。Cookie、JWT、DB、localStorage、Accept-Language、
+  公開path URLを新たな保存/fallbackへ使わないことをテストした。
+- **NO-GO（公開URL/SEO slice）**。既存`/{lang}`とcanonical/hreflang/sitemapを維持しており、
+  `lx`を公開画面へ接続するquery policy、invalid `lx` URL正規化、region link、認証依存dashboard
+  は未承認またはRails/auth契約待ちである。
+- **検証範囲**。15面の生成・unit test、Core同時locale isolation、root invariant、production build、
+  local Hurl/Chromiumを実行した。実Rails、production VPC/binding、Rails認証、公開SEO方針は未確認。
 
 ### P2b-apex 実装後の再審査
 
