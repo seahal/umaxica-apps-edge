@@ -6,6 +6,11 @@ import { requestId } from 'hono/request-id';
 import { timeout } from 'hono/timeout';
 
 import { apexCsrf } from './csrf';
+import {
+  hostRejectedResponse,
+  isAllowedApexHost,
+  isProductionApexEnvironment,
+} from './host-policy';
 import { locales } from './i18n/config';
 import { checkRateLimit } from './rate-limit';
 import { renderer } from './renderer';
@@ -150,6 +155,19 @@ export function createApexApp(configurePageRoutes: ConfigurePageRoutes) {
   app.use('*', varyOnNegotiation);
   app.use(etag());
   app.use(apexStructuredLogger);
+  app.use('*', async (c, next) => {
+    // The URL's hostname is the request target. Proxy forwarding headers are
+    // client-controlled and cannot select a different public unit.
+    const hostname = new URL(c.req.url).hostname;
+    if (
+      !isAllowedApexHost(hostname, {
+        allowLocalhost: !isProductionApexEnvironment(c.env),
+      })
+    ) {
+      return hostRejectedResponse();
+    }
+    return next();
+  });
   app.use(async (c, next) => {
     if (isUnmeteredProbe(c.req.path)) return next();
     const blocked = await checkRateLimit(c.req.raw, bindings(c)?.RATE_LIMITER);

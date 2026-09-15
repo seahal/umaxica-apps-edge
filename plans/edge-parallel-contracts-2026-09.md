@@ -189,6 +189,15 @@ P2は契約衝突を隠さないため、次の独立sliceへ分ける。**P2a**
 Coreの透過中継境界と同じ変更で混ぜると誤判定になるため、P2bの各sliceは現物契約を固定してから
 個別にGO判定する。P2a完了はP2全体や20面完了を意味しない。
 
+**P2b-apex** は5 apexのHost境界だけを先行実装した。現行の各`vite.config.ts`の公開Host、
+`wrangler.jsonc`のWorker名、`workers_dev`/`preview_urls`、`EDGE_ENV`を根拠に、公開Hostと当該
+Workerのworkers.dev previewを許可し、非productionだけlocalhost/loopbackを許可する。判定には
+`new URL(request.url).hostname`だけを使い、`X-Forwarded-Host`を使わない。request ID、security
+headers、構造化ログを有効にした後、rate limiter・CSRF・routeより前に未知Hostを421で止める。
+CSRF origin判定も同じunit内の導出値を参照し、allowlistを二重管理しない。実装と受入結果は
+`evidence/2026-09-15-apex-host-boundary.md`に記録する。Core、12 public frame、TanStackの
+入口はこのcommitの対象外で、各々のHost/transport/region契約を確認してから別GO判定する。
+
 ### P3 — TanStack locale/region/public shell
 
 現状保留。Rails Preference実装とCookie定義を固定SHAから確認できるまで、`lx`規則、Cookie
@@ -306,6 +315,18 @@ architecture/dependency/evidence/invariant、ADR/docsと未解決課題。
 
 P0レビュー後の判定は、Rails待ちのP3を切り離した **P1/P2/P4/P5の限定GO** である。
 全20面の最終完成、Rails契約解消、production readinessのGOではない。
+
+### P2b-apex 実装後の再審査
+
+- **GO（apex Host slice限定）**。5 apexすべてで公開Host、preview、開発localの現物設定を確認し、
+  pure policy、実appの421、limiter前停止、request ID/security headers/最終statusログ、
+  `X-Forwarded-Host`無視をテストできた。Rails、JWT、認証、外向き通信に依存しない。
+- **未着手・別審査**。CoreのRails-owned透過中継、public 12面のregion/VPC client、TanStack 15面の
+  Host/CSRF/body境界は、同じ変更へ混ぜていない。P3のRails Preference不足によるNO-GOも変わらない。
+- **環境上の確認範囲**。unknown Hostを実Vite Hurlで送るとViteの`allowedHosts`がWorkerより前に
+  拒否し得るため、Workerの未知Host境界はVitestの実app driverで確認し、実HTTPでは許可Hostに
+  `X-Forwarded-Host`を付けても選択が変わらないことを確認した。production custom domainや
+  workers.devの実配備、実Cloudflare bindingは未確認である。
 
 ## 復帰・残件・最終報告
 

@@ -91,7 +91,8 @@ describe('apex CSRF config', () => {
  */
 describe('apex CSRF environment gate', () => {
   const postFrom = (origin: string, env?: { EDGE_ENV?: string }) => {
-    const request = new Request('http://org.localhost/about', { method: 'POST' });
+    const requestHost = env?.EDGE_ENV === 'production' ? PRODUCTION_ORIGIN : 'http://org.localhost';
+    const request = new Request(`${requestHost}/about`, { method: 'POST' });
     /*
      * Set on the built request, not passed to the constructor. `Origin` is a
      * forbidden header name — which is the whole reason the value can be
