@@ -34,7 +34,7 @@ P0のbaseline以降、次の工程commitがローカルに積まれている。
 
 `48712246`（計画）、`4929730c`、`5bc6538c`、`eca6a58b`、`963377c3`、
 `f92e2c8e`、`8fc13a12`、`9b78df1e`、`88a2f907`、`f8fadf08`、
-`0f83b4d6`、`86404e2e`。
+`0f83b4d6`、`86404e2e`、`d9c32ce2`、`bd3d3ec5`。
 
 引継ぎ時に `pnpm-workspace.yaml`、`pnpm-lock.yaml`、12 public unit の
 `wrangler.jsonc`、および root の一部文書に、所有者を確認できない未commit差分が

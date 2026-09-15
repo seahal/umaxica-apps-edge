@@ -152,4 +152,5 @@ P3 locale/authentication stage remains explicitly NO-GO pending the Rails
 reference. P6's combined verification is recorded in
 `evidence/2026-09-15-edge-final-verification.md`. This ADR is the current
 summary of the transport, timeout, body, Cookie, entry, logging and offline
-boundaries for the parallel work.
+boundaries for the parallel work. The type-only follow-up is `d9c32ce2`, and
+the documentation/evidence closure is `bd3d3ec5`.
