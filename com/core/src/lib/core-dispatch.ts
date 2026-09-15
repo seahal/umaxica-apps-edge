@@ -236,9 +236,12 @@ function buildRailsRequest(request: Request, incomingUrl: URL, origin: string): 
  */
 export async function dispatchToRails(
   request: Request,
-  // Not `Pick<CloudflareEnv, …>`: `wrangler types` narrows each var to the
-  // literal one tier declares, and this has to accept every tier's value.
-  env: { RAILS_ORIGIN?: string },
+  // `RAILS_ORIGIN` is intentionally absent from the current wrangler config,
+  // so generated `CloudflareEnv` has no property in common with an optional
+  // `RAILS_ORIGIN` shape. Read the future binding defensively until a tier
+  // actually declares it; this keeps the production fail-closed behavior and
+  // avoids a type assertion at the Worker boundary.
+  env: unknown,
   isProduction: boolean,
 ): Promise<Response> {
   const incomingUrl = new URL(request.url);
@@ -246,7 +249,11 @@ export async function dispatchToRails(
   const method = normalizeRailsMethod(request.method);
   const startedAt = Date.now();
 
-  const origin = parseRailsOrigin(env.RAILS_ORIGIN);
+  const railsOrigin =
+    typeof env === 'object' && env !== null && 'RAILS_ORIGIN' in env
+      ? Reflect.get(env, 'RAILS_ORIGIN')
+      : undefined;
+  const origin = parseRailsOrigin(railsOrigin);
   if (origin === null) {
     logRailsDispatch({
       route_class: routeClass,

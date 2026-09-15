@@ -25,9 +25,12 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import * as appCore from '../app/core/src/lib/core-dispatch';
+import * as appHost from '../app/core/src/lib/core-host-policy';
 import { classifyRailsRouteClass } from '../app/core/src/lib/rails-dispatch-log';
 import * as comCore from '../com/core/src/lib/core-dispatch';
+import * as comHost from '../com/core/src/lib/core-host-policy';
 import * as orgCore from '../org/core/src/lib/core-dispatch';
+import * as orgHost from '../org/core/src/lib/core-host-policy';
 
 const repoRoot = join(import.meta.dirname, '..');
 const read = (relativePath: string) => readFileSync(join(repoRoot, relativePath), 'utf8');
@@ -36,6 +39,12 @@ const CORES = [
   { brand: 'app', module: appCore },
   { brand: 'com', module: comCore },
   { brand: 'org', module: orgCore },
+] as const;
+
+const CORE_HOST_POLICIES = [
+  { brand: 'app', module: appHost },
+  { brand: 'com', module: comHost },
+  { brand: 'org', module: orgHost },
 ] as const;
 
 type Ownership = 'rails' | 'blocked' | 'next';
@@ -202,6 +211,28 @@ describe('the three Cores stay one implementation', () => {
         ),
       );
       expect(digests.size, `${file} has diverged between the three Cores`).toBe(1);
+    }
+  });
+});
+
+describe('Core Host policy follows the existing deployment configuration', () => {
+  it('derives public and workers.dev hosts from each unit’s canonical and wrangler entries', () => {
+    for (const { brand, module } of CORE_HOST_POLICIES) {
+      const vite = read(`${brand}/core/vite.config.ts`);
+      const wrangler = read(`${brand}/core/wrangler.jsonc`);
+      const publicHosts = [...vite.matchAll(/['"]((?:jp|us)\.umaxica\.[a-z]+)['"]/gu)].map(
+        ([, host]) => host,
+      );
+      const workerName = /"name": "([^"]+)"/u.exec(wrangler)?.[1];
+
+      expect(publicHosts, `${brand}/core Vite Host entries`).toEqual([
+        module.CORE_PUBLIC_HOST,
+        module.CORE_ALTERNATE_HOST,
+      ]);
+      expect(workerName, `${brand}/core wrangler Worker name`).toBe(module.CORE_WORKER_NAME);
+      expect(wrangler, `${brand}/core must keep workers.dev enabled`).toContain(
+        '"workers_dev": true',
+      );
     }
   });
 });

@@ -60,6 +60,28 @@ describe('org/core worker.ts dispatch', () => {
     vi.unstubAllGlobals();
   });
 
+  it('rejects an unknown URL host before downstream work and ignores X-Forwarded-Host', async () => {
+    const railsFetch = vi.fn();
+    appFetch.mockResolvedValue(new Response('should not render', { status: 200 }));
+
+    const response = await worker.fetch(
+      new Request('https://unknown.example/api/v0/session?secret-query-marker', {
+        headers: { 'x-forwarded-host': 'jp.umaxica.org' },
+      }),
+      makeEnv({ fetch: railsFetch }),
+      ctx,
+    );
+
+    expect(response.status).toBe(421);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('content-type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+    expect(await response.text()).toBe('Misdirected Request\n');
+    expect(checkRateLimit).not.toHaveBeenCalled();
+    expect(appFetch).not.toHaveBeenCalled();
+    expect(railsFetch).not.toHaveBeenCalled();
+  });
+
   it('strips the Cookie header entirely before calling handler.fetch for an application-owned request', async () => {
     appFetch.mockResolvedValue(new Response('ok', { status: 200 }));
 

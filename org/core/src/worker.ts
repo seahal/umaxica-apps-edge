@@ -1,15 +1,20 @@
 import appHandler from './lib/app-handler';
 import { blockedCoreResponse, classifyCorePath, dispatchToRails } from './lib/core-dispatch';
+import {
+  coreHostRejectedResponse,
+  isAllowedCoreHost,
+  isProductionCoreEnvironment,
+} from './lib/core-host-policy';
 import { sanitizeHealthRequest } from './lib/health-request';
 import { checkRateLimit } from './lib/rate-limit';
 import { withSecurityHeaders } from './security-headers';
 
 /**
  * First code the Workers runtime invokes for every request to this frame's Core
- * hostname — before any application code runs. The hostname itself is
- * `PUBLIC_CORE_HOST` in `./lib/core-dispatch`, which is the one line that
- * differs between the three brands; this file is byte-identical across all
- * three, so it names no brand. See `adr/007-shared-fqdn-core-dispatch.md`.
+ * hostname — before any application code runs. The hostname is checked against
+ * the per-unit policy before path ownership is classified. This file is
+ * byte-identical across all three brands, so it names no brand. See
+ * `adr/007-shared-fqdn-core-dispatch.md`.
  *
  * - Rails-owned paths never reach `appHandler.fetch`: dispatched directly to
  *   Rails at `RAILS_ORIGIN`, with the browser's Cookie/CSRF/auth headers
@@ -135,7 +140,16 @@ export default {
   // it and a future `waitUntil` would want it.
   async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext) {
     const isProduction = import.meta.env.PROD;
-    const pathname = new URL(request.url).pathname;
+    const url = new URL(request.url);
+    if (
+      !isAllowedCoreHost(url.hostname, {
+        allowLocalhost: !isProductionCoreEnvironment(env),
+      })
+    ) {
+      return withSecurityHeaders(coreHostRejectedResponse(), isProduction);
+    }
+
+    const pathname = url.pathname;
     const ownership = classifyCorePath(pathname);
 
     // Cheapest first: a blocked path costs nothing and is not worth a limiter

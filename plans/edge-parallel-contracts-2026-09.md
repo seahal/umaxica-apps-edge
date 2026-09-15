@@ -198,6 +198,15 @@ CSRF origin判定も同じunit内の導出値を参照し、allowlistを二重�
 `evidence/2026-09-15-apex-host-boundary.md`に記録する。Core、12 public frame、TanStackの
 入口はこのcommitの対象外で、各々のHost/transport/region契約を確認してから別GO判定する。
 
+**P2b-core** は3 CoreのHost境界を追加した。各unitのcanonical origin、Viteの`jp`/`us`
+`allowedHosts`、wranglerのWorker名と`workers_dev`設定から公開Hostと当該Workerの
+`workers.dev` host形状を導出し、非productionだけlocalhost/loopbackを許可する。未知Hostは
+`X-Forwarded-Host`を参照せず、rate limit、Rails dispatch、application handlerより前に421で
+終了する。Railsの`RAILS_ORIGIN`は現行wrangler設定にまだ存在しないため、dispatchの環境値は
+防御的に読み、未設定時のfail-closed契約を維持する。CoreのRails透過中継、public 12面、
+TanStack入口はこのsliceの対象外である。実装と受入結果は
+`evidence/2026-09-15-core-host-boundary.md`に記録する。
+
 ### P3 — TanStack locale/region/public shell
 
 現状保留。Rails Preference実装とCookie定義を固定SHAから確認できるまで、`lx`規則、Cookie
@@ -327,6 +336,17 @@ P0レビュー後の判定は、Rails待ちのP3を切り離した **P1/P2/P4/P5
   拒否し得るため、Workerの未知Host境界はVitestの実app driverで確認し、実HTTPでは許可Hostに
   `X-Forwarded-Host`を付けても選択が変わらないことを確認した。production custom domainや
   workers.devの実配備、実Cloudflare bindingは未確認である。
+
+### P2b-core 実装後の再審査
+
+- **GO（3 Core Host slice限定）**。3 Coreで設定由来の公開Host、workers.dev host形状、非production
+  local/loopbackをpure policyで固定し、実Worker entryで未知Hostを421、limiter/Rails/application
+  前で拒否する回帰を置いた。`X-Forwarded-Host`は選択に使わない。Rails変更、JWT、認証、VPCに依存しない。
+- **未着手・別審査**。3 CoreのRails透過中継のtimeout・header・Cookie・body契約、12 public frameの
+  VPC client、TanStack 15面のHost/CSRF/body境界はこのsliceに含めない。P3のRails Preference不足に
+  よるNO-GOも変わらない。
+- **環境上の確認範囲**。各Coreの専用local serverに対する既存HurlとHost headerケースは実行したが、
+  production custom domain、実workers.dev配備、Cloudflare binding、Rails接続は未確認である。
 
 ## 復帰・残件・最終報告
 

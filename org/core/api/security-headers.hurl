@@ -11,6 +11,7 @@
 # the contract; `security-headers.ts` is one implementation of it.
 
 GET {{base}}/
+X-Forwarded-Host: unknown.invalid
 HTTP 200
 [Asserts]
 header "content-security-policy" contains "default-src 'self'"
