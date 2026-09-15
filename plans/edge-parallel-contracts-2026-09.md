@@ -37,6 +37,10 @@ P0のbaseline以降、次の工程commitがローカルに積まれている。
 `0f83b4d6`、`86404e2e`、`d9c32ce2`、`bd3d3ec5`、`f41b9634`、
 `3fc469fd`、`46c778d4`、`84d6f22f`、`197b5e8b`。
 
+その後、`6e26c49e`でstale metadata・型/lint衛生を解消し、`0084cafa`で現行コードと
+運用文書に残っていた旧Astroの実装記述をTanStack/Viteへ整合させた。どちらもRails、認証、
+通信契約、公開URLを変更しない独立したP6後続sliceである。
+
 P3dのParaglide生成境界とCoreのrequest-local locale接続まで、公開URL/SEO契約から
 切り離せる範囲を追加実装した。P3bの公開`lx` URL接続は引き続き保留である。
 
@@ -510,6 +514,20 @@ metadataを削除して`.gitignore`へ`**/.astro/`を追加した。public matri
 削除前のmatrix invariantは`app/info`の`.astro` directoryを検出してFAILし、削除後は42/42
 PASSした。`pnpm run format:check`、`pnpm run lint:types`、全20面typecheck、`pnpm run check`
 を再実行し、すべてPASSした。実装・検証は後続の衛生commitとして完了させる。
+
+実装と検証は`6e26c49e`でcommitした。
+
+#### P6b — 現行コード・運用文書の構成記述整合（追加、GO）
+
+現行の5 apex、3 Core、20面のAPI runner、root title invariant、revision/tunnel/ui-shell文書、
+ADR 008に残っていた「Astroが現在の実装である」という記述を、現行のTanStack Start/Vite境界へ
+最小修正した。履歴としてのADR 004/011/013/015、過去計画、旧構成の再侵入を検出するinvariant
+のAstro言及は履歴・検出条件として保持した。
+
+root invariant 18 files（626 passed / 1 skipped）、`pnpm run format:check`、
+`git diff --check`を再実行し、実装pathのstaged差分を確認した。実装・検証は`0084cafa`で
+commitした。このsliceはコメント、表、検査説明だけの変更であり、HTTP応答、Rails transport、
+認証、Cookie、SWの動作を変更しない。
 
 ## TDDと検証の配置
 

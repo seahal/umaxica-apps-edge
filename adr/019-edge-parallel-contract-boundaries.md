@@ -181,6 +181,9 @@ in `evidence/`. The fixed Rails Preference contract is now audited, and the
 info global-host correction is implemented in `84d6f22f` with its own evidence.
 The Paraglide catalog and request-isolation boundary is implemented in
 `197b5e8b`, with its own evidence.
+The stale generated metadata and static hygiene follow-up is implemented in
+`6e26c49e`; active code and operations documentation were then aligned with
+the current TanStack/Vite tree in `0084cafa`.
 The public locale URL/SEO integration remains explicitly P3b NO-GO. P6's
 combined verification is recorded in
 `evidence/2026-09-15-edge-final-verification.md`. This ADR is the current

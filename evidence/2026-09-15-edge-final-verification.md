@@ -5,7 +5,8 @@ Date: 2026-09-15
 ## Scope and review result
 
 The active local branch is `develop`; the current implementation head is
-`197b5e8b`. The independent slices cover the five Hono apex workers, three
+`0084cafa`. The functional implementation head before the documentation-only
+follow-up was `6e26c49e`. The independent slices cover the five Hono apex workers, three
 TanStack Core workers and twelve TanStack public content cells. The Rails
 Preference contract was audited read-only at the requested SHA. P3b, the
 public `lx` URL/SEO integration and authentication-dependent shell, remains
@@ -31,7 +32,7 @@ the owner-unknown changes in `AGENTS.md`, `pnpm-workspace.yaml`,
 | `pnpm run check:workers` and `check:generated`                           | PASS: all 20 workers/types validated                                                                                           |
 | `pnpm run check:architecture`                                            | PASS: 29 modules / 51 dependencies                                                                                             |
 | `pnpm run check:deps`, `knip`, `check:spelling`                          | PASS                                                                                                                           |
-| changed-file Oxfmt, Oxlint, type-aware Oxlint and P3d pre-commit hook    | PASS                                                                                                                           |
+| changed-file Oxfmt, Oxlint, type-aware Oxlint and pre-commit hooks       | PASS                                                                                                                           |
 | per-unit typecheck                                                       | PASS for all 20 units after the Workers/DOM fixture overload fix                                                               |
 | `pnpm run check`                                                         | PASS: 20 unit static checks, unit tests and root invariants                                                                    |
 | per-unit `check:size` after build                                        | apex PASS at 48.46–48.56 kB gzip / 52 kB; Core FAIL at 129.82/129, 129.83/129 and 132.97/129; public FAIL at 122.65–122.69/112 |
@@ -46,18 +47,23 @@ current result is about 122.65–122.69 kB. No budget was raised.
 
 The earlier root `check` failure came from 64 tracked stale `.astro` metadata
 files and the public fixture overload; both were removed or corrected in the
-hygiene follow-up. The size result is recorded as a performance follow-up. No
-skipped test, suppression or threshold reduction was used to make the checks
-green.
+hygiene follow-up. The active code and operations documentation then received
+the documentation-only Astro wording cleanup in `0084cafa`; its root invariant
+and format checks passed. The size result is recorded as a performance
+follow-up. No skipped test, suppression or threshold reduction was used to make
+the checks green.
 
 ## Commits and remaining verification
 
 The implementation commits are `4929730c`, `5bc6538c`, `eca6a58b`,
 `963377c3`, `f92e2c8e`, `8fc13a12`, `9b78df1e`, `88a2f907`, `f8fadf08`,
-`0f83b4d6`, `86404e2e`, `d9c32ce2`, `84d6f22f` and `197b5e8b`, with the
+`0f83b4d6`, `86404e2e`, `d9c32ce2`, `84d6f22f`, `197b5e8b`, `6e26c49e` and
+`0084cafa`, with the
 stage-specific evidence files in this directory. The plan, ADR and this
 record were updated after the P3d verification in a separate documentation
-commit.
+commit. The current owner-unknown worktree changes are the root `AGENTS.md`,
+twelve public `wrangler.jsonc` files, `pnpm-workspace.yaml` and
+`pnpm-lock.yaml`; they remain unstaged and uncommitted.
 
 Production Cloudflare bindings, real workerd/VPC behavior, live Rails response
 schemas, Rails request-ID adoption, Rails authentication E2E, existing browser
