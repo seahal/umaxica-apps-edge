@@ -1,4 +1,5 @@
 import { cloudflare } from '@cloudflare/vite-plugin';
+import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import tailwindcss from '@tailwindcss/vite';
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react';
@@ -89,6 +90,13 @@ export default defineConfig(({ command }) => ({
   // rebinding. Only this unit's own tunnel hostnames are listed — never `true`.
   server: { allowedHosts: ['docs-jp.umaxica.org', 'docs-us.umaxica.org'] },
   plugins: [
+    paraglideVitePlugin({
+      project: './project.inlang',
+      outdir: './src/paraglide',
+      strategy: ['custom-edge-locale', 'baseLocale'],
+      outputStructure: 'locale-modules',
+      isServer: 'import.meta.env.SSR',
+    }),
     tailwindcss(),
     cloudflare({
       inspectorPort: 9306,

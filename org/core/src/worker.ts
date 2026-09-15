@@ -1,3 +1,5 @@
+import type { Locale } from '@/i18n/config';
+
 import appHandler from './lib/app-handler';
 import { blockedCoreResponse, classifyCorePath, dispatchToRails } from './lib/core-dispatch';
 import {
@@ -5,6 +7,7 @@ import {
   isAllowedCoreHost,
   isProductionCoreEnvironment,
 } from './lib/core-host-policy';
+import { EDGE_DISPLAY_LOCALE_HEADER, resolveDisplayLocale } from './lib/display-locale';
 import { sanitizeHealthRequest } from './lib/health-request';
 import { checkRateLimit } from './lib/rate-limit';
 import { limitRequestBody, requestBoundaryResponse } from './lib/request-boundary';
@@ -155,9 +158,11 @@ function isAuthPath(pathname: string): boolean {
  * `Request`'s implicit tee. The bounded reader below owns this one stream and
  * reconstructs a fresh request after it has counted the bytes.
  */
-function stripApplicationCookie(request: Request): Request {
+function stripApplicationCookie(request: Request, displayLocale: Locale): Request {
   const headers = new Headers(request.headers);
   headers.delete('cookie');
+  headers.delete(EDGE_DISPLAY_LOCALE_HEADER);
+  headers.set(EDGE_DISPLAY_LOCALE_HEADER, displayLocale);
   const body = request.body;
   const init = {
     cache: request.cache,
@@ -253,7 +258,10 @@ export default {
             const sanitizedRequest = isHealthPath(pathname)
               ? sanitizeHealthRequest(request)
               : request;
-            const strippedRequest = stripApplicationCookie(sanitizedRequest);
+            const strippedRequest = stripApplicationCookie(
+              sanitizedRequest,
+              resolveDisplayLocale(sanitizedRequest),
+            );
             const bounded = await limitRequestBody(strippedRequest, signal);
             if (bounded.kind !== 'ok') {
               return withSecurityHeaders(

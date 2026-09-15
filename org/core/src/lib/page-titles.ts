@@ -1,33 +1,56 @@
-import ja from '@/i18n/dictionaries/ja.json';
+import { defaultLocale, type Locale } from '@/i18n/config';
 
+import * as m from '../paraglide/messages';
+import { getLocale } from '../paraglide/runtime';
 import { brandTitle } from './title';
 
+export type PageTitleKey =
+  | 'about'
+  | 'configuration'
+  | 'configuration_account'
+  | 'doctor'
+  | 'explore'
+  | 'messages'
+  | 'notifications'
+  | 'publishing';
+
+function localizedPageTitle(key: PageTitleKey, locale: Locale): string {
+  switch (key) {
+    case 'about':
+      return brandTitle(m.coreAboutTitle({}, { locale }));
+    case 'configuration':
+      return brandTitle(m.coreConfigurationTitle({}, { locale }));
+    case 'configuration_account':
+      return brandTitle(m.coreConfigurationAccountTitle({}, { locale }));
+    case 'doctor':
+      return brandTitle(m.coreDoctorTitle({}, { locale }));
+    case 'explore':
+      return brandTitle(m.coreExploreTitle({}, { locale }));
+    case 'messages':
+      return brandTitle(m.coreMessagesTitle({}, { locale }));
+    case 'notifications':
+      return brandTitle(m.coreNotificationsTitle({}, { locale }));
+    case 'publishing':
+      return brandTitle(m.corePublishingTitle({}, { locale }));
+  }
+}
+
+/** Resolve a route head title from the request-local Paraglide context. */
+export function pageTitle(key: PageTitleKey): string {
+  return localizedPageTitle(key, getLocale());
+}
+
 /*
- * The page titles, resolved synchronously.
- *
- * A route's `head()` may run before its loader has resolved — TanStack types
- * `loaderData` as optional for exactly that reason — and a document with no
- * `<title>`, even briefly, is not something this contract allows. So the title
- * does not come from the loader at all.
- *
- * Reading the default-locale dictionary statically is safe here rather than a
- * shortcut: `defaultLocale` is a constant, and this unit
- * serves one language and does not negotiate — `<html lang>` is pinned to the
- * same constant — so there was never a request in which the title could have
- * come out in the other language.
- *
- * The page CONTENT still goes through the loader and `getDictionary`, which is
- * what keeps the second dictionary reachable and the locale check exercised.
- * When this unit starts negotiating, this module is the one that has to change,
- * and `test/title-contract.test.tsx` is what will notice.
+ * The default strings remain exported for tests and client-side announcement
+ * fixtures. Route heads call `pageTitle()` so SSR can use the request locale.
  */
 export const pageTitles = {
-  about: brandTitle(ja.about.title),
-  configuration: brandTitle(ja.configuration.title),
-  configuration_account: brandTitle(ja.configuration_account.title),
-  doctor: brandTitle(ja.doctor.title),
-  explore: brandTitle(ja.explore.title),
-  messages: brandTitle(ja.messages.title),
-  notifications: brandTitle(ja.notifications.title),
-  publishing: brandTitle(ja.publishing.title),
+  about: localizedPageTitle('about', defaultLocale),
+  configuration: localizedPageTitle('configuration', defaultLocale),
+  configuration_account: localizedPageTitle('configuration_account', defaultLocale),
+  doctor: localizedPageTitle('doctor', defaultLocale),
+  explore: localizedPageTitle('explore', defaultLocale),
+  messages: localizedPageTitle('messages', defaultLocale),
+  notifications: localizedPageTitle('notifications', defaultLocale),
+  publishing: localizedPageTitle('publishing', defaultLocale),
 } as const;

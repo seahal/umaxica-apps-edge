@@ -556,7 +556,9 @@ describe('public content cell title contract', () => {
     expect(read(`${workspace}/src/lib/publishing-cell.ts`)).toContain(
       `export const BRAND_TITLE = 'UMAXICA (${tld})'`,
     );
-    expect(read(`${workspace}/src/lib/title.ts`)).toContain('return `${pageTitle} — ${BRAND_TITLE}`;');
+    expect(read(`${workspace}/src/lib/title.ts`)).toContain(
+      'return `${pageTitle} — ${BRAND_TITLE}`;',
+    );
   });
 });
 
@@ -567,6 +569,12 @@ describe('TanStack Start title contract', () => {
   /** Every `'…'` or `"…"` string literal passed to `brandTitle(...)`. */
   const brandTitleArguments = (source: string): string[] =>
     [...source.matchAll(/brandTitle\(\s*'([^']+)'\s*\)/gu)].map((match) => match[1] ?? '');
+
+  /** Every generated Core message used as a page-specific title. */
+  const coreMessageTitleArguments = (source: string): string[] =>
+    [...source.matchAll(/m\.(core[A-Z][A-Za-z]+Title)\(\{\}, \{ locale \}\)/gu)].map(
+      (match) => match[1] ?? '',
+    );
 
   /** Every template literal that closes with the brand constant. */
   const brandedTemplateTitles = (source: string): string[] =>
@@ -584,7 +592,9 @@ describe('TanStack Start title contract', () => {
       `export const BRAND_TITLE = 'UMAXICA (${tld})'`,
     );
     // The EM DASH, with one space on each side. Not a hyphen, not an EN DASH.
-    expect(read(`${workspace}/src/lib/title.ts`)).toContain('return `${pageTitle} — ${BRAND_TITLE}`;');
+    expect(read(`${workspace}/src/lib/title.ts`)).toContain(
+      'return `${pageTitle} — ${BRAND_TITLE}`;',
+    );
   });
 
   it.each(apps)('$workspace declares no title on the root route', ({ workspace }) => {
@@ -604,17 +614,17 @@ describe('TanStack Start title contract', () => {
   /*
    * Two archetypes, two ways of naming a title, one contract.
    *
-   * A satellite route calls `brandTitle('…')` inline. A Core route reads
-   * `pageTitles.<key>`, resolved once in `src/lib/page-titles.ts` from the
-   * default-locale dictionary — because a Core page title is a translated string,
-   * and `head()` can run before the loader that would fetch it. The index route
-   * of a Core carries the bare `BRAND_TITLE`, which is what its root layout's
+   * A satellite route calls `brandTitle('…')` inline. A Core route calls
+   * `pageTitle('…')`, resolved in `src/lib/page-titles.ts` from the request-local
+   * Paraglide catalog — because a Core page title is a translated string, and
+   * `head()` can run before the loader that would fetch it. The index route of a
+   * Core carries the bare `BRAND_TITLE`, which is what its root layout's
    * `title.default` used to supply.
    *
    * So this asserts two things per frame: every document route names one of
    * those three sources, and every title the unit can actually produce conforms.
    */
-  const TITLE_SOURCES = /brandTitle\(|pageTitles\.|BRAND_TITLE/u;
+  const TITLE_SOURCES = /brandTitle\(|pageTitle\(|pageTitles\.|BRAND_TITLE/u;
 
   it.each(apps)('$workspace gives every route document a title', ({ workspace }) => {
     const routesDir = join(repoRoot, workspace, 'src/routes');
@@ -647,18 +657,20 @@ describe('TanStack Start title contract', () => {
       .filter((name) => name.endsWith('.tsx'))
       .flatMap((name) => brandTitleArguments(readFileSync(join(routesDir, name), 'utf8')));
 
-    // A Core resolves its page titles from the dictionary in one module.
+    // A Core resolves its page titles from generated Paraglide messages in one
+    // module. Read the source catalog so this invariant stays independent of
+    // ignored compiler output.
     const titlesModule = join(unitRoot, 'src/lib/page-titles.ts');
     if (existsSync(titlesModule)) {
       const source = readFileSync(titlesModule, 'utf8');
       const dictionary = JSON.parse(
-        readFileSync(join(unitRoot, 'src/i18n/dictionaries/ja.json'), 'utf8'),
-      ) as Record<string, { title?: string }>;
-      for (const key of [...source.matchAll(/brandTitle\(ja\.([a-z_]+)\.title\)/gu)]) {
-        const title = dictionary[key[1] ?? '']?.title;
+        readFileSync(join(unitRoot, 'messages/ja.json'), 'utf8'),
+      ) as Record<string, string>;
+      for (const messageKey of coreMessageTitleArguments(source)) {
+        const title = dictionary[messageKey];
         expect(
           title,
-          `${workspace}: page-titles names ja.${key[1]}, which the dictionary lacks`,
+          `${workspace}: page-titles names ${messageKey}, which the catalog lacks`,
         ).toBeTypeOf('string');
         literals.push(title as string);
       }
@@ -695,34 +707,37 @@ describe('TanStack Start title contract', () => {
 
   // The content cells build their 429 title from BRAND_TITLE, so their document is
   // driven for real by the injected-limiter guard above rather than read here.
-  it.each(apps.filter((app) => app.role === 'core'))('$workspace serves a titled 429 document', ({ workspace, tld }) => {
-    /*
-     * The satellites' 429 lived in `src/middleware.ts` and was asserted by
-     * importing it. A TanStack frame answers it from `src/rate-limit.ts`, called
-     * by the server entry before the router runs — the same move the Cores made
-     * (adr/010) — so the document is read from source here and exercised for real
-     * by the unit's own `test/rate-limit.test.ts`.
-     */
-    /*
-     * The satellites answer 429 from `src/rate-limit.ts`, called by their server
-     * entry. The Cores answer it from `src/lib/rate-limit.ts`, called by
-     * `src/worker.ts` — the first-touch entry ADR 010 moved it to. Same document,
-     * same contract, two homes.
-     */
-    const rateLimitModule = ['src/rate-limit.ts', 'src/lib/rate-limit.ts']
-      .map((rel) => `${workspace}/${rel}`)
-      .find((rel) => existsSync(join(repoRoot, rel)));
-    expect(rateLimitModule, `${workspace}: found no rate-limit module`).toBeTypeOf('string');
-    const source = read(rateLimitModule as string);
-    const title = /<title>([^<]+)<\/title>/u.exec(source)?.[1] ?? '';
+  it.each(apps.filter((app) => app.role === 'core'))(
+    '$workspace serves a titled 429 document',
+    ({ workspace, tld }) => {
+      /*
+       * The satellites' 429 lived in `src/middleware.ts` and was asserted by
+       * importing it. A TanStack frame answers it from `src/rate-limit.ts`, called
+       * by the server entry before the router runs — the same move the Cores made
+       * (adr/010) — so the document is read from source here and exercised for real
+       * by the unit's own `test/rate-limit.test.ts`.
+       */
+      /*
+       * The satellites answer 429 from `src/rate-limit.ts`, called by their server
+       * entry. The Cores answer it from `src/lib/rate-limit.ts`, called by
+       * `src/worker.ts` — the first-touch entry ADR 010 moved it to. Same document,
+       * same contract, two homes.
+       */
+      const rateLimitModule = ['src/rate-limit.ts', 'src/lib/rate-limit.ts']
+        .map((rel) => `${workspace}/${rel}`)
+        .find((rel) => existsSync(join(repoRoot, rel)));
+      expect(rateLimitModule, `${workspace}: found no rate-limit module`).toBeTypeOf('string');
+      const source = read(rateLimitModule as string);
+      const title = /<title>([^<]+)<\/title>/u.exec(source)?.[1] ?? '';
 
-    expectTitleContract(`<title>${title}</title>`, {
-      tld,
-      requirePageSpecific: true,
-      label: `${workspace} 429`,
-    });
-    expect(source).toContain('HTTP 429');
-    expect(source).toContain("'Cache-Control': 'no-store'");
-    expect(source).toContain('status: 429');
-  });
+      expectTitleContract(`<title>${title}</title>`, {
+        tld,
+        requirePageSpecific: true,
+        label: `${workspace} 429`,
+      });
+      expect(source).toContain('HTTP 429');
+      expect(source).toContain("'Cache-Control': 'no-store'");
+      expect(source).toContain('status: 429');
+    },
+  );
 });

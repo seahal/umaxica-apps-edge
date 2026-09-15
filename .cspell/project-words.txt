@@ -36,6 +36,7 @@ syncpackrc
 smol        # smol-toml, an advisory floor in pnpm-workspace.yaml
 endoflife   # endoflife.date
 jscoverage
+inlang      # the localization project format and Paraglide compiler ecosystem
 Pagy        # Rails offset-pagination gem; Edge forwards page numbers only
 GHSA        # GitHub advisory identifiers
 qqqr        # ...and a fragment of one: GHSA-8988-4f7v-96qf's neighbour
@@ -44,6 +45,7 @@ qqqr        # ...and a fragment of one: GHSA-8988-4f7v-96qf's neighbour
 tmpfs
 btmpfs
 userns
+bwrap       # bubblewrap executable used by the sandbox guard
 tzdata
 nocopy
 NOPASSWD
@@ -135,6 +137,7 @@ PKCE        # the OAuth Proof Key for Code Exchange extension, RFC 7636
 # --- Deliberate non-words inside test fixtures. Each is a fragment of an
 # --- encoded or intentionally malformed string, so there is no correct
 # --- spelling to move it towards.
+ZEXAMPLEPUBLICID  # placeholder public_id in the Hurl publishing fixture
 apiv            # from the route '/apiv0-lookalike'
 eevil           # from the percent-encoded host 'jp%2eevil%2ecom'
 Ffoo            # from the percent-encoded path '%2Ffoo.png'

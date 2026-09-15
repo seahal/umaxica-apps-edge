@@ -2,23 +2,23 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { PageHeading } from '@/components/page-heading';
 import { PageMain } from '@/components/page-main';
-import { defaultLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
-import { pageTitles } from '@/lib/page-titles';
+import { pageTitle } from '@/lib/page-titles';
 import { loadRailsStaffOrigin } from '@/lib/publishing-hub';
 import {
   PUBLISHING_AUDIENCES,
   PUBLISHING_SURFACES,
   managementIndexUrl,
 } from '@/lib/publishing-management';
+import { getLocale } from '@/paraglide/runtime';
 
 export const Route = createFileRoute('/_page/publishing')({
   loader: async () => {
-    const dict = await getDictionary(defaultLocale);
+    const dict = await getDictionary();
     const origin = await loadRailsStaffOrigin();
     return { dict, origin };
   },
-  head: () => ({ meta: [{ title: pageTitles.publishing }] }),
+  head: () => ({ meta: [{ title: pageTitle('publishing') }] }),
   component: PublishingPage,
 });
 
@@ -37,7 +37,7 @@ const AUDIENCE_LABEL: Record<(typeof PUBLISHING_AUDIENCES)[number], { ja: string
 
 function PublishingPage() {
   const { dict, origin } = Route.useLoaderData();
-  const lang = defaultLocale;
+  const lang = getLocale();
 
   return (
     <PageMain>

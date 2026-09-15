@@ -43,6 +43,12 @@ catalog:
   '@cloudflare/workers-types': ^5.20260903.1
   '@fontsource-variable/inter': ^5.3.0
   '@hono/structured-logger': ^1.0.0
+  # Paraglide is the generated, request-isolated message runtime for the
+  # fifteen TanStack frames. The strategy list is pinned in each Vite config;
+  # this catalog keeps compiler behavior identical across all units.
+  '@inlang/paraglide-js': 2.23.1
+  '@inlang/plugin-m-function-matcher': 2.2.15
+  '@inlang/plugin-message-format': 4.3.0
   # Hurl is a Rust binary; this package is the official npm distribution of it
   # (bins `hurl` and `hurlfmt`). Installing it as a devDependency rather than
   # documenting a `brew`/`apt`/`cargo` step is what keeps pnpm the only entry

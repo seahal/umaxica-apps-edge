@@ -107,6 +107,23 @@ describe('app/core worker.ts dispatch', () => {
     expect(await response.text()).toBe('ok');
   });
 
+  it('passes only the validated display locale and overwrites a forged internal header', async () => {
+    appFetch.mockResolvedValue(new Response('ok', { status: 200 }));
+
+    const request = new Request('https://jp.umaxica.app/?lx=EN', {
+      headers: {
+        cookie: 'language=ja',
+        'x-edge-display-locale': 'ja',
+      },
+    });
+
+    await worker.fetch(request, makeEnv(), ctx);
+
+    const forwardedRequest = appFetch.mock.calls[0]?.[0] as Request;
+    expect(forwardedRequest.headers.get('cookie')).toBeNull();
+    expect(forwardedRequest.headers.get('x-edge-display-locale')).toBe('en');
+  });
+
   it('rejects an oversized application body before calling handler.fetch', async () => {
     appFetch.mockResolvedValue(new Response('should not render', { status: 200 }));
 

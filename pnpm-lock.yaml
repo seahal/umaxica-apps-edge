@@ -119,6 +119,15 @@ catalogs:
     '@hono/structured-logger':
       specifier: ^1.0.0
       version: 1.0.0
+    '@inlang/paraglide-js':
+      specifier: 2.23.1
+      version: 2.23.1
+    '@inlang/plugin-m-function-matcher':
+      specifier: 2.2.15
+      version: 2.2.15
+    '@inlang/plugin-message-format':
+      specifier: 4.3.0
+      version: 4.3.0
     '@orangeopensource/hurl':
       specifier: ^8.0.4
       version: 8.0.4
@@ -360,6 +369,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -454,6 +472,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -542,6 +569,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -630,6 +666,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -718,6 +763,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -876,6 +930,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -970,6 +1033,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -1058,6 +1130,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -1146,6 +1227,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -1234,6 +1324,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -1526,6 +1625,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -1620,6 +1728,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -1708,6 +1825,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -1796,6 +1922,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -1884,6 +2019,15 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260911.1
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))
+      '@inlang/plugin-m-function-matcher':
+        specifier: 'catalog:'
+        version: 2.2.15
+      '@inlang/plugin-message-format':
+        specifier: 'catalog:'
+        version: 4.3.0
       '@orangeopensource/hurl':
         specifier: 'catalog:'
         version: 8.0.4(supports-color@10.2.2)
@@ -5152,6 +5296,126 @@ packages:
   zod@4.6.2:
     resolution: {integrity: sha512-lh5RCAGFa1Cm2hjtNwLQhSs/AsqdWnTQaBER9fEwN/88pSh7KOtJavtBx/0VlkN/uFd61SwYmljLMDAsHlvzBQ==}
 
+  '@inlang/paraglide-js@2.23.1':
+    resolution: {integrity: sha512-KEnJhvRLhB1zbGNmt2DHi4SuIbr7ZcZ0tftFYxQDDSpS1GqjJJ+b+ZaxVC2PElpgcQYNgD5Bt9hYUpV+et8IMw==}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=5.6'
+      vite: '>=5.0.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+      vite:
+        optional: true
+
+  '@inlang/plugin-m-function-matcher@2.2.15':
+    resolution: {integrity: sha512-j6u81l1JS5zU5LuQK4IRSdmdtFMO33W8nrslBAXKEZd4C2aDmnxGgSczhSvHHB0mSHS3XgaQa7EfAfKz/whhVw==}
+
+  '@inlang/plugin-message-format@4.3.0':
+    resolution: {integrity: sha512-7Tmqd2Z0yhIZ3CwsdlMcJsMpqygN65TuoOzDviDmMp03v3XEC0NGmGr3fxZB6o2hp/Mt5t+GpOqYD30Bvp/6Qw==}
+
+  '@inlang/recommend-sherlock@0.2.1':
+    resolution: {integrity: sha512-ckv8HvHy/iTqaVAEKrr+gnl+p3XFNwe5D2+6w6wJk2ORV2XkcRkKOJ/XsTUJbPSiyi4PI+p+T3bqbmNx/rDUlg==}
+
+  '@inlang/sdk@2.10.2':
+    resolution: {integrity: sha512-O1ki72SNK6LPagaGrvlioBb1mWKvump7cO7P85hfGZjdFTmDdn3icI0A6MvaBsB3P9KQHAjzyubnN1OslGufTw==}
+    engines: {node: '>=20.0.0'}
+
+  '@inlang/sdk@3.0.5':
+    resolution: {integrity: sha512-kJBivhj3AeM8Mt1AnmLt48B+OYMGkXXu7Duw+UcWmk4VxqqF/Glm9y/BCcWQWMGi6mj7U40qvW7y7wVyHeVhMA==}
+    engines: {node: '>=20.0.0'}
+
+  '@lix-js/sdk-darwin-arm64@0.16.1':
+    resolution: {integrity: sha512-BKUerxQ5DV1o9L8n3uxZMTdUyjNGDLyh4zoYCQ1sakeAa2mQbb4aYnhYrpJT8Ob+zA5B/IZMQfphz6zOSrXNcw==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@lix-js/sdk-linux-arm64@0.16.1':
+    resolution: {integrity: sha512-rJ5qtFStX+BlU7NXtTVJjRl5mumzFRJs6UcJTui/ib9M6d1nw9wTtRwB/DuFACExRrnDQkmqL9W7Ulm14Mluyw==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@lix-js/sdk-linux-x64@0.16.1':
+    resolution: {integrity: sha512-xZxSKMiGFWFXbV+QFEfa0K+EBvgE7WIn32imVKQC/ZMfUnPH4SmdN2FbdS7qe2TAKdx38qUdI8mvcnrhNZ8nAw==}
+    cpu: [x64]
+    os: [linux]
+
+  '@lix-js/sdk-win32-x64@0.16.1':
+    resolution: {integrity: sha512-1H84YqSd6VhzyUl5hdW4106QCnhO0NE9xRfT6ci6JvU/opNC9JWiOyKLboqlJWkupSIW9VlfL5Cwza6fZs5mLw==}
+    cpu: [x64]
+    os: [win32]
+
+  '@lix-js/sdk@0.16.1':
+    resolution: {integrity: sha512-TphGW47tPJ52n8Umk46j56veeaz/uLoS9m1pWYWs0UnnbItsntu6hW/alxW/OX1WZA7vXk7d1OP6qIbmluc+kA==}
+
+  '@lix-js/sdk@0.4.10':
+    resolution: {integrity: sha512-0dMInAJK/67guTG5rRZaCEhvzC5cCXENOjaePA5AqMXrCE97kaY7SRor9e2vnoGsFIiGqXKlT0MCIoZj36G0gg==}
+    engines: {node: '>=18'}
+
+  '@lix-js/server-protocol-schema@0.1.1':
+    resolution: {integrity: sha512-jBeALB6prAbtr5q4vTuxnRZZv1M2rKe8iNqRQhFJ4Tv7150unEa0vKyz0hs8Gl3fUGsWaNJBh3J8++fpbrpRBQ==}
+
+  '@sinclair/typebox@0.31.30':
+    resolution: {integrity: sha512-MGsM7bVmHg3sUKCphlu3SGQ+T+5JTbygZWYArfKQCW5anJeACHeqLhcnf+R7XlCWZ+QR3C8JTBx3kCKJTN69ow==}
+
+  '@sqlite.org/sqlite-wasm@3.48.0-build4':
+    resolution: {integrity: sha512-hI6twvUkzOmyGZhQMza1gpfqErZxXRw6JEsiVjUbo7tFanVD+8Oil0Ih3l2nGzHdxPI41zFmfUQG7GHqhciKZQ==}
+    hasBin: true
+
+  commander@11.1.0:
+    resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
+    engines: {node: '>=16'}
+
+  comment-json@4.6.2:
+    resolution: {integrity: sha512-R2rze/hDX30uul4NZoIZ76ImSJLFxn/1/ZxtKC1L77y2X1k+yYu1joKbAtMA2Fg3hZrTOiw0I5mwVMo0cf250w==}
+    engines: {node: '>= 6'}
+
+  consola@3.4.0:
+    resolution: {integrity: sha512-EiPU8G6dQG0GFHNR8ljnZFki/8a+cQwEQ+7wpxdChl02Q8HXlwEZWD5lqAF8vC2sEC3Tehr8hy7vErz88LHyUA==}
+    engines: {node: ^14.18.0 || >=16.10.0}
+
+  dedent@1.5.1:
+    resolution: {integrity: sha512-+LxW+KLWxu3HW3M2w2ympwtqPrqYRzU8fqi6Fhd18fBALe15blJPI/I4+UHveMVG6lJqB4JNd4UG0S5cnVHwIg==}
+    peerDependencies:
+      babel-plugin-macros: ^3.1.0
+    peerDependenciesMeta:
+      babel-plugin-macros:
+        optional: true
+
+  fflate@0.8.3:
+    resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
+
+  flat@6.0.1:
+    resolution: {integrity: sha512-/3FfIa8mbrg3xE7+wAhWeV+bd7L2Mof+xtZb5dRDKZ+wDvYJK4WDYeIOuOhre5Yv5aQObZrlbRmk3RTSiuQBtw==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  human-id@4.2.1:
+    resolution: {integrity: sha512-zPGsiS+dWoTZtZ4AtpA9Y+BdSFSNWvnouNlWNoUFyAM6xHOHmdCvqO3k8AIbdamCOv4gUFUVNPf6rJFfc4UiJw==}
+    hasBin: true
+
+  js-sha256@0.11.1:
+    resolution: {integrity: sha512-o6WSo/LUvY2uC4j7mO50a2ms7E/EAdbP0swigLV+nzHKTTaYnaLIWJ02VdXrsJX0vGedDESQnLsOekr94ryfjg==}
+
+  kysely@0.28.17:
+    resolution: {integrity: sha512-nbD8lB9EB3wNdMhOCdx5Li8DxnLbvKByylRLcJ1h+4SkrowVeECAyZlyiKMThF7xFdRz0jSQ2MoJr+wXux2y0Q==}
+    engines: {node: '>=20.0.0'}
+
+  sqlite-wasm-kysely@0.3.0:
+    resolution: {integrity: sha512-TzjBNv7KwRw6E3pdKdlRyZiTmUIE0UttT/Sl56MVwVARl/u5gp978KepazCJZewFUnlWHz9i3NQd4kOtP/Afdg==}
+    peerDependencies:
+      kysely: '*'
+
+  unplugin@2.3.11:
+    resolution: {integrity: sha512-5uKD0nqiYVzlmCRs01Fhs2BdkEgBS3SAVP6ndrBsuK42iC2+JHyxM05Rm9G8+5mkmRtzMZGY8Ct5+mliZxU/Ww==}
+    engines: {node: '>=18.12.0'}
+
+  urlpattern-polyfill@10.1.0:
+    resolution: {integrity: sha512-IGjKp/o0NL3Bso1PymYURCJxMPNAf/ILOpendP9f5B6e1rTJgdgiOvgfoT8VxCAdY+Wisb9uhGaJJf3yZ2V9nw==}
+
+  uuid@14.0.2:
+    resolution: {integrity: sha512-xZe/16rV4aa+HGSOCiY2YeLT1OybRLrrkL/Rqaq7p7GMVXjFh+6wN4oMYgjFmnSnhY8t6Xpdl2l9qmnHYuMHwQ==}
+    hasBin: true
 snapshots:
 
   '@adobe/css-tools@4.5.0': {}
@@ -7877,3 +8141,123 @@ snapshots:
       youch-core: 0.3.3
 
   zod@4.6.2: {}
+
+  '@inlang/paraglide-js@2.23.1(typescript@7.0.2)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1))':
+    dependencies:
+      '@inlang/recommend-sherlock': 0.2.1
+      '@inlang/sdk': 2.10.2
+      commander: 11.1.0
+      consola: 3.4.0
+      json5: 2.2.3
+      unplugin: 2.3.11
+      urlpattern-polyfill: 10.1.0
+    optionalDependencies:
+      typescript: 7.0.2
+      vite: 8.3.0(@types/node@26.5.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.1)
+    transitivePeerDependencies:
+      - babel-plugin-macros
+
+  '@inlang/plugin-m-function-matcher@2.2.15':
+    dependencies:
+      '@inlang/sdk': 3.0.5
+
+  '@inlang/plugin-message-format@4.3.0':
+    dependencies:
+      flat: 6.0.1
+
+  '@inlang/recommend-sherlock@0.2.1':
+    dependencies:
+      comment-json: 4.6.2
+
+  '@inlang/sdk@2.10.2':
+    dependencies:
+      '@lix-js/sdk': 0.4.10
+      '@sinclair/typebox': 0.31.30
+      kysely: 0.28.17
+      sqlite-wasm-kysely: 0.3.0(kysely@0.28.17)
+      uuid: 14.0.2
+    transitivePeerDependencies:
+      - babel-plugin-macros
+
+  '@inlang/sdk@3.0.5':
+    dependencies:
+      '@lix-js/sdk': 0.16.1
+      '@sinclair/typebox': 0.31.30
+      kysely: 0.28.17
+      uuid: 14.0.2
+
+  '@lix-js/sdk-darwin-arm64@0.16.1':
+    optional: true
+
+  '@lix-js/sdk-linux-arm64@0.16.1':
+    optional: true
+
+  '@lix-js/sdk-linux-x64@0.16.1':
+    optional: true
+
+  '@lix-js/sdk-win32-x64@0.16.1':
+    optional: true
+
+  '@lix-js/sdk@0.16.1':
+    dependencies:
+      fflate: 0.8.3
+    optionalDependencies:
+      '@lix-js/sdk-darwin-arm64': 0.16.1
+      '@lix-js/sdk-linux-arm64': 0.16.1
+      '@lix-js/sdk-linux-x64': 0.16.1
+      '@lix-js/sdk-win32-x64': 0.16.1
+
+  '@lix-js/sdk@0.4.10':
+    dependencies:
+      '@lix-js/server-protocol-schema': 0.1.1
+      dedent: 1.5.1
+      human-id: 4.2.1
+      js-sha256: 0.11.1
+      kysely: 0.28.17
+      sqlite-wasm-kysely: 0.3.0(kysely@0.28.17)
+      uuid: 14.0.2
+    transitivePeerDependencies:
+      - babel-plugin-macros
+
+  '@lix-js/server-protocol-schema@0.1.1': {}
+
+  '@sinclair/typebox@0.31.30': {}
+
+  '@sqlite.org/sqlite-wasm@3.48.0-build4': {}
+
+  commander@11.1.0: {}
+
+  comment-json@4.6.2:
+    dependencies:
+      array-timsort: 1.0.3
+      esprima: 4.0.1
+
+  consola@3.4.0: {}
+
+  dedent@1.5.1: {}
+
+  fflate@0.8.3: {}
+
+  flat@6.0.1: {}
+
+  human-id@4.2.1: {}
+
+  js-sha256@0.11.1: {}
+
+  kysely@0.28.17: {}
+
+  sqlite-wasm-kysely@0.3.0(kysely@0.28.17):
+    dependencies:
+      '@sqlite.org/sqlite-wasm': 3.48.0-build4
+      kysely: 0.28.17
+
+  unplugin@2.3.11:
+    dependencies:
+      '@jridgewell/remapping': 2.3.5
+      acorn: 8.18.0
+      picomatch: 4.0.7
+      webpack-virtual-modules: 0.6.2
+
+  urlpattern-polyfill@10.1.0: {}
+
+  uuid@14.0.2: {}

@@ -1,4 +1,5 @@
 import { cloudflare } from '@cloudflare/vite-plugin';
+import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import tailwindcss from '@tailwindcss/vite';
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react';
@@ -44,6 +45,13 @@ export default defineConfig({
   // up. `server` is read while serving only, so `vite build` is unaffected.
   server: { allowedHosts: ['jp.umaxica.com', 'us.umaxica.com'] },
   plugins: [
+    paraglideVitePlugin({
+      project: './project.inlang',
+      outdir: './src/paraglide',
+      strategy: ['custom-edge-locale', 'baseLocale'],
+      outputStructure: 'locale-modules',
+      isServer: 'import.meta.env.SSR',
+    }),
     tailwindcss(),
     cloudflare({
       inspectorPort: 9105,

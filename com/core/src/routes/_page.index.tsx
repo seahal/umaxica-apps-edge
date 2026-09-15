@@ -2,7 +2,6 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { PageHeading } from '@/components/page-heading';
 import { PageMain } from '@/components/page-main';
-import { defaultLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { BRAND_TITLE } from '@/lib/title';
 
@@ -14,7 +13,7 @@ import { BRAND_TITLE } from '@/lib/title';
  * would carry two — so the index states it.
  */
 export const Route = createFileRoute('/_page/')({
-  loader: () => getDictionary(defaultLocale),
+  loader: () => getDictionary(),
   head: () => ({ meta: [{ title: BRAND_TITLE }] }),
   component: IndexPage,
 });
