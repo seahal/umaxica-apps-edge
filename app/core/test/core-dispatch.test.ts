@@ -245,11 +245,11 @@ describe(`${FRAME} dispatchToRails passthrough`, () => {
 });
 
 describe(`${FRAME} dispatchToRails upstream failure`, () => {
-  const expectFailClosed = async (response: Response) => {
-    expect(response.status).toBe(503);
+  const expectFailClosed = async (response: Response, status = 503) => {
+    expect(response.status).toBe(status);
     expect(response.headers.get('cache-control')).toBe('no-store, no-cache, must-revalidate');
     expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
-    // This 503 is Edge's own document, not Rails', so it carries Edge's headers.
+    // This is Edge's own document, not Rails', so it carries Edge's headers.
     // A body with no declared type is one the browser may sniff, and this one is
     // served from the application's origin.
     expect(response.headers.get('content-type')).toBe('text/plain; charset=utf-8');
@@ -282,20 +282,20 @@ describe(`${FRAME} dispatchToRails upstream failure`, () => {
     await expect(response.text()).resolves.toBe('Rails upstream unavailable');
   });
 
-  it('returns 503 when the request times out', async () => {
+  it('returns 504 when the request times out', async () => {
     const timeout = Object.assign(new Error('The operation was aborted due to timeout'), {
       name: 'TimeoutError',
     });
     const fetch = vi.fn().mockRejectedValue(timeout);
 
-    await expectFailClosed(await dispatch(new Request(`${ORIGIN}/api/v0/x`), fetch));
+    await expectFailClosed(await dispatch(new Request(`${ORIGIN}/api/v0/x`), fetch), 504);
   });
 
-  it('returns 503 when the request is aborted', async () => {
+  it('returns 504 when the request is aborted', async () => {
     const abort = Object.assign(new Error('aborted'), { name: 'AbortError' });
     const fetch = vi.fn().mockRejectedValue(abort);
 
-    await expectFailClosed(await dispatch(new Request(`${ORIGIN}/api/v0/x`), fetch));
+    await expectFailClosed(await dispatch(new Request(`${ORIGIN}/api/v0/x`), fetch), 504);
   });
 
   it('returns 503 for a non-Error rejection', async () => {

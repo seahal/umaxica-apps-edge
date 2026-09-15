@@ -256,6 +256,8 @@ describe('one Rails timeout budget per frame', () => {
 
       expect(dispatch, `${brand}/core declares no dispatch timeout`).toBeDefined();
       expect(client, `${brand}/core declares no client timeout`).toBeDefined();
+      expect(dispatch, `${brand}/core dispatch timeout must stay at 2 seconds`).toBe('2000');
+      expect(client, `${brand}/core client timeout must stay at 2 seconds`).toBe('2000');
       expect(dispatch, `${brand}/core waits two different lengths for one Rails`).toBe(client);
     }
   });

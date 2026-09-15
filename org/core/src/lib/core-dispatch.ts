@@ -88,7 +88,7 @@ const APPLICATION_HEALTH_PROBES = new Set([
  * timeout budget for this frame, whichever direction the call comes from.
  * `test/core-dispatch-contract.test.ts` pins the two together.
  */
-const RAILS_DISPATCH_TIMEOUT_MS = 5000;
+const RAILS_DISPATCH_TIMEOUT_MS = 2000;
 
 function matchesPrefix(pathname: string, prefix: string): boolean {
   const withoutTrailingSlash = prefix.slice(0, -1);
@@ -132,21 +132,25 @@ export function blockedCoreResponse(): Response {
 
 /**
  * The only body a failed dispatch is allowed to carry: a fixed string chosen
- * from two literals.
+ * from three literals.
  *
  * No exception message and no Rails hostname ever reaches the browser. The
  * specific cause goes to Workers Logs through `logRailsDispatch()` instead,
  * where it is not attacker-visible.
  */
 function railsUnavailableResponse(
-  reason: 'not-configured' | 'upstream',
+  reason: 'not-configured' | 'upstream' | 'timeout',
   isProduction: boolean,
 ): Response {
   // Fail closed, visibly — same principle as `getRailsClient()` returning
   // `null`. Never falls through to the application, never silently succeeds against
   // a dev resource in production.
   const body =
-    reason === 'not-configured' ? 'Rails transport not configured' : 'Rails upstream unavailable';
+    reason === 'not-configured'
+      ? 'Rails transport not configured'
+      : reason === 'timeout'
+        ? 'Rails upstream timeout'
+        : 'Rails upstream unavailable';
 
   // `Content-Type` is stated rather than left off. A body with no declared type
   // is a body the browser is free to sniff, and this one is served on the same
@@ -157,7 +161,7 @@ function railsUnavailableResponse(
   // while a real Rails response passes through untouched.
   return withSecurityHeaders(
     new Response(body, {
-      status: 503,
+      status: reason === 'timeout' ? 504 : 503,
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate',
         'Content-Type': 'text/plain; charset=utf-8',
@@ -229,9 +233,9 @@ function buildRailsRequest(request: Request, incomingUrl: URL, origin: string): 
  * `Set-Cookie`, body, content-type, cache headers), including a 404, a 405 or a
  * 500 of its own making.
  *
- * The three ways this can fail all answer 503 and are distinguished only in the
- * log: no Rails origin, a thrown `fetch`, and a timeout. There is exactly one
- * `fetch()` call and no retry loop, for mutations as much as for reads — a
+ * A missing origin or unreachable upstream answers 503; a timeout answers 504.
+ * The cases are distinguished in the response and the log. There is exactly
+ * one `fetch()` call and no retry loop, for mutations as much as for reads — a
  * retried POST that timed out is a second mutation, not a second chance.
  */
 export async function dispatchToRails(
@@ -276,7 +280,7 @@ export async function dispatchToRails(
       outcome: isTimeoutError(error) ? 'timeout' : 'upstream_unreachable',
       duration_ms: Date.now() - startedAt,
     });
-    return railsUnavailableResponse('upstream', isProduction);
+    return railsUnavailableResponse(isTimeoutError(error) ? 'timeout' : 'upstream', isProduction);
   }
 
   logRailsDispatch({

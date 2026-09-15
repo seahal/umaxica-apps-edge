@@ -405,6 +405,30 @@ describe('rails health api consumer', () => {
     expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
   });
 
+  it('reports unreachable when the Health body times out after headers', async () => {
+    const controller = new AbortController();
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        pull() {
+          return new Promise<void>(() => {
+            // Keep the body pending until the request signal aborts it.
+          });
+        },
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    );
+    const reportPromise = checkRailsHealth(
+      makeClient({ kind: 'ok', status: 200, response, signal: controller.signal }),
+    );
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    controller.abort(new DOMException('timed out', 'TimeoutError'));
+
+    await expect(reportPromise).resolves.toEqual({ kind: 'unreachable' });
+  });
+
   it('reports invalid-contract when the body stream fails mid-read', async () => {
     // Not producible by a Hurl request: the connection has to break after the
     // headers are already in hand. `app.request()` is not involved — the client

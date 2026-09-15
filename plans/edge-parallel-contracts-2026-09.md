@@ -250,6 +250,31 @@ the changed files pass targeted Oxfmt and Oxlint checks. This slice is approved
 and independently reversible, but Core client/dispatch and the 1 MiB
 production HTTP evidence remain separate P4/P5 work.
 
+**P4b — Core client and Rails-owned dispatch boundary completed.** The three
+Core cells now use the same 2,000 ms external request budget for the health
+client and browser-facing Rails dispatch. The client carries its abort signal
+through response body reads; Core Health keeps its existing JSON contract with
+a 65,536-byte byte limit. A body timeout after headers becomes an unreachable
+health result. The Core dispatcher remains a separate transparent relay: it
+streams POST bodies, does not apply the public client JSON limits, does not
+follow redirects, and returns Rails status, `Location`, `Set-Cookie`,
+`Content-Type`, cache headers, and body unchanged. Missing or unreachable Rails
+is 503; an upstream timeout is 504; neither failure reaches the TanStack
+handler. The current Core configurations still have no `RAILS_ORIGIN`, so the
+production path remains fail-closed and no VPC or Internet fallback was added.
+
+The TDD red state included the three new bounded-reader suites failing before
+the new module existed and the existing worker tests rejecting the intentional
+503-to-504 timeout contract change. Green verification is 354 tests in each of
+`app/core` and `com/core`, 361 in `org/core`, the five-file focused suite with
+126 tests per Core, root Core/health invariants with 205 tests, all three Core
+Hurl suites with 34 requests each, and target plus unit lint, type-aware lint,
+Knip, and typecheck. The three Core copies of the shared health/client/reader
+files were checked for identity. Production Cloudflare bindings, live Rails,
+and browser E2E were not exercised. This slice is independently reversible;
+the remaining P5 work is the TanStack offline policy and its browser/runtime
+verification.
+
 ### P5 — TanStack offlineとCore透過中継
 
 対象: 15 frameのSW、3 CoreのRails-owned path tests。Hono offline撤去とは別に扱う。

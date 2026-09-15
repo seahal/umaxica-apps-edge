@@ -2,7 +2,7 @@ import '@tanstack/react-start/server-only';
 import { getEdgeEnv } from './cloudflare-env';
 import { parseRailsOrigin } from './rails-origin';
 
-const RAILS_FETCH_TIMEOUT_MS = 5000;
+const RAILS_FETCH_TIMEOUT_MS = 2000;
 
 // Stripped from every outbound request, always. This is about never RELAYING a
 // caller's credentials to Rails — a browser session cookie or an inbound Access
@@ -21,8 +21,9 @@ export interface RailsFetcher {
 export type RailsClientInit = Pick<RequestInit, 'method' | 'headers' | 'body'>;
 
 export type RailsClientResult =
-  | { kind: 'ok'; status: number; response: Response }
-  | { kind: 'http-error'; status: number; response: Response }
+  | { kind: 'ok'; status: number; response: Response; signal?: AbortSignal }
+  | { kind: 'http-error'; status: number; response: Response; signal?: AbortSignal }
+  | { kind: 'timeout' }
   | { kind: 'unreachable'; errorMessage: string }
   | { kind: 'invalid-path'; reason: string };
 
@@ -35,6 +36,12 @@ function getErrorMessage(error: unknown): string {
     return error.message;
   }
   return String(error);
+}
+
+function isTimeoutError(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && Reflect.get(error, 'name') === 'TimeoutError'
+  );
 }
 
 function hasControlCharacter(path: string): boolean {
@@ -90,6 +97,7 @@ export function createRailsClient(fetcher: RailsFetcher, origin: string): RailsC
         return { kind: 'invalid-path', reason: 'path resolved outside the fixed origin' };
       }
 
+      const signal = AbortSignal.timeout(RAILS_FETCH_TIMEOUT_MS);
       try {
         const response = await fetcher.fetch(url.toString(), {
           ...(init?.method === undefined ? {} : { method: init.method }),
@@ -97,15 +105,18 @@ export function createRailsClient(fetcher: RailsFetcher, origin: string): RailsC
           headers: buildSanitizedHeaders(init),
           redirect: 'manual',
           cache: 'no-store',
-          signal: AbortSignal.timeout(RAILS_FETCH_TIMEOUT_MS),
+          signal,
         });
 
         if (!response.ok) {
-          return { kind: 'http-error', status: response.status, response };
+          return { kind: 'http-error', status: response.status, response, signal };
         }
 
-        return { kind: 'ok', status: response.status, response };
+        return { kind: 'ok', status: response.status, response, signal };
       } catch (error) {
+        if (isTimeoutError(error) || signal.aborted) {
+          return { kind: 'timeout' };
+        }
         return { kind: 'unreachable', errorMessage: getErrorMessage(error) };
       }
     },

@@ -489,30 +489,35 @@ describe('org/core worker.ts dispatch', () => {
     [
       'the Rails fetch rejects',
       () => vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED 10.0.0.7:3000')),
+      503,
     ],
     [
       'the request times out',
       () =>
         vi.fn().mockRejectedValue(Object.assign(new Error('timed out'), { name: 'TimeoutError' })),
+      504,
     ],
-  ])('answers 503 and never reaches the application when %s', async (_label, makeRailsFetch) => {
-    const railsFetch = makeRailsFetch();
-    const request = new Request('https://jp.umaxica.org/api/v0/session', {
-      method: 'POST',
-      headers: { cookie: 'session=abc' },
-      body: '{"a":1}',
-    });
+  ])(
+    'answers the expected failure status and never reaches the application when %s',
+    async (_label, makeRailsFetch, expectedStatus) => {
+      const railsFetch = makeRailsFetch();
+      const request = new Request('https://jp.umaxica.org/api/v0/session', {
+        method: 'POST',
+        headers: { cookie: 'session=abc' },
+        body: '{"a":1}',
+      });
 
-    const response = await worker.fetch(request, makeEnv({ fetch: railsFetch }), ctx);
+      const response = await worker.fetch(request, makeEnv({ fetch: railsFetch }), ctx);
 
-    expect(response.status).toBe(503);
-    // A Rails or transport failure is never an invitation to try the application, and
-    // never an invitation to try Rails a second time.
-    expect(appFetch).not.toHaveBeenCalled();
-    expect(railsFetch).toHaveBeenCalledTimes(1);
-    expect(response.headers.get('cache-control')).toContain('no-store');
-    await expect(response.text()).resolves.not.toContain('ECONNREFUSED');
-  });
+      expect(response.status).toBe(expectedStatus);
+      // A Rails or transport failure is never an invitation to try the application, and
+      // never an invitation to try Rails a second time.
+      expect(appFetch).not.toHaveBeenCalled();
+      expect(railsFetch).toHaveBeenCalledTimes(1);
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      await expect(response.text()).resolves.not.toContain('ECONNREFUSED');
+    },
+  );
 
   it('keeps a Rails 500 of its own making distinct from a transport failure', async () => {
     const railsFetch = vi
