@@ -2,6 +2,8 @@
 
 ## Scope
 
+The implementation and its staged review were committed as `84d6f22f`.
+
 P3c aligns the three `info` publishing cells with the already recorded public
 host table. `info.umaxica.app`, `info.umaxica.com` and `info.umaxica.org` are
 global hosts without a `jp`/`us` host label. Both shared canonical origin slots

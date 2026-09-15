@@ -149,8 +149,6 @@ The following remain outside this accepted parallel slice:
   invalid-`lx` URL normalization, region links and authentication-dependent
   dashboard routes;
 - canonical, hreflang, sitemap and any query-based SEO policy;
-- the apparent `info` host/region configuration question, until the active
-  host table is confirmed rather than duplicated by hand;
 - production binding presence, real workerd/VPC behavior, live Rails response
   schemas, request-ID adoption by Rails, and production deployment;
 - whether a limited same-URL service-worker retirement update is required for
@@ -169,8 +167,10 @@ performed by this decision.
 Implemented Edge-only slices are recorded by commits `4929730c`, `5bc6538c`,
 `eca6a58b`, `963377c3`, `f92e2c8e`, `8fc13a12`, `9b78df1e`, `88a2f907`,
 `f8fadf08`, `0f83b4d6` and `86404e2e`, with their per-stage tests and evidence
-in `evidence/`. The fixed Rails Preference contract is now audited; the public
-locale URL/SEO integration remains explicitly P3b NO-GO. P6's combined verification is recorded in
+in `evidence/`. The fixed Rails Preference contract is now audited, and the
+info global-host correction is implemented in `84d6f22f` with its own evidence.
+The public locale URL/SEO integration remains explicitly P3b NO-GO. P6's
+combined verification is recorded in
 `evidence/2026-09-15-edge-final-verification.md`. This ADR is the current
 summary of the transport, timeout, body, Cookie, entry, logging and offline
 boundaries for the parallel work. The type-only follow-up is `d9c32ce2`, and

@@ -2,14 +2,16 @@
 
 ## Scope and review result
 
-The active local branch is `develop`; the functional implementation was
-completed at `86404e2e` and its type-only follow-up is `d9c32ce2`, before the
-documentation/evidence commit `bd3d3ec5`. The completed independent slices cover the five Hono
-apex workers, three TanStack Core workers and twelve TanStack public content
-cells. P3 (Rails Preference contract, Paraglide locale precedence,
-authentication-dependent shell and SEO URL policy) remains NO-GO because the
-Rails reference implementation is not present in this workspace. No Rails
-source or runtime was used.
+The active local branch is `develop`; the main functional implementation was
+completed at `86404e2e`, its type-only follow-up is `d9c32ce2`, and the info
+global-host correction was completed at `84d6f22f`. The documentation/evidence
+commits are `bd3d3ec5`, `f41b9634`, `3fc469fd` and `46c778d4`. The completed
+independent slices cover the five Hono apex workers, three TanStack Core
+workers and twelve TanStack public content cells. The Rails Preference
+contract was audited read-only at the requested SHA; P3b (Paraglide locale
+precedence, authentication-dependent shell and SEO URL policy) remains NO-GO
+because the public URL/SEO contract is not approved. No Rails source or
+runtime was used.
 
 The final review was performed by the implementing agent; no separate review
 agent was available. The review kept the public API client, Core API client and
@@ -53,6 +55,9 @@ The HTTP, browser and production-build commands above ran against
 a typed local variable in the fifteen identical log modules; it changes no
 runtime branch or output. The complete unit tests and the subsequent typecheck
 were rerun after that follow-up.
+
+The later P3c checks ran against `84d6f22f` and are recorded in
+[`evidence/2026-09-15-info-global-host.md`](2026-09-15-info-global-host.md).
 
 ## Boundaries left for external verification
 

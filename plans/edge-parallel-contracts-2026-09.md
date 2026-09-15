@@ -34,7 +34,8 @@ P0のbaseline以降、次の工程commitがローカルに積まれている。
 
 `48712246`（計画）、`4929730c`、`5bc6538c`、`eca6a58b`、`963377c3`、
 `f92e2c8e`、`8fc13a12`、`9b78df1e`、`88a2f907`、`f8fadf08`、
-`0f83b4d6`、`86404e2e`、`d9c32ce2`、`bd3d3ec5`。
+`0f83b4d6`、`86404e2e`、`d9c32ce2`、`bd3d3ec5`、`f41b9634`、
+`3fc469fd`、`46c778d4`、`84d6f22f`。
 
 引継ぎ時に `pnpm-workspace.yaml`、`pnpm-lock.yaml`、12 public unit の
 `wrangler.jsonc`、および root の一部文書に、所有者を確認できない未commit差分が
@@ -91,7 +92,8 @@ root configへの置換は行わない。
 - Honoは現行の検出順、query key、Accept-Language、fallback、Varyを維持し、
   language detectorの保存副作用だけを止める。Cookie writerを新設しない。
 - TanStack 15面は `lx` → Rails発行language Cookie → `ja` を採用するまでを保留する。
-  Rails参照がないため、許可値、正規化、大文字、空値、重複query、配列queryを推測しない。
+  許可値と正規化はP3aで確認したRails契約を根拠にするが、公開URL・SEO契約が未承認のため、
+  大文字、空値、重複query、配列queryのEdge上の扱いを先回りして実装しない。
   Accept-Language、navigator、path prefixを新たなfallbackにしない。
 - info 3面は現行Vite allowlistの `info.umaxica.{app,com,org}` を根拠にregionなし、
   docs/help/news 9面は現行の `surface-jp/us.umaxica.<tld>` を根拠にregion付きとする。
@@ -204,7 +206,8 @@ security headersを実装する。CoreのRails-owned responseはEdge headersで�
 P2は契約衝突を隠さないため、次の独立sliceへ分ける。**P2a**はRailsを必要としないapex
 5面のrequest ID、allowlist logger、Edge生成応答へのrequest ID header、エラー時のログ一本化で、
 実装してgreenになったらcommitする。**P2b**はHost allowlist、Coreの生成応答、12 public frameの
-入口、TanStackのCSRF/request middleware位置とbody上限である。infoのregionなし契約、Rails参照欠落、
+入口、TanStackのCSRF/request middleware位置とbody上限である。infoのregionなし契約、Rails Preference
+契約の読み取り、
 Coreの透過中継境界と同じ変更で混ぜると誤判定になるため、P2bの各sliceは現物契約を固定してから
 個別にGO判定する。P2a完了はP2全体や20面完了を意味しない。
 
@@ -304,6 +307,9 @@ invariant、各infoのHurl metadata、変更pathのformat/lintがgreenになる�
 `test:api`でinfo 3面を再確認し、docs/news/helpのregional hostテストも回帰させる。
 
 判定: **GO（info hostの既存設定と実測文書が一致し、locale/SEO移行から隔離できる）**。
+
+実装と検証は `84d6f22f` で完了した。結果は
+`evidence/2026-09-15-info-global-host.md` に記録する。
 
 ### P4 — API clientと通信上限
 
@@ -442,10 +448,11 @@ sequential Playwright、unit test、worker manifest/generated checksを実行し
   owner-unknownの依存差分を含む現環境で、旧sourceと現sourceの比較buildも同じ超過を再現したため、
   budgetを変更せず後続課題として保留した。
 
-P6の文書整合と最終自己審査は完了した。P3aのRails Preference契約監査は完了したが、P3bの
-公開locale URL接続は現行path canonicalと未承認のquery canonicalが衝突するためNO-GOのまま、
-production binding、実workerd/VPC、live Rails、Railsのrequest ID採用、既存browserへの
-Hono SW撤去rollout、SEO方針は保留である。P6は実装全体をproduction-readyとする判定ではない。
+P6の文書整合と最終自己審査は完了した。P3aのRails Preference契約監査は完了し、P3cのinfo
+global host境界も `84d6f22f` で完了した。一方、P3bの公開locale URL接続は現行path canonicalと
+未承認のquery canonicalが衝突するためNO-GOのまま、production binding、実workerd/VPC、live
+Rails、Railsのrequest ID採用、既存browserへのHono SW撤去rollout、SEO方針は保留である。P6は
+実装全体をproduction-readyとする判定ではない。
 
 ## TDDと検証の配置
 
@@ -522,7 +529,7 @@ Hono SW撤去rollout、SEO方針は保留である。P6は実装全体をproduct
 - P6のproduction build、専用port Hurl、Chromium、実workerd/VPC、Rails統合は、各工程で
   実行可能性を再確認してから判定する。P0のGOはこれらを実施済みという意味ではない。
 
-P0レビュー後の判定は、Rails待ちのP3bを切り離した **P1/P2/P4/P5とP3aの限定GO** である。
+P0レビュー後の判定は、Rails待ちのP3bを切り離した **P1/P2/P4/P5とP3a/P3cの限定GO** である。
 全20面の最終完成、公開locale URLの移行、production readinessのGOではない。
 
 ### P2b-apex 実装後の再審査
@@ -531,7 +538,7 @@ P0レビュー後の判定は、Rails待ちのP3bを切り離した **P1/P2/P4/P
   pure policy、実appの421、limiter前停止、request ID/security headers/最終statusログ、
   `X-Forwarded-Host`無視をテストできた。Rails、JWT、認証、外向き通信に依存しない。
 - **未着手・別審査**。CoreのRails-owned透過中継、public 12面のregion/VPC client、TanStack 15面の
-  Host/CSRF/body境界は、同じ変更へ混ぜていない。P3のRails Preference不足によるNO-GOも変わらない。
+  Host/CSRF/body境界は、同じ変更へ混ぜていない。P3bの公開locale URL/SEO契約によるNO-GOも変わらない。
 - **環境上の確認範囲**。unknown Hostを実Vite Hurlで送るとViteの`allowedHosts`がWorkerより前に
   拒否し得るため、Workerの未知Host境界はVitestの実app driverで確認し、実HTTPでは許可Hostに
   `X-Forwarded-Host`を付けても選択が変わらないことを確認した。production custom domainや
@@ -543,8 +550,8 @@ P0レビュー後の判定は、Rails待ちのP3bを切り離した **P1/P2/P4/P
   local/loopbackをpure policyで固定し、実Worker entryで未知Hostを421、limiter/Rails/application
   前で拒否する回帰を置いた。`X-Forwarded-Host`は選択に使わない。Rails変更、JWT、認証、VPCに依存しない。
 - **未着手・別審査**。3 CoreのRails透過中継のtimeout・header・Cookie・body契約、12 public frameの
-  VPC client、TanStack 15面のHost/CSRF/body境界はこのsliceに含めない。P3のRails Preference不足に
-  よるNO-GOも変わらない。
+  VPC client、TanStack 15面のHost/CSRF/body境界はこのsliceに含めない。P3bの公開locale URL/SEO
+  契約によるNO-GOも変わらない。
 - **環境上の確認範囲**。各Coreの専用local serverに対する既存HurlとHost headerケースは実行したが、
   production custom domain、実workers.dev配備、Cloudflare binding、Rails接続は未確認である。
 
