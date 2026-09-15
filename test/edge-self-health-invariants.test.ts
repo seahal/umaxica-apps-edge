@@ -65,7 +65,9 @@ describe('Edge self-health API layout', () => {
 
   it('keeps Hurl contracts byte-identical across all twenty units', () => {
     const digests = new Set(
-      [...APEX, ...CORES, ...SATELLITES].map((workspace) => read(`${workspace}/api/health-api.hurl`)),
+      [...APEX, ...CORES, ...SATELLITES].map((workspace) =>
+        read(`${workspace}/api/health-api.hurl`),
+      ),
     );
     expect(digests.size).toBe(1);
   });
@@ -83,7 +85,6 @@ describe('Edge self-health API layout', () => {
     );
     expect(digests.size).toBe(1);
   });
-
 
   it.each(CORES)('$0 dispatch keeps self-health on Edge, not Rails', (workspace) => {
     const source = code(`${workspace}/src/lib/core-dispatch.ts`);

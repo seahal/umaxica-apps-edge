@@ -19,7 +19,7 @@ const roots: Root[] = [];
 
 function mount(node: ReactNode) {
   const container = document.createElement('div');
-  document.body.append(container);
+  document.body.appendChild(container);
   const root = createRoot(container);
   roots.push(root);
   act(() => root.render(node));

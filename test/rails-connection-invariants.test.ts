@@ -191,9 +191,7 @@ describe('rails client layout', () => {
     expect(new Set(VITE_FRAMES.map(({ workspace }) => read(healthRouteOf(workspace)))).size).toBe(
       1,
     );
-    expect(new Set(VPC_CELLS.map(({ workspace }) => read(healthRouteOf(workspace)))).size).toBe(
-      1,
-    );
+    expect(new Set(VPC_CELLS.map(({ workspace }) => read(healthRouteOf(workspace)))).size).toBe(1);
   });
 
   /*
@@ -512,28 +510,23 @@ describe('workers vpc bindings', () => {
     },
   );
 
-  it.each(VPC_CELLS)(
-    '$workspace gives env.development the remote binding too',
-    ({ workspace }) => {
-      /*
-       * The ordinary development loop reaches Rails over the real transport rather
-       * than over a Node-only path that shares nothing with production.
-       *
-       * The property this gives up is the one ADR 006 decision 1 was protecting:
-       * `pnpm dev` and `pnpm preview` no longer work without an interactive
-       * `wrangler login`. That is not a side effect of `remote: true` being
-       * *chosen* here — wrangler classifies a VPC Service as a resource with no
-       * local simulator, so resolving this environment opens a remote proxy
-       * session either way, and that session rejects API-token authentication.
-       */
-      const declared = bindingsAt(workspace, 'development');
-      expect(declared, `${workspace} env.development must bind ${VPC_BINDING} once`).toHaveLength(
-        1,
-      );
-      expect(declared[0]?.service_id).toBe(manifest.vpcDevelopmentServiceId);
-      expect(declared[0]?.remote).toBe(true);
-    },
-  );
+  it.each(VPC_CELLS)('$workspace gives env.development the remote binding too', ({ workspace }) => {
+    /*
+     * The ordinary development loop reaches Rails over the real transport rather
+     * than over a Node-only path that shares nothing with production.
+     *
+     * The property this gives up is the one ADR 006 decision 1 was protecting:
+     * `pnpm dev` and `pnpm preview` no longer work without an interactive
+     * `wrangler login`. That is not a side effect of `remote: true` being
+     * *chosen* here — wrangler classifies a VPC Service as a resource with no
+     * local simulator, so resolving this environment opens a remote proxy
+     * session either way, and that session rejects API-token authentication.
+     */
+    const declared = bindingsAt(workspace, 'development');
+    expect(declared, `${workspace} env.development must bind ${VPC_BINDING} once`).toHaveLength(1);
+    expect(declared[0]?.service_id).toBe(manifest.vpcDevelopmentServiceId);
+    expect(declared[0]?.remote).toBe(true);
+  });
 
   it.each(VPC_CELLS)(
     '$workspace keeps the Node transport independent of the binding',

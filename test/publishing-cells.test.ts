@@ -53,6 +53,7 @@ describe('twelve-cell publishing matrix', () => {
     expect(CELLS).toHaveLength(12);
     for (const { unit } of CELLS) {
       expect(existsSync(join(repoRoot, unit, 'astro.config.mjs')), unit).toBe(false);
+      expect(existsSync(join(repoRoot, unit, '.astro')), unit).toBe(false);
       expect(existsSync(join(repoRoot, unit, 'src/routes/__root.tsx')), unit).toBe(true);
       const pkg = JSON.parse(read(`${unit}/package.json`)) as {
         dependencies?: Record<string, string>;

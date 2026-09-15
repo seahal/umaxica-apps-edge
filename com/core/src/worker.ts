@@ -193,7 +193,7 @@ export default {
     const route = classifyEdgeRoute(url.pathname);
     const method = normalizeEdgeMethod(request.method);
     const environment = normalizeEdgeEnvironment(env.EDGE_ENV);
-    let timedOut = false;
+    const timeoutState = { occurred: false };
 
     const finish = (response: Response, outcome = outcomeForStatus(response.status)): Response => {
       const finalResponse = withRequestId(response, requestId);
@@ -285,20 +285,20 @@ export default {
             });
           },
           () => {
-            timedOut = true;
+            timeoutState.occurred = true;
             return withSecurityHeaders(responseGenerationTimeoutResponse(), isProduction);
           },
         ),
       );
 
-      if (ownership === 'rails' && !timedOut) {
+      if (ownership === 'rails' && !timeoutState.occurred) {
         // `dispatchToRails` emits the one completion record for a transparent
         // Rails relay. The generic Edge record is for application-owned and
         // Edge-generated responses; emitting both would duplicate one request.
         return withRequestId(response, requestId);
       }
 
-      return finish(response, timedOut ? 'timeout' : undefined);
+      return finish(response, timeoutState.occurred ? 'timeout' : undefined);
     } catch {
       return finish(
         withSecurityHeaders(

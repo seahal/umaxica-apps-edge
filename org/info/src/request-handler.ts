@@ -72,7 +72,7 @@ export async function handleRequest(
   const route = classifyEdgeRoute(url.pathname);
   const method = normalizeEdgeMethod(request.method);
   const environment = normalizeEdgeEnvironment(bindings.EDGE_ENV);
-  let timedOut = false;
+  const timeoutState = { occurred: false };
 
   const finish = (response: Response, outcome = outcomeForStatus(response.status)): Response => {
     const finalResponse = withRequestId(response, requestId);
@@ -122,7 +122,7 @@ export async function handleRequest(
           );
         },
         () => {
-          timedOut = true;
+          timeoutState.occurred = true;
           return responseGenerationTimeoutResponse();
         },
       ),
@@ -130,7 +130,7 @@ export async function handleRequest(
 
     return finish(
       withSecurityHeaders(applyPublishingStatus(response), isProduction, nonce),
-      timedOut ? 'timeout' : undefined,
+      timeoutState.occurred ? 'timeout' : undefined,
     );
   } catch {
     return finish(

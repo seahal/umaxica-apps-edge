@@ -55,10 +55,8 @@ The following checks were run after the implementation:
   The runs did not use Rails, production bindings or a deployed endpoint.
 
 Known checks that remain separate from this slice are recorded in the final
-verification: public unit typecheck still reports the existing
-`test/uncovered-components.test.tsx(22,24)` fixture error; root `check` stops
-at existing generated `.astro` format diagnostics; and the existing size
-budgets remain over limit. The public bundle comparison was about
+verification. The existing public and Core size budgets remain over limit. The
+public bundle comparison was about
 120.66–120.68 kB gzip before this migration and 122.65–122.69 kB afterward
 against the 112 kB limit. No budget was raised.
 

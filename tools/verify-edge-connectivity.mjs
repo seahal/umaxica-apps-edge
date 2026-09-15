@@ -236,7 +236,9 @@ export function tunnelHostFor(brand, frame, env = process.env) {
 export function readRailsOrigin(ws) {
   const cellPath = join(repoRoot, ws, 'src/lib/publishing-cell.ts');
   if (existsSync(cellPath)) {
-    const constant = /PRIVATE_RAILS_ORIGIN\s*=\s*'([^']+)'/u.exec(readFileSync(cellPath, 'utf8'))?.[1];
+    const constant = /PRIVATE_RAILS_ORIGIN\s*=\s*'([^']+)'/u.exec(
+      readFileSync(cellPath, 'utf8'),
+    )?.[1];
     if (constant) return constant;
   }
   const examplePath = join(repoRoot, ws, '.dev.vars.example');

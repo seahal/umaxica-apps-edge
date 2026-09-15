@@ -477,9 +477,10 @@ sequential Playwright、unit test、worker manifest/generated checks、root inva
   切り分けたうえで、各unitをsequentialに実行した。
 - `pnpm run check:workers`、`check:generated`、`check:architecture`、`check:deps`、`knip`、
   `check:spelling`: PASS。変更pathのOxfmt/Oxlint/type-aware OxlintとP3dのpre-commit hookもPASS。
-- unitごとのtypecheck: apex 5面とCore 3面はPASS。public 12面は既存の
-  `test/uncovered-components.test.tsx(22,24)`の型エラーでFAILし、Paraglide由来の型エラーはない。
-- `pnpm run check`: 既存の無視対象生成`.astro`のformat診断でapp/docsにて停止。baselineから継続。
+- unitごとのtypecheck: 20面すべてPASS。public fixtureの`document.body.append`はWorkers/DOM型の
+  overloadに合わせて`appendChild`へ変更し、Paraglide由来の型エラーはない。
+- `pnpm run check`: 20面のstatic checksとunit test、root invariantを含めてPASS。過去に追跡された
+  stale `.astro`生成物と、timeout状態のtype-aware lint警告を別工程で解消した。
 - `pnpm run check:size`: apex 5面は48.46–48.56 kB gzip / 52 kBでPASS。Coreは
   129.82/129、129.83/129、132.97/129 kBでFAIL、public 12面は122.65–122.69/112 kBでFAIL。
   publicの変更前比較は約120.66–120.68 kBで既にbudget超過し、Paraglide後の増分を確認した。
@@ -490,9 +491,25 @@ P6の文書整合と最終自己審査は完了した。P3aのRails Preference�
 境界、P3dのParaglide生成/request isolation境界は完了した。一方、P3bの公開locale URL接続は
 現行path canonicalと未承認のquery canonicalが衝突するためNO-GOのまま、JWT/authentication、
 production binding、実workerd/VPC、live Rails、Railsのrequest ID採用、既存browserへのHono SW
-撤去rollout、SEO方針は保留である。size budgetとpublic fixture typecheckも既存またはP3d後に
-確認された後続課題として、今回の完了判定を広げる理由にはしない。P6は実装全体をproduction-ready
-とする判定ではない。
+撤去rollout、SEO方針は保留である。size budgetは後続課題として、今回の完了判定を広げる理由にはしない。
+P6は実装全体をproduction-readyとする判定ではない。
+
+#### P6a — stale Astro生成物・root衛生・型/lintの完了（追加、GO）
+
+現行の12 public unitは`astro.config.mjs`、Astro依存、Astro routeを持たないが、過去のAstro
+切替時に生成された追跡済み`.astro` metadataが64ファイル残り、root Oxfmtの対象になっていた。
+コードからの参照がないことと、既存の「publicはTanStack Start、Astroなし」invariantを確認し、
+metadataを削除して`.gitignore`へ`**/.astro/`を追加した。public matrix invariantにもdirectory
+残存チェックを追加した。
+
+同じ静的工程で、Workers/DOM型の`Body.append` overloadに当たる12 public fixtureを
+`appendChild`へ修正し、18面のtimeout状態をmutable objectへ保持してtype-aware lintの誤検出を
+抑制なしで解消した。rootの4ファイルはOxfmtだけを適用した。業務挙動、HTTP契約、Rails通信、
+認証境界は変更していない。
+
+削除前のmatrix invariantは`app/info`の`.astro` directoryを検出してFAILし、削除後は42/42
+PASSした。`pnpm run format:check`、`pnpm run lint:types`、全20面typecheck、`pnpm run check`
+を再実行し、すべてPASSした。実装・検証は後続の衛生commitとして完了させる。
 
 ## TDDと検証の配置
 

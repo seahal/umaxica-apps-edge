@@ -81,14 +81,18 @@ describe('Edge revision representations', () => {
 
   it('keeps Hurl revision API contracts byte-identical across all twenty units', () => {
     const digests = new Set(
-      [...APEX, ...CORES, ...SATELLITES].map((workspace) => read(`${workspace}/api/revision-api.hurl`)),
+      [...APEX, ...CORES, ...SATELLITES].map((workspace) =>
+        read(`${workspace}/api/revision-api.hurl`),
+      ),
     );
     expect(digests.size).toBe(1);
   });
 
   it('keeps Playwright revision contracts byte-identical across all twenty units', () => {
     const digests = new Set(
-      [...APEX, ...CORES, ...SATELLITES].map((workspace) => read(`${workspace}/e2e/revision.spec.ts`)),
+      [...APEX, ...CORES, ...SATELLITES].map((workspace) =>
+        read(`${workspace}/e2e/revision.spec.ts`),
+      ),
     );
     expect(digests.size).toBe(1);
   });
@@ -99,7 +103,9 @@ describe('Edge revision representations', () => {
       'src/routes/api.v0.revision[.]json.ts',
       'src/routes/revision.ts',
     ]) {
-      expect(new Set(SATELLITES.map((workspace) => read(`${workspace}/${file}`))).size, file).toBe(1);
+      expect(new Set(SATELLITES.map((workspace) => read(`${workspace}/${file}`))).size, file).toBe(
+        1,
+      );
     }
   });
 
@@ -112,5 +118,4 @@ describe('Edge revision representations', () => {
         .size,
     ).toBe(1);
   });
-
 });
