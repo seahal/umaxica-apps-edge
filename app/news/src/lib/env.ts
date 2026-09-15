@@ -19,6 +19,7 @@ import { env } from 'cloudflare:workers';
  * beside it is not, and nothing in this module may reach a client bundle.
  */
 export interface EdgeBindings {
+  EDGE_ENV?: string;
   UMAXICA_APPS_EDGE_CF_WORKERS_VPC?: {
     fetch(input: string, init?: RequestInit): Promise<Response>;
   };

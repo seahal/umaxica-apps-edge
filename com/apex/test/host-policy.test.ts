@@ -34,6 +34,7 @@ describe('apex Host policy', () => {
       'umaxica.example',
       `${APEX_PUBLIC_HOST}.evil.example`,
       `umaxica-apps-edge-other-apex.account.workers.dev`,
+      `umaxica-apps-edge-other-${APEX_WORKER_NAME}.account.workers.dev`,
       'workers.dev',
       'account.workers.dev',
       '',

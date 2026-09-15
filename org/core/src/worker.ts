@@ -7,6 +7,11 @@ import {
 } from './lib/core-host-policy';
 import { sanitizeHealthRequest } from './lib/health-request';
 import { checkRateLimit } from './lib/rate-limit';
+import { limitRequestBody, requestBoundaryResponse } from './lib/request-boundary';
+import {
+  responseGenerationTimeoutResponse,
+  withResponseGenerationTimeout,
+} from './lib/response-timeout';
 import { withSecurityHeaders } from './security-headers';
 
 /**
@@ -134,6 +139,32 @@ function isAuthPath(pathname: string): boolean {
   );
 }
 
+/**
+ * Removes the application-side Cookie header without cloning the body with
+ * `Request`'s implicit tee. The bounded reader below owns this one stream and
+ * reconstructs a fresh request after it has counted the bytes.
+ */
+function stripApplicationCookie(request: Request): Request {
+  const headers = new Headers(request.headers);
+  headers.delete('cookie');
+  const body = request.body;
+  const init = {
+    cache: request.cache,
+    credentials: request.credentials,
+    headers,
+    integrity: request.integrity,
+    keepalive: request.keepalive,
+    method: request.method,
+    mode: request.mode,
+    redirect: request.redirect,
+    referrer: request.referrer,
+    referrerPolicy: request.referrerPolicy,
+    signal: request.signal,
+    ...(body === null ? {} : { body, duplex: 'half' as const }),
+  };
+  return new Request(request.url, init);
+}
+
 export default {
   // `_ctx` is unused: the application half is a plain `Request -> Response`
   // function. The parameter stays in the signature because the runtime supplies
@@ -158,36 +189,55 @@ export default {
       return withSecurityHeaders(blockedCoreResponse(), isProduction);
     }
 
-    if (!isRateLimitExempt(pathname)) {
-      const rateLimitedResponse = await checkRateLimit(request, env.RATE_LIMITER);
-      if (rateLimitedResponse) return withSecurityHeaders(rateLimitedResponse, isProduction);
-    }
+    return withResponseGenerationTimeout(
+      async (signal) => {
+        if (!isRateLimitExempt(pathname)) {
+          const rateLimitedResponse = await checkRateLimit(request, env.RATE_LIMITER);
+          if (rateLimitedResponse) {
+            return withSecurityHeaders(rateLimitedResponse, isProduction);
+          }
+        }
 
-    if (isAuthPath(pathname)) {
-      const authLimitedResponse = await checkRateLimit(request, env.AUTH_RATE_LIMITER);
-      if (authLimitedResponse) return withSecurityHeaders(authLimitedResponse, isProduction);
-    }
+        if (isAuthPath(pathname)) {
+          const authLimitedResponse = await checkRateLimit(request, env.AUTH_RATE_LIMITER);
+          if (authLimitedResponse) {
+            return withSecurityHeaders(authLimitedResponse, isProduction);
+          }
+        }
 
-    if (ownership === 'rails') {
-      // Rails headers its own responses; the 503 substituted when the dispatch
-      // never reached Rails is Edge's own document, so `dispatchToRails` headers
-      // that one itself rather than reporting back which case it took.
-      return dispatchToRails(request, env, isProduction);
-    }
+        if (ownership === 'rails') {
+          // Rails headers its own responses; the 503 substituted when the
+          // dispatch never reached Rails is Edge's own document, so
+          // `dispatchToRails` headers that one itself rather than reporting
+          // back which case it took. This branch deliberately skips the
+          // ordinary application body limit so Rails mutations remain a
+          // transparent streamed relay.
+          return dispatchToRails(request, env, isProduction);
+        }
 
-    const sanitizedRequest = isHealthPath(pathname) ? sanitizeHealthRequest(request) : request;
-    const strippedHeaders = new Headers(sanitizedRequest.headers);
-    strippedHeaders.delete('cookie');
-    const strippedRequest = new Request(sanitizedRequest, { headers: strippedHeaders });
+        const sanitizedRequest = isHealthPath(pathname) ? sanitizeHealthRequest(request) : request;
+        const strippedRequest = stripApplicationCookie(sanitizedRequest);
+        const bounded = await limitRequestBody(strippedRequest, signal);
+        if (bounded.kind !== 'ok') {
+          return withSecurityHeaders(
+            bounded.kind === 'aborted'
+              ? responseGenerationTimeoutResponse()
+              : requestBoundaryResponse(bounded.kind),
+            isProduction,
+          );
+        }
 
-    const response = await appHandler.fetch(strippedRequest);
-    const responseHeaders = new Headers(response.headers);
-    responseHeaders.delete('set-cookie');
+        const response = await appHandler.fetch(bounded.request);
+        const responseHeaders = new Headers(response.headers);
+        responseHeaders.delete('set-cookie');
 
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: responseHeaders,
-    });
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: responseHeaders,
+        });
+      },
+      () => withSecurityHeaders(responseGenerationTimeoutResponse(), isProduction),
+    );
   },
 };

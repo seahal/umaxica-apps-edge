@@ -13,7 +13,7 @@ export const APEX_PUBLIC_ORIGIN = `https://${APEX_PUBLIC_HOST}`;
 // allowlist below accepts only the same hostname shape with one account label.
 export const APEX_PREVIEW_HOST = `${APEX_WORKER_NAME}.account.workers.dev`;
 
-const PREVIEW_HOST_SOURCE = `(?:[a-z0-9-]+-)?${APEX_WORKER_NAME}\\.[a-z0-9-]+\\.workers\\.dev`;
+const PREVIEW_HOST_SOURCE = `(?:[a-z0-9]+-)?${APEX_WORKER_NAME}\\.[a-z0-9-]+\\.workers\\.dev`;
 const PREVIEW_HOST_PATTERN = new RegExp(`^${PREVIEW_HOST_SOURCE}$`, 'u');
 const PREVIEW_ORIGIN_PATTERN = new RegExp(`^https://${PREVIEW_HOST_SOURCE}$`, 'u');
 const LOCAL_ORIGIN_PATTERN = new RegExp(

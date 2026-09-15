@@ -1,4 +1,5 @@
 import { Hono, type Context, type MiddlewareHandler } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { etag } from 'hono/etag';
 import { HTTPException } from 'hono/http-exception';
 import { languageDetector } from 'hono/language';
@@ -57,6 +58,12 @@ const bindings = (c: Context<ApexEnv>): AssetEnv | undefined => c.env;
  * intermediary that does keep one.
  */
 const NEGOTIATED_ON = 'Cookie, Accept-Language';
+
+/** The application-owned request body limit, measured in bytes. */
+export const EDGE_INPUT_MAX_BYTES = 65_536;
+
+/** The response-generation budget, separate from the upstream I/O budget. */
+export const EDGE_RESPONSE_TIMEOUT_MS = 3_000;
 
 /*
  * HTML only. `/revision` is negotiated by nothing, and
@@ -135,6 +142,41 @@ function isMachineEndpoint(path: string): boolean {
 
 type ConfigurePageRoutes = (pageRoutes: Hono<ApexEnv>) => void;
 
+function unsupportedContentEncodingResponse(): Response {
+  return new Response('Unsupported Media Type\n', {
+    status: 415,
+    headers: {
+      'Cache-Control': 'no-store',
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Robots-Tag': 'noindex, nofollow',
+    },
+  });
+}
+
+function payloadTooLargeResponse(): Response {
+  return new Response('Payload Too Large\n', {
+    status: 413,
+    headers: {
+      'Cache-Control': 'no-store',
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Robots-Tag': 'noindex, nofollow',
+    },
+  });
+}
+
+const rejectUnsupportedContentEncoding: MiddlewareHandler<ApexEnv> = async (c, next) => {
+  const contentEncoding = c.req.header('Content-Encoding');
+  if (contentEncoding !== undefined && contentEncoding.trim().toLowerCase() !== 'identity') {
+    return unsupportedContentEncodingResponse();
+  }
+  return next();
+};
+
+const limitEdgeRequestBody = bodyLimit({
+  maxSize: EDGE_INPUT_MAX_BYTES,
+  onError: () => payloadTooLargeResponse(),
+});
+
 const exposeRequestId: MiddlewareHandler<ApexEnv> = (c, next) => {
   // Touch the response before a handler can return a bare Response. Hono then
   // carries this header collection across the response replacement, so every
@@ -155,6 +197,17 @@ export function createApexApp(configurePageRoutes: ConfigurePageRoutes) {
   app.use('*', varyOnNegotiation);
   app.use(etag());
   app.use(apexStructuredLogger);
+  // This timer bounds the application entry after the request ID, response
+  // headers and structured logger are installed. Hono's middleware clears its
+  // timer in `finally`; the late `next()` promise remains observed by Hono's
+  // Promise.race, so a late rejection is not unhandled.
+  app.use(
+    '*',
+    timeout(
+      EDGE_RESPONSE_TIMEOUT_MS,
+      () => new HTTPException(503, { message: 'Service Unavailable' }),
+    ),
+  );
   app.use('*', async (c, next) => {
     // The URL's hostname is the request target. Proxy forwarding headers are
     // client-controlled and cannot select a different public unit.
@@ -175,6 +228,11 @@ export function createApexApp(configurePageRoutes: ConfigurePageRoutes) {
     return next();
   });
   app.use('*', apexCsrf);
+  // CSRF and Host checks stay ahead of body consumption. The official Hono
+  // bodyLimit then handles both Content-Length and chunked streams for every
+  // route owned by this Hono Worker.
+  app.use('*', rejectUnsupportedContentEncoding);
+  app.use('*', limitEdgeRequestBody);
   // Reads the locale set from this unit's own config rather than repeating
   // it, so the detector and `<html lang>` cannot disagree. Machine health
   // must not emit a language cookie as a side effect.

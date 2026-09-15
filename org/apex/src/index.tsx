@@ -1,6 +1,4 @@
 /** @jsxImportSource hono/jsx */
-import { timeout } from 'hono/timeout';
-
 import { createApexApp } from './create-apex-app';
 import { getAboutMeta, renderAboutContent } from './page-content';
 import { getDefaultRedirectUrl, resolveRedirectUrl } from './root-redirect';
@@ -21,7 +19,7 @@ const app = createApexApp((pageRoutes) => {
     return c.redirect(getDefaultRedirectUrl(), 301);
   });
 
-  pageRoutes.get('/about', timeout(2000), (c) => {
+  pageRoutes.get('/about', (c) => {
     setMeta(c, getAboutMeta(c.env, c.get('language')));
     return c.render(renderAboutContent(c.get('language')));
   });

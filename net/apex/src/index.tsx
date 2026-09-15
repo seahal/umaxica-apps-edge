@@ -1,6 +1,4 @@
 /** @jsxImportSource hono/jsx */
-import { timeout } from 'hono/timeout';
-
 import { createApexApp } from './create-apex-app';
 import { getAboutMeta, getHomeMeta, renderAboutContent, renderHomeContent } from './page-content';
 import { setMeta } from './seo';
@@ -14,12 +12,12 @@ import { setMeta } from './seo';
  * the footer's utility navigation still points at it.
  */
 const app = createApexApp((pageRoutes) => {
-  pageRoutes.get('/', timeout(2000), (c) => {
+  pageRoutes.get('/', (c) => {
     setMeta(c, getHomeMeta(c.env, c.get('language')));
     return c.render(renderHomeContent(c.get('language')));
   });
 
-  pageRoutes.get('/about', timeout(2000), (c) => {
+  pageRoutes.get('/about', (c) => {
     setMeta(c, getAboutMeta(c.env, c.get('language')));
     return c.render(renderAboutContent(c.get('language')));
   });

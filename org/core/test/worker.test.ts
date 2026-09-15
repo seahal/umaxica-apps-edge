@@ -28,6 +28,9 @@ vi.mock('../src/lib/health-request', () => ({
 
 vi.mock('../src/lib/rate-limit', () => ({ checkRateLimit }));
 
+import { CORE_PUBLIC_HOST } from '../src/lib/core-host-policy';
+import { EDGE_INPUT_MAX_BYTES } from '../src/lib/request-boundary';
+import { EDGE_RESPONSE_TIMEOUT_MS } from '../src/lib/response-timeout';
 import worker from '../src/worker';
 
 // Rails is reached with the runtime's global `fetch`, so a Rails stand-in is a
@@ -96,6 +99,76 @@ describe('org/core worker.ts dispatch', () => {
     expect(forwardedRequest.headers.get('cookie')).toBeNull();
     expect(response.status).toBe(200);
     expect(await response.text()).toBe('ok');
+  });
+
+  it('rejects an oversized application body before calling handler.fetch', async () => {
+    appFetch.mockResolvedValue(new Response('should not render', { status: 200 }));
+
+    const response = await worker.fetch(
+      new Request(`https://${CORE_PUBLIC_HOST}/submit`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: new Uint8Array(EDGE_INPUT_MAX_BYTES + 1),
+      }),
+      makeEnv(),
+      ctx,
+    );
+
+    expect(response.status).toBe(413);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(appFetch).not.toHaveBeenCalled();
+  });
+
+  it('reconstructs an exact-size streamed application body for the handler', async () => {
+    appFetch.mockImplementation(async (forwardedRequest: Request) => {
+      return new Response(String((await forwardedRequest.arrayBuffer()).byteLength));
+    });
+    const exact = new TextEncoder().encode('あ'.repeat(21_845) + 'a');
+    expect(exact.byteLength).toBe(EDGE_INPUT_MAX_BYTES);
+
+    const init = {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: 'ignored=1' },
+      body: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(exact);
+          controller.close();
+        },
+      }),
+      duplex: 'half' as const,
+    };
+    const response = await worker.fetch(
+      new Request(`https://${CORE_PUBLIC_HOST}/submit`, init),
+      makeEnv(),
+      ctx,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toBe(String(EDGE_INPUT_MAX_BYTES));
+    const forwardedRequest = appFetch.mock.calls[0]?.[0] as Request;
+    expect(forwardedRequest.headers.get('cookie')).toBeNull();
+  });
+
+  it('returns a hardened 503 when application response generation exceeds three seconds', async () => {
+    vi.useFakeTimers();
+    try {
+      const responsePromise = worker.fetch(
+        new Request(`https://${CORE_PUBLIC_HOST}/`),
+        makeEnv(),
+        ctx,
+      );
+      appFetch.mockReturnValue(new Promise<Response>(() => {}));
+
+      await vi.advanceTimersByTimeAsync(EDGE_RESPONSE_TIMEOUT_MS);
+      const response = await responsePromise;
+
+      expect(response.status).toBe(503);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('strips every Set-Cookie header from the application response before it reaches the caller', async () => {
@@ -474,6 +547,28 @@ describe('org/core worker.ts dispatch', () => {
     expect(railsRequest.body).not.toBeNull();
     await expect(railsRequest.json()).resolves.toEqual({ hello: 'world' });
     expect(response.status).toBe(201);
+  });
+
+  it('does not apply the Edge application body limit to a Rails-owned request', async () => {
+    const oversizedBytes = EDGE_INPUT_MAX_BYTES + 1;
+    const railsFetch = vi.fn().mockImplementation(async (railsRequest: Request) => {
+      return new Response(String((await railsRequest.arrayBuffer()).byteLength), { status: 201 });
+    });
+
+    const response = await worker.fetch(
+      new Request(`https://${CORE_PUBLIC_HOST}/api/v0/session`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: new Uint8Array(oversizedBytes),
+      }),
+      makeEnv({ fetch: railsFetch }),
+      ctx,
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.text()).resolves.toBe(String(oversizedBytes));
+    expect(railsFetch).toHaveBeenCalledTimes(1);
+    expect(appFetch).not.toHaveBeenCalled();
   });
 
   it('fails closed with 503 when no Rails origin is configured, without falling back to the application', async () => {

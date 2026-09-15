@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { PUBLISHING_STATUS_HEADER } from '../src/lib/publishing-status';
+import { EDGE_INPUT_MAX_BYTES } from '../src/lib/request-boundary';
+import { EDGE_RESPONSE_TIMEOUT_MS } from '../src/lib/response-timeout';
 import { handleRequest } from '../src/request-handler';
 import { resetEnv, setEnv } from './__mocks__/cloudflare-workers';
 
@@ -28,6 +30,57 @@ describe('request handler', () => {
     const missing = await handleRequest(new Request('http://localhost/nope'), notFound, true);
     expect(missing.status).toBe(404);
     expect(missing.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('rejects an unknown Host before the limiter or router can run', async () => {
+    const limiter = { limit: vi.fn().mockResolvedValue({ success: true }) };
+    setEnv({ EDGE_ENV: 'production', RATE_LIMITER: limiter });
+    const router = vi.fn(ok);
+
+    const response = await handleRequest(
+      new Request('https://attacker.example/ja/entries/'),
+      router,
+      true,
+    );
+
+    expect(response.status).toBe(421);
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(limiter.limit).not.toHaveBeenCalled();
+    expect(router).not.toHaveBeenCalled();
+  });
+
+  it('rejects an oversized application body before the router', async () => {
+    const router = vi.fn(ok);
+    const response = await handleRequest(
+      new Request('http://localhost/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: new Uint8Array(EDGE_INPUT_MAX_BYTES + 1),
+      }),
+      router,
+      true,
+    );
+
+    expect(response.status).toBe(413);
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(router).not.toHaveBeenCalled();
+  });
+
+  it('returns a hardened 503 when application response generation exceeds three seconds', async () => {
+    vi.useFakeTimers();
+    try {
+      const router = vi.fn(() => new Promise<Response>(() => {}));
+      const responsePromise = handleRequest(new Request('http://localhost/'), router, true);
+
+      await vi.advanceTimersByTimeAsync(EDGE_RESPONSE_TIMEOUT_MS);
+      const response = await responsePromise;
+
+      expect(response.status).toBe(503);
+      expect(response.headers.get('Cache-Control')).toBe('no-store');
+      expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('answers 429 without running the router, and hardens the 429 too', async () => {
