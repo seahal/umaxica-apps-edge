@@ -287,6 +287,24 @@ region linkも同じく保留し、現在の認証ガードを弱めない。
 判定: **P3aはGO（契約確認のみ）、P3bはNO-GO（公開URL・SEO契約未承認）**。P3全体を完了扱い
 にせず、現行locale実装をAccept-Languageの都合で改変しない。
 
+#### P3c — info 3面のglobal host境界（今回追加、GO）
+
+既存の `docs/operations/cloudflare-tunnel-development.md`、`adr/008`、現物の各
+`info/vite.config.ts`のallowlistは、`info.umaxica.{app,com,org}`をregionなしのhostとして
+扱っている。一方、各infoのcell定義だけが`info-jp`/`info-us`を生成し、canonicalとHurlの
+期待値を誤ったhostへ向けていた。
+
+P3cではinfo 3面のcell-owned canonical originを同一のglobal hostへ揃え、cell invariantと
+実HTTPのmetadata期待値を更新する。docs/news/help 9面の`<surface>-jp/us`、infoのRails
+private origin、`PUBLIC_REGION`による他surfaceのregional buildは変更しない。これはlocale
+query、Paraglide、認証、canonical方針の移行ではなく、既に確認済みのinfo host表への修正である。
+
+受入条件は、info 3面のcellテスト・host policy・canonical regionテスト、rootの12-cell
+invariant、各infoのHurl metadata、変更pathのformat/lintがgreenになること。専用portの
+`test:api`でinfo 3面を再確認し、docs/news/helpのregional hostテストも回帰させる。
+
+判定: **GO（info hostの既存設定と実測文書が一致し、locale/SEO移行から隔離できる）**。
+
 ### P4 — API clientと通信上限
 
 対象: 12 public `rails-client`/entries系、3 Core `rails-client`/health、Core dispatchの

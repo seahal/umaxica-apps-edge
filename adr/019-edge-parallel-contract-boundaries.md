@@ -96,6 +96,13 @@ approved, so this route/SEO integration remains P3b NO-GO. No Accept-Language
 fallback change, JWT decode, authentication stub or anonymous dashboard route is
 added in the meantime.
 
+The three `info` public cells are global-host cells. Their existing Vite
+allowlists and the recorded tunnel table use `info.umaxica.{app,com,org}` with
+no region label. The `info` cell-owned canonical origin is therefore the same
+global host for both build-region slots, while `docs`, `news` and `help` retain
+their `<surface>-jp/us` origins. This is a host-table correction and does not
+select a region from a request.
+
 Hono uses the fixed Hono `bodyLimit` API. TanStack Start's fixed-version default
 CSRF behavior remains in place; no speculative `start.ts` or invented body
 limit middleware is added. CORS is not newly allowed. A future API may propose
