@@ -3,7 +3,7 @@
 ## Status
 
 Accepted — 2026-09-11. Supersedes ADR 005 and ADR 006 **for `{app,com,org}/core`
-only**. The twelve Astro content surfaces keep the Workers VPC transport those
+only**. The twelve TanStack public content surfaces keep the Workers VPC transport those
 ADRs describe.
 
 ## Context

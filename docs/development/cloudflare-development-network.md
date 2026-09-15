@@ -4,11 +4,11 @@ A missing Workers binding is never fabricated and never falls back to Access or 
 environment.
 
 Every deployment unit's dev server runs the Worker in workerd. One consequence is load-bearing here
-and was found by measurement: **workerd's `process.env` is not the shell's**, so the Astro
-surfaces' `EDGE_LOCAL_*` overlay flags are forwarded explicitly into the Worker, and only while
+and was found by measurement: **workerd's `process.env` is not the shell's**, so the public
+TanStack surfaces' `EDGE_LOCAL_*` overlay flags are forwarded explicitly into the Worker, and only while
 serving.
 
-Paths 1–4 below are the twelve Astro content surfaces. The three Cores (`{app,com,org}/core`) hold
+Paths 1–4 below are the twelve TanStack public content surfaces. The three Cores (`{app,com,org}/core`) hold
 no Workers VPC binding: they reach Rails over the public internet with the Worker's own `fetch`, at
 the per-tier `RAILS_ORIGIN` var (path 6; `adr/018-core-rails-direct-internet.md`).
 
@@ -51,7 +51,7 @@ exist, and pointing the deployed Worker at the one service that does is the only
 real edge → Workers VPC → VPC Service → Tunnel → Rails path before it does. The cost is stated
 plainly: production Rails connectivity is only as available as the developer machine behind the
 tunnel. `tools/workers-manifest.json` holds the two ids as separate fields so the AWS cutover is a
-change to `vpcProductionServiceId` and the twelve Astro surfaces' top-level `service_id`s, with no application
+change to `vpcProductionServiceId` and the twelve public surfaces' top-level `service_id`s, with no application
 change. See ADR 006.
 
 | Edge dev exposure | browser | sixteen published FQDNs, then `core:<port>` | Cloudflare Access on all sixteen, whole host, no `/health*` Bypass | Container or dev server down returns 502, reported BLOCKED not FAIL; unauthenticated is 302 to the team domain | `pnpm run check:tunnel:edge` | Runtime verification required after the Tunnel split |

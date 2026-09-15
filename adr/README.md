@@ -17,3 +17,10 @@ as distinct from Rails health consumption (ADR 016) and from operational
 Some ADRs may record an accepted architecture boundary before implementation.
 Those records should state that implementation is deferred in their `## Outcome`
 section.
+
+Current boundary records:
+
+- [ADR 016](016-rails-machine-health-api.md) — Rails machine health API
+- [ADR 017](017-edge-self-health-api.md) — Edge self-health API
+- [ADR 018](018-core-rails-direct-internet.md) — Core direct Internet transport
+- [ADR 019](019-edge-parallel-contract-boundaries.md) — Edge boundaries that can ship beside the Rails rewrite

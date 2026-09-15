@@ -84,10 +84,10 @@ Hurl owns this representation: `<unit>/api/revision-api.hurl`.
 
 ## Units
 
-| Runtime        | Units                                 | Mechanism                                                                             |
-| -------------- | ------------------------------------- | ------------------------------------------------------------------------------------- |
-| Hono           | `{app,com,org,net,dev}/apex`          | `create-apex-app.ts`                                                                  |
-| TanStack Start | `{app,com,org}/core`                  | `src/routes/revision.ts` and `src/routes/api.v0.revision[.]json.ts`                   |
-| Astro          | `{app,com,org}/{docs,help,info,news}` | `src/pages/revision.ts` and `src/pages/api/v0/revision.json.ts` (`prerender = false`) |
+| Runtime        | Units                                 | Mechanism                                                           |
+| -------------- | ------------------------------------- | ------------------------------------------------------------------- |
+| Hono           | `{app,com,org,net,dev}/apex`          | `create-apex-app.ts`                                                |
+| TanStack Start | `{app,com,org}/core`                  | `src/routes/revision.ts` and `src/routes/api.v0.revision[.]json.ts` |
+| TanStack Start | `{app,com,org}/{docs,help,info,news}` | `src/routes/revision.ts` and `src/routes/api.v0.revision[.]json.ts` |
 
 No Next.js unit remains active.

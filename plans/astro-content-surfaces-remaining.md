@@ -1,8 +1,11 @@
-# Remaining work: Astro public content surfaces (document layer)
+# Historical plan: Astro public content surfaces (document layer)
 
 ## Status
 
-Working plan. **Publishing SSR (Phase 3 Rails read) is in tree** as of 2026-09-10: all twelve units serve `/{lang}/entries/` and `/{lang}/entries/{public_id}/` as on-demand Astro SSR over the existing Workers VPC Rails client, keyed by `public_id`. Language homes redirect to the entries index. No application cache. Remaining Phase 3 items below are Content Collections, ETag/304, three-stream sitemaps, and structured-body rendering. Decisions live in `adr/015-public-content-surfaces-astro.md`.
+Historical working plan. The Astro implementation described below is not the active framework plan:
+the current twelve public units are TanStack Start/Vite. Current Edge boundaries are recorded in
+`adr/019-edge-parallel-contract-boundaries.md`; this file must not be used to reintroduce Astro or
+to change the current locale, SEO, cache or Rails contracts.
 
 Astro / Edge only. Do not modify the Rails repository. Do not invent a frozen Rails path or JSON schema. Do not deploy without an explicit go-ahead. Do not start Phase 2 Workers Cache until Phase 1 document correctness is proven.
 

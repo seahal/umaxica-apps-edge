@@ -21,8 +21,8 @@ Rails now publishes two health surfaces with different consumers:
 ADR 009 recorded Edge probing `/health/liveness.json` only, because that was the
 strictest Rails JSON probe at the time and `/health` was polled often enough that
 three requests per check were not worth the tunnel traffic. That path is now an
-operational artefact, not the multi-runtime contract. Hono, TanStack Start,
-Astro, and non-JS runtimes are expected to share `/api/v0/health.json`.
+operational artefact, not the multi-runtime contract. Hono, TanStack Start
+and non-JS runtimes are expected to share `/api/v0/health.json`.
 
 `/api/v0/revision.json` and `/revision` remain deployment identity. A revision
 response is not a health pass; a health pass is not a revision match.
@@ -121,8 +121,8 @@ enforce it would be a decision, and is not this one.
 
 ## Outcome
 
-Implemented in this repository: fifteen `rails-health.ts` copies, Astro and
-TanStack `/health` plus `/health/readinesses` routes, repository invariants in
+Implemented in this repository: fifteen `rails-health.ts` copies and TanStack
+`/health` plus `/health/readinesses` routes, repository invariants in
 `test/rails-connection-invariants.test.ts`, and local `scripts/check-rails`.
 
 The 2026-09-06 amendment above is implemented too: `timestamp` is enforced by

@@ -2,6 +2,13 @@
 
 ## Status: Accepted 2026-09-02 — framework cutover is in tree. Publishing pages (2026-09-10): Rails-backed Astro SSR over Workers VPC is in all twelve units. Collection pagination (2026-09-10): public `?page=N` is forwarded to Rails Pagy as `GET /api/v0/entries?locale={lang}&page=N`. The earlier cursor/`next_cursor`/`has_more` publishing collection contract is superseded for these surfaces. Remaining work: `plans/astro-content-surfaces-remaining.md` (Content Collections, ETag/304, three-stream sitemap, Phase 2 cache).
 
+> **Current-state amendment (2026-09-15).** This ADR preserves the historical
+> Astro proposal and its evidence. The active tree classifies the twelve public
+> cells as TanStack Start/Vite (`railsBackedVpcVite`); ADR 019 is the current
+> record for their transport, timeout, body, Cookie, logging and offline
+> boundaries. The locale, authentication and SEO decisions in the active plan
+> are not inferred from this historical record.
+
 `{app,com,org}/{docs,help,info,news}` — twelve deployment units — move from
 TanStack Start to **Astro on Cloudflare Workers**, `output: 'static'` with a
 small number of on-demand routes. `{app,com,org}/core` stay on TanStack Start;

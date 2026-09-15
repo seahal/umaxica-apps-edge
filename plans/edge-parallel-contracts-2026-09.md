@@ -26,6 +26,21 @@ green、差分レビュー、対象pathだけのstage、ローカルcommitを完
   この環境で確認できないため、そこから値を推測する工程をGOにしない。
 - `pnpm install --frozen-lockfile` は `pnpm 12.0.0` で成功した。
 
+### 引継ぎ後の実績
+
+前工程の作業ツリーを確認した時点では、実装済みの先頭は
+`86404e2e`（request ID と完了ログ）で、`develop` は remote にpushしていない。
+P0のbaseline以降、次の工程commitがローカルに積まれている。
+
+`48712246`（計画）、`4929730c`、`5bc6538c`、`eca6a58b`、`963377c3`、
+`f92e2c8e`、`8fc13a12`、`9b78df1e`、`88a2f907`、`f8fadf08`、
+`0f83b4d6`、`86404e2e`。
+
+引継ぎ時に `pnpm-workspace.yaml`、`pnpm-lock.yaml`、12 public unit の
+`wrangler.jsonc`、および root の一部文書に、所有者を確認できない未commit差分が
+残っていた。これらは移動・破棄・stash・commitせず、今回のstageから除外する。
+実装工程はその差分と衝突しないpathだけで完了させる。
+
 ### 対象deployment unit
 
 Hono apex 5面:
@@ -216,12 +231,20 @@ Content-Encodingを415とした。CoreのRails-owned中継はこの上限から�
 requestだけをCookie除去後にbounded Requestへ再構成する。各入口の応答生成は3,000msで、
 timeout時は固定503とし、signal、timer、遅延reject、reader解放を回帰へ置いた。
 
+さらに15 TanStack unitへ、unit内のrequest-local isolationを使う生成UUID、外部
+`X-Request-ID`の不採用、最終statusを付けた一件の`edge_request`完了ログを導入した。
+public/Core clientにはこの生成値だけを許可されたRails hopへ渡し、CoreのRails-owned
+透過中継は`rails_dispatch`を一件の完了ログとして使って重複を避ける。ログのroute、method、
+environment、status、duration、outcomeは閉じた値だけで、query、path、header、body、
+例外文字列は出さない。
+
 TDDのgreenはapex各16件、Core各54件、public各35件のfocused Vitestで、対象20面すべて
 passした。変更pathのOxfmt・Oxlint・type-aware Oxlint、apex/Coreのtypecheckもpassした。
 publicのunit-wide typecheckは既存の`test/uncovered-components.test.tsx`型エラーで停止し、
 unit-wide lintは既存生成`.astro`型宣言の診断で停止した。Hostの偽プレビュー受入を追加で
 検出・修正し、stage差分とpre-commit hookを通過させた。実装・検証の詳細はP2境界commitに
-記録され、Rails、JWT、VPC、production変更はない。
+記録され、Rails、JWT、VPC、production変更はない。実装・検証の詳細は
+`evidence/2026-09-15-edge-request-logging.md`にも記録する。
 
 ### P3 — TanStack locale/region/public shell
 
@@ -287,9 +310,9 @@ the new module existed and the existing worker tests rejecting the intentional
 Hurl suites with 34 requests each, and target plus unit lint, type-aware lint,
 Knip, and typecheck. The three Core copies of the shared health/client/reader
 files were checked for identity. Production Cloudflare bindings, live Rails,
-and browser E2E were not exercised. This slice is independently reversible;
-the remaining P5 work is the TanStack offline policy and its browser/runtime
-verification.
+and browser E2E were not exercised. This slice is independently reversible.
+The TanStack offline policy and its browser/runtime verification were completed
+in P5a; final combined verification is tracked in P6.
 
 **P4c — Public 404 contract completed.** 12 public cells now distinguish the
 fixed endpoint shapes already present in `rails-entries.ts`: a 404 from the
@@ -346,6 +369,32 @@ architecture/dependency/evidence/invariant、ADR/docsと未解決課題。
 実行不能、既存失敗、Rails未接続はPASSにしない。production相当buildとVite devを混同しない。
 
 想定commit: `docs: record Edge verification and remaining holds`
+
+**実施結果（2026-09-15）**。20 unitのproduction相当build、専用portのHurl、
+sequential Playwright、unit test、worker manifest/generated checksを実行した。
+最終結果と既存環境要因によるFAILは
+`evidence/2026-09-15-edge-final-verification.md`に集約する。
+
+- `pnpm run build`: 20 unitすべてPASS。Wranglerがsandbox内のログpathへ書けない警告は
+  あったが、build artifactは生成され、deployは行っていない。
+- `pnpm run test:api`: 20 unitすべてPASS。各runnerは専用local serverを自身で起動・停止し、
+  Railsやproduction endpointには接続していない。
+- `pnpm -r --workspace-concurrency=1 run test:e2e`: 20 unitすべてPASS。初回並列実行の
+  `org/news`一件のtimeoutとmachine process制限は、同unitの再実行とsequential実行で解消を確認した。
+- `pnpm run check:workers`、`check:architecture`、`check:deps`、`knip`、`check:generated`、
+  変更pathのOxfmt/Oxlint/type-aware Oxlint: PASS。
+- `pnpm run test`: 20 unit fan-outはPASS。root invariantは623 passed / 1 skipped / 1 failedで、
+  `test/dependency-architecture-invariants.test.ts`のdependency-cruiser spawn `EPERM`がbaselineから継続した。
+- `pnpm run check` / `pnpm run lint`: 既存の無視対象生成`.astro`診断でFAIL。
+  `pnpm run lint:types`: Wrangler `listen EPERM`でFAIL。`check:spelling`はbaseline同様16件の
+  fixture/tool markerでFAIL。
+- `pnpm run check:size`: 12 public bundleが約120.65–120.68 kB gzipで、112 kB budgetを超過した。
+  owner-unknownの依存差分を含む現環境で、旧sourceと現sourceの比較buildも同じ超過を再現したため、
+  budgetを変更せず後続課題として保留した。
+
+P6の文書整合と最終自己審査は完了した。P3はRails Preference参照欠落のためNO-GOのまま、
+production binding、実workerd/VPC、live Rails、Railsのrequest ID採用、既存browserへの
+Hono SW撤去rollout、SEO方針は保留である。P6は実装全体をproduction-readyとする判定ではない。
 
 ## TDDと検証の配置
 

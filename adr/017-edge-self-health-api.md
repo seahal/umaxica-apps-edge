@@ -21,7 +21,7 @@ maps it onto the operational `text/plain` probes (`GET /health`,
 `/health/startups`, `/health/livenesses`, `/health/readinesses`). That consumer
 path is not Edge reporting on itself.
 
-Hono apex workers, TanStack Start cores, and Astro content surfaces had no
+Hono apex workers, TanStack Start cores, and TanStack public content surfaces had no
 framework-independent JSON document that said only: this Edge runtime is up.
 
 ## Decision
@@ -32,7 +32,7 @@ framework-independent JSON document that said only: this Edge runtime is up.
    GET /api/v0/health.json
    ```
 
-   The five Hono apex workers, three TanStack Start cores, and twelve Astro
+   The five Hono apex workers, three TanStack Start cores, and twelve TanStack
    content surfaces. There is no remaining Next.js unit.
 
 2. The document is Edge-self-only. It does not import or call `rails-client`,
@@ -91,7 +91,7 @@ framework-independent JSON document that said only: this Edge runtime is up.
 ## Consequences
 
 - Rate limiting skips the exact path on Hono and Core (matching `/health`) and
-  on Astro (on-demand only). Language detection on apex workers skips it so it
+  on the TanStack public cells. Language detection on apex workers skips it so it
   does not emit a `language` cookie.
 - HTTP acceptance is `api/health-api.hurl` in each unit.
 

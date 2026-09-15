@@ -628,16 +628,19 @@ secrets, or authenticated Core session material.
 Cross-cutting contracts, enforced by lint rules and repository tests rather
 than convention:
 
-- **Logging** — `no-console` is an error in every unit. The only two
-  sanctioned emitters are `*/apex/src/structured-logger.ts`
-  (`@hono/structured-logger`) and `*/core/src/lib/rails-dispatch-log.ts`; both
-  emit one JSON line collected by `observability.logs.enabled`, and
-  `RailsDispatchLogEntry` has no free-text field by design.
+- **Logging** — `no-console` is an error in every unit. The sanctioned emitters
+  are `*/apex/src/structured-logger.ts` (`@hono/structured-logger`), the local
+  `*/{core,docs,help,info,news}/src/lib/request-log.ts` copies for TanStack
+  request completion, and `*/core/src/lib/rails-dispatch-log.ts` for the Rails
+  hop. All emit one JSON line collected by `observability.logs.enabled`; their
+  fields are closed and exclude free text, credentials, query, body and
+  exception details.
 - **Cookies** — browser code touches cookies only via the Cookie Store API
   (`cookieStore`); server side stays on `hono/cookie` and Rails.
   `*/core/src/worker.ts` strips every `Set-Cookie` from application responses,
-  so a browser-visible cookie can only come from an apex Worker or Rails
-  (ADR 007). `docs/development/browser-cookie-access.md` is normative.
+  so Rails is the only preference-cookie writer; Rails-owned passthrough keeps
+  Rails cookies (ADR 007). `docs/development/browser-cookie-access.md` is
+  normative.
 - **Styling** — Tailwind CSS v4 is the only styling layer: no CSS Modules, no
   CSS-in-JS, no `tailwind.config.*`, no static `style=`. Each unit owns its
   own stylesheet and `@theme`; the engine runs via `@tailwindcss/vite` with no

@@ -1,6 +1,6 @@
-# Publishing read path (Astro) and operator launcher
+# Publishing read path (TanStack Start) and operator launcher
 
-Astro public surfaces are **read-only**. Rails owns Publishing RW: persistence,
+TanStack Start public surfaces are **read-only**. Rails owns Publishing RW: persistence,
 management UI, create/update, revisions, publication, archive, and
 authorization. Edge must not proxy the CMS, recreate forms, or mutate entries.
 
@@ -34,12 +34,12 @@ not used on this path.
 
 ## Identity
 
-`public_id` is both the public Astro member identity and the Rails management
+`public_id` is both the public TanStack member identity and the Rails management
 member identity. Do not use database ids, slug, or `slug_id` in management URLs.
 
 ## Management links (intentional, always visible)
 
-Astro does not authenticate. Every collection page links to
+The public cell does not authenticate. Every collection page links to
 
 `{RAILS_STAFF_BASE_ORIGIN}/publishing/{surface}/{audience}/entries`
 

@@ -68,12 +68,13 @@ recorded as such, with the reason and whatever was observed.
 
 ## Logging
 
-`no-console` is an **error** in every unit. Never call `console` directly or add a new disable comment. The only two sanctioned emitters (closed, typed surfaces):
+`no-console` is an **error** in every unit. Never call `console` directly or add a new disable comment. The sanctioned emitters are closed, typed surfaces:
 
 - `*/apex/src/structured-logger.ts` — `@hono/structured-logger` middleware, wired in `create-apex-app.ts`
+- `*/{core,docs,help,info,news}/src/lib/request-log.ts` — the one completion emitter for each TanStack request boundary. These are local copies so every deployment unit remains standalone.
 - `*/core/src/lib/rails-dispatch-log.ts` — the Edge → Rails hop (public internet, `RAILS_ORIGIN`)
 
-Both emit one JSON line `{ level, msg, data }`, collected by `observability.logs.enabled` in each `wrangler.jsonc`. No external observability vendor; adding one is a decision, not a detail.
+All emit one JSON line `{ level, msg, data }`, collected by `observability.logs.enabled` in each `wrangler.jsonc`. No external observability vendor; adding one is a decision, not a detail.
 
 `RailsDispatchLogEntry` has no free-text field by design — every value is a number or a fixed union, so secrets (cookies, tokens, bodies, user ids, hostnames) cannot leak into a log line. Add new fields as closed unions; never widen one to `string`.
 
@@ -81,7 +82,7 @@ Both emit one JSON line `{ level, msg, data }`, collected by `observability.logs
 
 Browser code touches cookies ONLY via the Cookie Store API (`cookieStore`). No cookie library, no `document.cookie`, no wrapper module before a feature needs one. Server side is unaffected: Hono's `hono/cookie`, the apex `languageDetector`, and Rails cookies all stay as they are.
 
-Boundary consequence (ADR 007): `*/core/src/worker.ts` strips every `Set-Cookie` from application responses — a browser-visible cookie can only be issued by an apex worker or by Rails, never by a frame.
+Boundary consequence (ADR 007): `*/core/src/worker.ts` strips every `Set-Cookie` from application responses. Rails-owned passthrough may preserve a Rails `Set-Cookie`; the apex workers and TanStack frames do not issue, refresh or delete preference cookies.
 
 `docs/development/browser-cookie-access.md` is normative — read it before writing any browser cookie code.
 
