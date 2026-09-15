@@ -2,6 +2,7 @@ import { Hono, type Context, type MiddlewareHandler } from 'hono';
 import { etag } from 'hono/etag';
 import { HTTPException } from 'hono/http-exception';
 import { languageDetector } from 'hono/language';
+import { requestId } from 'hono/request-id';
 import { timeout } from 'hono/timeout';
 
 import { apexCsrf } from './csrf';
@@ -19,6 +20,7 @@ export type ApexEnv = {
   Bindings: AssetEnv;
   Variables: {
     meta?: Meta;
+    requestId: string;
     // Set by `apexStructuredLogger`. Declared here so `c.get('logger')` is
     // typed at every call site instead of being asserted back into shape.
     logger: BaseLogger;
@@ -128,10 +130,22 @@ function isMachineEndpoint(path: string): boolean {
 
 type ConfigurePageRoutes = (pageRoutes: Hono<ApexEnv>) => void;
 
+const exposeRequestId: MiddlewareHandler<ApexEnv> = (c, next) => {
+  // Touch the response before a handler can return a bare Response. Hono then
+  // carries this header collection across the response replacement, so every
+  // response and its structured log share the same value.
+  c.res.headers.set('X-Request-Id', c.get('requestId'));
+  return next();
+};
+
 export function createApexApp(configurePageRoutes: ConfigurePageRoutes) {
   const app = new Hono<ApexEnv>();
   const pageRoutes = new Hono<ApexEnv>();
 
+  // `limitLength: 0` forces the official middleware to generate a fresh ID;
+  // an inbound X-Request-ID is never trusted or echoed.
+  app.use('*', requestId({ limitLength: 0 }));
+  app.use('*', exposeRequestId);
   app.use('*', apexSecurityHeaders);
   app.use('*', varyOnNegotiation);
   app.use(etag());
@@ -173,19 +187,6 @@ export function createApexApp(configurePageRoutes: ConfigurePageRoutes) {
         },
       );
     }
-
-    // oxlint-disable-next-line no-console
-    console.error('Unhandled apex error', {
-      /*
-       * `err.name` is read unguarded. Hono only routes a thrown value to
-       * `onError` when it is an `Error` and re-throws everything else
-       * (`compose.ts`), which is also why the handler is typed `err: Error`, so
-       * the `'UnknownError'` fallback this replaced could never be reached.
-       */
-      error: err.name,
-      method: c.req.method,
-      path: c.req.path,
-    });
 
     return errorPage(500, c.get('language'), requestThemeAttribute(c.req.raw));
   });

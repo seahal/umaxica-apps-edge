@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { requestId } from 'hono/request-id';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ApexEnv } from '../src/create-apex-app';
@@ -20,24 +21,56 @@ describe('apex structured logger', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const app = new Hono<ApexEnv>();
+    app.use(requestId({ limitLength: 0 }));
     app.use(apexStructuredLogger);
     app.get('/levels', (c) => {
       const logger = c.get('logger');
-      logger.warn({ condition: 'slow' });
-      logger.error({ condition: 'failed' }, 'request failed');
-      logger.debug({ condition: 'trace' }, 'request trace');
+      logger.warn({ outcome: 'degraded' });
+      logger.error({ outcome: 'failed' }, 'request error');
+      logger.debug({ outcome: 'trace' }, 'request end');
       return c.text('ok');
     });
 
-    expect((await app.request('/levels')).status).toBe(200);
-    expect(warn).toHaveBeenCalledWith(
-      JSON.stringify({ level: 'warn', data: { condition: 'slow' } }),
+    const response = await app.request('/levels', {
+      headers: { 'x-request-id': 'external-secret-marker' },
+    });
+    expect(response.status).toBe(200);
+    const responseId = response.headers.get('x-request-id');
+    expect(responseId).toMatch(/^[0-9a-f-]{36}$/iu);
+    expect(responseId).not.toBe('external-secret-marker');
+
+    type RecordLine = { level: string; msg?: string; data: Record<string, unknown> };
+    const records = [...log.mock.calls, ...warn.mock.calls, ...error.mock.calls].map(
+      ([line]) => JSON.parse(String(line)) as RecordLine,
     );
-    expect(error).toHaveBeenCalledWith(
-      JSON.stringify({ level: 'error', msg: 'request failed', data: { condition: 'failed' } }),
+    expect(records).toContainEqual(
+      expect.objectContaining({
+        level: 'warn',
+        data: expect.objectContaining({
+          service: 'apex',
+          method: 'GET',
+          route: 'other',
+          outcome: 'degraded',
+          request_id: expect.any(String),
+        }),
+      }),
     );
-    expect(log).toHaveBeenCalledWith(
-      JSON.stringify({ level: 'debug', msg: 'request trace', data: { condition: 'trace' } }),
+    expect(records).toContainEqual(
+      expect.objectContaining({
+        level: 'error',
+        msg: 'request error',
+        data: expect.objectContaining({ outcome: 'failed' }),
+      }),
     );
+    expect(records).toContainEqual(
+      expect.objectContaining({
+        level: 'debug',
+        msg: 'request end',
+        data: expect.objectContaining({ outcome: 'trace' }),
+      }),
+    );
+    const output = JSON.stringify(records);
+    expect(output).not.toContain('external-secret-marker');
+    expect(output).not.toContain('/levels');
   });
 });

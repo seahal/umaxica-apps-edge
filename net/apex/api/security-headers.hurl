@@ -13,6 +13,7 @@
 GET {{base}}/health
 HTTP 200
 [Asserts]
+header "x-request-id" matches /^[0-9a-f-]{36}$/
 header "strict-transport-security" contains "max-age=31536000"
 header "strict-transport-security" contains "includeSubDomains"
 header "strict-transport-security" contains "preload"
@@ -51,6 +52,7 @@ header "permissions-policy" contains "usb=()"
 GET {{base}}/__definitely_not_found__
 HTTP 404
 [Asserts]
+header "x-request-id" matches /^[0-9a-f-]{36}$/
 header "content-security-policy" contains "default-src 'self'"
 header "x-frame-options" == "DENY"
 header "x-content-type-options" == "nosniff"

@@ -182,6 +182,13 @@ security headersを実装する。CoreのRails-owned responseはEdge headersで�
 想定commit（規模が大きければテストとgreenが保てる単位に再分割）:
 `feat: harden Edge request boundaries`
 
+P2は契約衝突を隠さないため、次の独立sliceへ分ける。**P2a**はRailsを必要としないapex
+5面のrequest ID、allowlist logger、Edge生成応答へのrequest ID header、エラー時のログ一本化で、
+実装してgreenになったらcommitする。**P2b**はHost allowlist、Coreの生成応答、12 public frameの
+入口、TanStackのCSRF/request middleware位置とbody上限である。infoのregionなし契約、Rails参照欠落、
+Coreの透過中継境界と同じ変更で混ぜると誤判定になるため、P2bの各sliceは現物契約を固定してから
+個別にGO判定する。P2a完了はP2全体や20面完了を意味しない。
+
 ### P3 — TanStack locale/region/public shell
 
 現状保留。Rails Preference実装とCookie定義を固定SHAから確認できるまで、`lx`規則、Cookie

@@ -39,10 +39,29 @@ describe('apex error boundary', () => {
     const body = await response.text();
     expect(body).toContain('HTTP 500');
     expect(body).not.toContain('secret failure details');
-    expect(consoleError).toHaveBeenCalledWith(
-      'Unhandled apex error',
-      expect.objectContaining({ error: 'Error', method: 'GET', path: '/explode' }),
+    expect(consoleError).toHaveBeenCalledTimes(1);
+    const records = consoleError.mock.calls.map(
+      ([line]) =>
+        JSON.parse(String(line)) as {
+          level: string;
+          msg?: string;
+          data: Record<string, unknown>;
+        },
     );
+    expect(records).toContainEqual(
+      expect.objectContaining({
+        level: 'error',
+        msg: 'request error',
+        data: expect.objectContaining({
+          method: 'GET',
+          route: 'other',
+          status: 500,
+          outcome: 'failed',
+        }),
+      }),
+    );
+    expect(JSON.stringify(records)).not.toContain('secret failure details');
+    expect(JSON.stringify(records)).not.toContain('/explode');
   });
 
   it('stops request processing when the rate limiter rejects the caller', async () => {

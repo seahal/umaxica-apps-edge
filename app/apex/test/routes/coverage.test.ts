@@ -26,11 +26,22 @@ describe('security headers on short-circuited requests', () => {
     expect(res.headers.get('x-content-type-options')).toBe('nosniff');
     expect(res.headers.get('content-security-policy')).toContain("default-src 'self'");
     await expect(res.text()).resolves.toContain('HTTP 500');
-    expect(consoleSpy).toHaveBeenCalledWith('Unhandled apex error', {
-      error: 'Error',
-      method: 'GET',
-      path: '/about',
+    const record = JSON.parse(String(consoleSpy.mock.calls.at(-1)?.[0])) as {
+      level: string;
+      msg?: string;
+      data: Record<string, unknown>;
+    };
+    expect(record).toMatchObject({
+      level: 'error',
+      msg: 'request error',
+      data: {
+        method: 'GET',
+        route: 'about',
+        status: 500,
+        outcome: 'failed',
+      },
     });
+    expect(JSON.stringify(record)).not.toContain('ISO String error');
 
     isoSpy.mockRestore();
     consoleSpy.mockRestore();
