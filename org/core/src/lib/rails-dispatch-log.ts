@@ -21,6 +21,8 @@
  * first, so a path carrying an identifier cannot leak through the route label.
  */
 
+import type { EdgeEnvironment } from './request-log';
+
 /** Distinguishes success, a Rails-authored error, and the three failure modes. */
 export type RailsDispatchOutcome =
   | 'rails_ok'
@@ -54,6 +56,13 @@ export interface RailsDispatchLogEntry {
   method: RailsRequestMethod;
   outcome: RailsDispatchOutcome;
   duration_ms: number;
+  /** The Edge-generated ID, present for requests through `worker.ts`. */
+  request_id?: string;
+  /** Present for requests through `worker.ts`; direct hop tests may omit it. */
+  service?: 'core';
+  environment?: EdgeEnvironment;
+  /** The final status sent by Edge, including a substituted 503/504. */
+  status?: number;
   /** Only when an HTTP response actually arrived. */
   upstream_status?: number;
 }
@@ -132,6 +141,10 @@ export function logRailsDispatch(entry: RailsDispatchLogEntry): void {
       route_class: entry.route_class,
       outcome: entry.outcome,
       duration_ms: entry.duration_ms,
+      ...(entry.request_id === undefined ? {} : { request_id: entry.request_id }),
+      ...(entry.service === undefined ? {} : { service: entry.service }),
+      ...(entry.environment === undefined ? {} : { environment: entry.environment }),
+      ...(entry.status === undefined ? {} : { status: entry.status }),
       ...(entry.upstream_status === undefined ? {} : { upstream_status: entry.upstream_status }),
     },
   });

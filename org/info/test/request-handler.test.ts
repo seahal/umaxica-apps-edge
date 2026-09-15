@@ -15,7 +15,10 @@ import { resetEnv, setEnv } from './__mocks__/cloudflare-workers';
  * rate limiter that refuses and a router that answers a Publishing failure are
  * not states an HTTP client can produce on demand).
  */
-afterEach(resetEnv);
+afterEach(() => {
+  resetEnv();
+  vi.restoreAllMocks();
+});
 
 const ok = () => Promise.resolve(new Response('<html></html>', { status: 200 }));
 const refusing = () => ({ limit: vi.fn().mockResolvedValue({ success: false }) });
@@ -121,6 +124,61 @@ describe('request handler', () => {
 
     expect(router).toHaveBeenCalledOnce();
     expect(response.status).toBe(200);
+  });
+
+  it('generates one request ID, ignores the incoming ID, and logs the final status safely', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    setEnv({
+      EDGE_ENV: 'test',
+      RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: true }) },
+    });
+    const router = vi.fn((forwarded: Request) => {
+      expect(forwarded.headers.get('X-Request-ID')).toMatch(/^[0-9a-f-]{36}$/iu);
+      return ok();
+    });
+
+    const response = await handleRequest(
+      new Request('http://localhost/ja/entries/?token=SECRET_QUERY', {
+        headers: { 'X-Request-ID': 'external-secret-marker' },
+      }),
+      router,
+      true,
+    );
+
+    const requestId = response.headers.get('X-Request-ID');
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/iu);
+    expect(requestId).not.toBe('external-secret-marker');
+    const lines = log.mock.calls.map(
+      ([line]) => JSON.parse(String(line)) as Record<string, unknown>,
+    );
+    expect(lines).toContainEqual(
+      expect.objectContaining({
+        msg: 'edge_request',
+        data: expect.objectContaining({
+          service: 'public',
+          environment: 'test',
+          request_id: requestId,
+          method: 'GET',
+          route: 'publishing',
+          status: 200,
+          outcome: 'completed',
+        }),
+      }),
+    );
+    expect(JSON.stringify(lines)).not.toContain('external-secret-marker');
+    expect(JSON.stringify(lines)).not.toContain('SECRET_QUERY');
+  });
+
+  it('turns an unexpected router exception into a fixed 500', async () => {
+    const router = vi.fn(() => {
+      throw new Error('SECRET_EXCEPTION_MARKER');
+    });
+
+    const response = await handleRequest(new Request('http://localhost/'), router, true);
+
+    expect(response.status).toBe(500);
+    expect(await response.text()).toBe('Internal Server Error\n');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
   });
 
   it('moves a Publishing failure status onto the status line and never leaks the header', async () => {

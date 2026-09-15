@@ -69,7 +69,10 @@ describe('com/core worker.ts dispatch', () => {
 
     const response = await worker.fetch(
       new Request('https://unknown.example/api/v0/session?secret-query-marker', {
-        headers: { 'x-forwarded-host': 'jp.umaxica.com' },
+        headers: {
+          'x-forwarded-host': 'jp.umaxica.com',
+          'x-request-id': 'external-secret-marker',
+        },
       }),
       makeEnv({ fetch: railsFetch }),
       ctx,
@@ -79,6 +82,8 @@ describe('com/core worker.ts dispatch', () => {
     expect(response.headers.get('cache-control')).toBe('no-store');
     expect(response.headers.get('content-type')).toBe('text/plain; charset=utf-8');
     expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+    expect(response.headers.get('x-request-id')).toMatch(/^[0-9a-f-]{36}$/iu);
+    expect(response.headers.get('x-request-id')).not.toBe('external-secret-marker');
     expect(await response.text()).toBe('Misdirected Request\n');
     expect(checkRateLimit).not.toHaveBeenCalled();
     expect(appFetch).not.toHaveBeenCalled();
@@ -97,6 +102,7 @@ describe('com/core worker.ts dispatch', () => {
     expect(appFetch).toHaveBeenCalledTimes(1);
     const forwardedRequest = appFetch.mock.calls[0]?.[0] as Request;
     expect(forwardedRequest.headers.get('cookie')).toBeNull();
+    expect(forwardedRequest.headers.get('x-request-id')).toMatch(/^[0-9a-f-]{36}$/iu);
     expect(response.status).toBe(200);
     expect(await response.text()).toBe('ok');
   });
@@ -191,6 +197,7 @@ describe('com/core worker.ts dispatch', () => {
       headers: {
         cookie: 'session=abc',
         'x-csrf-token': 'token-123',
+        'x-request-id': 'external-secret-marker',
       },
     });
 
@@ -201,6 +208,8 @@ describe('com/core worker.ts dispatch', () => {
     const railsRequest = railsFetch.mock.calls[0]?.[0] as Request;
     expect(railsRequest.headers.get('cookie')).toBe('session=abc');
     expect(railsRequest.headers.get('x-csrf-token')).toBe('token-123');
+    expect(railsRequest.headers.get('x-request-id')).toMatch(/^[0-9a-f-]{36}$/iu);
+    expect(railsRequest.headers.get('x-request-id')).not.toBe('external-secret-marker');
     const railsUrl = new URL(railsRequest.url);
     expect(railsUrl.pathname).toBe('/api/v0/session');
     expect(railsUrl.searchParams.get('foo')).toBe('bar');

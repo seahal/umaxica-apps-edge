@@ -8,6 +8,17 @@ import { applyPublishingStatus } from './lib/publishing-status';
 import { checkRateLimit } from './lib/rate-limit';
 import { limitRequestBody, requestBoundaryResponse } from './lib/request-boundary';
 import {
+  classifyEdgeRoute,
+  createRequestId,
+  logEdgeRequest,
+  normalizeEdgeEnvironment,
+  normalizeEdgeMethod,
+  outcomeForStatus,
+  runWithRequestId,
+  withRequestId,
+  withRequestIdRequest,
+} from './lib/request-log';
+import {
   responseGenerationTimeoutResponse,
   withResponseGenerationTimeout,
 } from './lib/response-timeout';
@@ -55,31 +66,86 @@ export async function handleRequest(
   isProduction: boolean,
 ): Promise<Response> {
   const bindings = getEdgeBindings();
-  const hostname = new URL(request.url).hostname;
-  if (
-    !isAllowedPublishingHost(hostname, {
-      allowLocalhost: !isProductionPublishingEnvironment(bindings),
-    })
-  ) {
-    return withSecurityHeaders(publishingHostRejectedResponse(), isProduction);
+  const url = new URL(request.url);
+  const requestId = createRequestId();
+  const startedAt = Date.now();
+  const route = classifyEdgeRoute(url.pathname);
+  const method = normalizeEdgeMethod(request.method);
+  const environment = normalizeEdgeEnvironment(bindings.EDGE_ENV);
+  let timedOut = false;
+
+  const finish = (response: Response, outcome = outcomeForStatus(response.status)): Response => {
+    const finalResponse = withRequestId(response, requestId);
+    logEdgeRequest({
+      service: 'public',
+      environment,
+      request_id: requestId,
+      method,
+      route,
+      status: finalResponse.status,
+      duration_ms: Date.now() - startedAt,
+      outcome,
+    });
+    return finalResponse;
+  };
+
+  try {
+    if (
+      !isAllowedPublishingHost(url.hostname, {
+        allowLocalhost: !isProductionPublishingEnvironment(bindings),
+      })
+    ) {
+      return finish(
+        withSecurityHeaders(publishingHostRejectedResponse(), isProduction),
+        'rejected',
+      );
+    }
+
+    const nonce = isProduction ? createNonce() : undefined;
+    const response = await runWithRequestId(requestId, () =>
+      withResponseGenerationTimeout(
+        async (signal) => {
+          if (!UNMETERED_PROBES.has(url.pathname)) {
+            const limited = await checkRateLimit(request, bindings.RATE_LIMITER);
+            if (limited) return limited;
+          }
+
+          const bounded = await limitRequestBody(request, signal);
+          if (bounded.kind !== 'ok') {
+            return bounded.kind === 'aborted'
+              ? responseGenerationTimeoutResponse()
+              : requestBoundaryResponse(bounded.kind);
+          }
+
+          return runWithNonce(nonce, () =>
+            routerFetch(withRequestIdRequest(bounded.request, requestId)),
+          );
+        },
+        () => {
+          timedOut = true;
+          return responseGenerationTimeoutResponse();
+        },
+      ),
+    );
+
+    return finish(
+      withSecurityHeaders(applyPublishingStatus(response), isProduction, nonce),
+      timedOut ? 'timeout' : undefined,
+    );
+  } catch {
+    return finish(
+      withSecurityHeaders(
+        new Response('Internal Server Error\n', {
+          status: 500,
+          headers: {
+            'Cache-Control': 'no-store',
+            'Content-Type': 'text/plain; charset=utf-8',
+            'X-Robots-Tag': 'noindex, nofollow',
+          },
+        }),
+        isProduction,
+      ),
+      'failed',
+    );
   }
-
-  const nonce = isProduction ? createNonce() : undefined;
-  const response = await withResponseGenerationTimeout(async (signal) => {
-    if (!UNMETERED_PROBES.has(new URL(request.url).pathname)) {
-      const limited = await checkRateLimit(request, bindings.RATE_LIMITER);
-      if (limited) return limited;
-    }
-
-    const bounded = await limitRequestBody(request, signal);
-    if (bounded.kind !== 'ok') {
-      return bounded.kind === 'aborted'
-        ? responseGenerationTimeoutResponse()
-        : requestBoundaryResponse(bounded.kind);
-    }
-
-    return runWithNonce(nonce, () => routerFetch(bounded.request));
-  }, responseGenerationTimeoutResponse);
-
-  return withSecurityHeaders(applyPublishingStatus(response), isProduction, nonce);
 }

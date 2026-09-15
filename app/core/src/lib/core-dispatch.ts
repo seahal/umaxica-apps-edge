@@ -19,6 +19,7 @@ import {
   normalizeRailsMethod,
 } from './rails-dispatch-log';
 import { parseRailsOrigin } from './rails-origin';
+import { normalizeEdgeEnvironment } from './request-log';
 
 export type PathOwnership = 'rails' | 'blocked' | 'next';
 
@@ -199,7 +200,12 @@ function isTimeoutError(error: unknown): boolean {
  * (`Forwarded`, `X-Forwarded-*`, `X-Real-IP`) are dropped rather than relayed:
  * they are whatever the browser chose to send.
  */
-function buildRailsRequest(request: Request, incomingUrl: URL, origin: string): Request {
+function buildRailsRequest(
+  request: Request,
+  incomingUrl: URL,
+  origin: string,
+  requestId: string | undefined,
+): Request {
   const target = new URL(incomingUrl.pathname + incomingUrl.search, origin);
   const headers = new Headers(request.headers);
   for (const name of [...headers.keys()]) {
@@ -207,6 +213,8 @@ function buildRailsRequest(request: Request, incomingUrl: URL, origin: string): 
       headers.delete(name);
     }
   }
+  headers.delete('x-request-id');
+  if (requestId !== undefined) headers.set('x-request-id', requestId);
 
   const hasBody = request.method !== 'GET' && request.method !== 'HEAD' && request.body !== null;
 
@@ -247,11 +255,20 @@ export async function dispatchToRails(
   // avoids a type assertion at the Worker boundary.
   env: unknown,
   isProduction: boolean,
+  requestId?: string,
 ): Promise<Response> {
   const incomingUrl = new URL(request.url);
   const routeClass = classifyRailsRouteClass(incomingUrl.pathname);
   const method = normalizeRailsMethod(request.method);
   const startedAt = Date.now();
+  const environment =
+    typeof env === 'object' && env !== null && 'EDGE_ENV' in env
+      ? normalizeEdgeEnvironment(Reflect.get(env, 'EDGE_ENV'))
+      : 'unknown';
+  const logContext = (status: number) =>
+    requestId === undefined
+      ? {}
+      : { request_id: requestId, service: 'core' as const, environment, status };
 
   const railsOrigin =
     typeof env === 'object' && env !== null && 'RAILS_ORIGIN' in env
@@ -264,11 +281,12 @@ export async function dispatchToRails(
       method,
       outcome: 'origin_not_configured',
       duration_ms: Date.now() - startedAt,
+      ...logContext(503),
     });
     return railsUnavailableResponse('not-configured', isProduction);
   }
 
-  const railsRequest = buildRailsRequest(request, incomingUrl, origin);
+  const railsRequest = buildRailsRequest(request, incomingUrl, origin, requestId);
 
   let response: Response;
   try {
@@ -279,6 +297,7 @@ export async function dispatchToRails(
       method,
       outcome: isTimeoutError(error) ? 'timeout' : 'upstream_unreachable',
       duration_ms: Date.now() - startedAt,
+      ...logContext(isTimeoutError(error) ? 504 : 503),
     });
     return railsUnavailableResponse(isTimeoutError(error) ? 'timeout' : 'upstream', isProduction);
   }
@@ -291,6 +310,7 @@ export async function dispatchToRails(
     outcome: response.status < 400 ? 'rails_ok' : 'rails_http_error',
     duration_ms: Date.now() - startedAt,
     upstream_status: response.status,
+    ...logContext(response.status),
   });
   return response;
 }

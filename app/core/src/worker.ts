@@ -9,6 +9,17 @@ import { sanitizeHealthRequest } from './lib/health-request';
 import { checkRateLimit } from './lib/rate-limit';
 import { limitRequestBody, requestBoundaryResponse } from './lib/request-boundary';
 import {
+  classifyEdgeRoute,
+  createRequestId,
+  logEdgeRequest,
+  normalizeEdgeEnvironment,
+  normalizeEdgeMethod,
+  outcomeForStatus,
+  runWithRequestId,
+  withRequestId,
+  withRequestIdRequest,
+} from './lib/request-log';
+import {
   responseGenerationTimeoutResponse,
   withResponseGenerationTimeout,
 } from './lib/response-timeout';
@@ -172,72 +183,129 @@ export default {
   async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext) {
     const isProduction = import.meta.env.PROD;
     const url = new URL(request.url);
-    if (
-      !isAllowedCoreHost(url.hostname, {
-        allowLocalhost: !isProductionCoreEnvironment(env),
-      })
-    ) {
-      return withSecurityHeaders(coreHostRejectedResponse(), isProduction);
+    const requestId = createRequestId();
+    const startedAt = Date.now();
+    const route = classifyEdgeRoute(url.pathname);
+    const method = normalizeEdgeMethod(request.method);
+    const environment = normalizeEdgeEnvironment(env.EDGE_ENV);
+    let timedOut = false;
+
+    const finish = (response: Response, outcome = outcomeForStatus(response.status)): Response => {
+      const finalResponse = withRequestId(response, requestId);
+      logEdgeRequest({
+        service: 'core',
+        environment,
+        request_id: requestId,
+        method,
+        route,
+        status: finalResponse.status,
+        duration_ms: Date.now() - startedAt,
+        outcome,
+      });
+      return finalResponse;
+    };
+
+    try {
+      if (
+        !isAllowedCoreHost(url.hostname, {
+          allowLocalhost: !isProductionCoreEnvironment(env),
+        })
+      ) {
+        return finish(withSecurityHeaders(coreHostRejectedResponse(), isProduction), 'rejected');
+      }
+
+      const pathname = url.pathname;
+      const ownership = classifyCorePath(pathname);
+
+      // Cheapest first: a blocked path costs nothing and is not worth a limiter
+      // call, since it reaches no application code either way.
+      if (ownership === 'blocked') {
+        return finish(withSecurityHeaders(blockedCoreResponse(), isProduction), 'rejected');
+      }
+
+      const response = await runWithRequestId(requestId, () =>
+        withResponseGenerationTimeout(
+          async (signal) => {
+            if (!isRateLimitExempt(pathname)) {
+              const rateLimitedResponse = await checkRateLimit(request, env.RATE_LIMITER);
+              if (rateLimitedResponse) {
+                return withSecurityHeaders(rateLimitedResponse, isProduction);
+              }
+            }
+
+            if (isAuthPath(pathname)) {
+              const authLimitedResponse = await checkRateLimit(request, env.AUTH_RATE_LIMITER);
+              if (authLimitedResponse) {
+                return withSecurityHeaders(authLimitedResponse, isProduction);
+              }
+            }
+
+            if (ownership === 'rails') {
+              // Rails headers its own responses; the 503 substituted when the
+              // dispatch never reached Rails is Edge's own document, so
+              // `dispatchToRails` headers that one itself rather than reporting
+              // back which case it took. This branch deliberately skips the
+              // ordinary application body limit so Rails mutations remain a
+              // transparent streamed relay.
+              return dispatchToRails(request, env, isProduction, requestId);
+            }
+
+            const sanitizedRequest = isHealthPath(pathname)
+              ? sanitizeHealthRequest(request)
+              : request;
+            const strippedRequest = stripApplicationCookie(sanitizedRequest);
+            const bounded = await limitRequestBody(strippedRequest, signal);
+            if (bounded.kind !== 'ok') {
+              return withSecurityHeaders(
+                bounded.kind === 'aborted'
+                  ? responseGenerationTimeoutResponse()
+                  : requestBoundaryResponse(bounded.kind),
+                isProduction,
+              );
+            }
+
+            const appResponse = await appHandler.fetch(
+              withRequestIdRequest(bounded.request, requestId),
+            );
+            const responseHeaders = new Headers(appResponse.headers);
+            responseHeaders.delete('set-cookie');
+
+            return new Response(appResponse.body, {
+              status: appResponse.status,
+              statusText: appResponse.statusText,
+              headers: responseHeaders,
+            });
+          },
+          () => {
+            timedOut = true;
+            return withSecurityHeaders(responseGenerationTimeoutResponse(), isProduction);
+          },
+        ),
+      );
+
+      if (ownership === 'rails' && !timedOut) {
+        // `dispatchToRails` emits the one completion record for a transparent
+        // Rails relay. The generic Edge record is for application-owned and
+        // Edge-generated responses; emitting both would duplicate one request.
+        return withRequestId(response, requestId);
+      }
+
+      return finish(response, timedOut ? 'timeout' : undefined);
+    } catch {
+      return finish(
+        withSecurityHeaders(
+          new Response('Internal Server Error\n', {
+            status: 500,
+            headers: {
+              'Cache-Control': 'no-store',
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Robots-Tag': 'noindex, nofollow',
+            },
+          }),
+          isProduction,
+        ),
+        'failed',
+      );
     }
-
-    const pathname = url.pathname;
-    const ownership = classifyCorePath(pathname);
-
-    // Cheapest first: a blocked path costs nothing and is not worth a limiter
-    // call, since it reaches no application code either way.
-    if (ownership === 'blocked') {
-      return withSecurityHeaders(blockedCoreResponse(), isProduction);
-    }
-
-    return withResponseGenerationTimeout(
-      async (signal) => {
-        if (!isRateLimitExempt(pathname)) {
-          const rateLimitedResponse = await checkRateLimit(request, env.RATE_LIMITER);
-          if (rateLimitedResponse) {
-            return withSecurityHeaders(rateLimitedResponse, isProduction);
-          }
-        }
-
-        if (isAuthPath(pathname)) {
-          const authLimitedResponse = await checkRateLimit(request, env.AUTH_RATE_LIMITER);
-          if (authLimitedResponse) {
-            return withSecurityHeaders(authLimitedResponse, isProduction);
-          }
-        }
-
-        if (ownership === 'rails') {
-          // Rails headers its own responses; the 503 substituted when the
-          // dispatch never reached Rails is Edge's own document, so
-          // `dispatchToRails` headers that one itself rather than reporting
-          // back which case it took. This branch deliberately skips the
-          // ordinary application body limit so Rails mutations remain a
-          // transparent streamed relay.
-          return dispatchToRails(request, env, isProduction);
-        }
-
-        const sanitizedRequest = isHealthPath(pathname) ? sanitizeHealthRequest(request) : request;
-        const strippedRequest = stripApplicationCookie(sanitizedRequest);
-        const bounded = await limitRequestBody(strippedRequest, signal);
-        if (bounded.kind !== 'ok') {
-          return withSecurityHeaders(
-            bounded.kind === 'aborted'
-              ? responseGenerationTimeoutResponse()
-              : requestBoundaryResponse(bounded.kind),
-            isProduction,
-          );
-        }
-
-        const response = await appHandler.fetch(bounded.request);
-        const responseHeaders = new Headers(response.headers);
-        responseHeaders.delete('set-cookie');
-
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: responseHeaders,
-        });
-      },
-      () => withSecurityHeaders(responseGenerationTimeoutResponse(), isProduction),
-    );
   },
 };

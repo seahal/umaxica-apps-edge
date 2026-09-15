@@ -2,6 +2,7 @@ import '@tanstack/react-start/server-only';
 import { readBoundedText } from './bounded-text';
 import type { EdgeBindings } from './env';
 import { PRIVATE_RAILS_ORIGIN } from './publishing-cell';
+import { getRequestId } from './request-log';
 
 /*
  * The private Worker → Rails transport for this public content unit.
@@ -140,6 +141,8 @@ function buildSanitizedHeaders(init: RailsClientInit | undefined): Headers {
   for (const forbidden of FORBIDDEN_REQUEST_HEADERS) {
     headers.delete(forbidden);
   }
+  const requestId = getRequestId();
+  if (requestId !== undefined) headers.set('x-request-id', requestId);
   return headers;
 }
 

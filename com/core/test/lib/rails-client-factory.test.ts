@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 import { createRailsClient, type RailsFetcher } from '../../src/lib/rails-client';
+import { runWithRequestId } from '../../src/lib/request-log';
 
 function makeBinding(response: Response | Error) {
   const fetch = vi.fn<RailsFetcher['fetch']>(() => {
@@ -75,6 +76,19 @@ describe('com/core rails client factory', () => {
 
     const [, init] = binding.fetch.mock.calls[0] as [string, RequestInit];
     expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('forwards only the Edge-generated request ID to the Rails client', async () => {
+    const binding = makeBinding(new Response('ok', { status: 200 }));
+    const client = createRailsClient(binding, 'http://core.test.localhost:3000');
+
+    await runWithRequestId('generated-request-id', () =>
+      client.fetch('/edge/v0/health', { headers: { 'x-request-id': 'external-marker' } }),
+    );
+
+    const [, init] = binding.fetch.mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.get('x-request-id')).toBe('generated-request-id');
   });
 
   it('does not forward browser cookies by default', async () => {

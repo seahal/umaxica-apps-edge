@@ -132,6 +132,12 @@ describe('logRailsDispatch shape', () => {
     expect(onlyLine().json.data).toMatchObject({ upstream_status: 500 });
   });
 
+  it('includes the generated request ID when the dispatch came through the Worker', () => {
+    logRailsDispatch({ ...BASE, request_id: 'generated-request-id' });
+
+    expect(onlyLine().json.data).toMatchObject({ request_id: 'generated-request-id' });
+  });
+
   it.each([
     ['rails_ok', 'info', 'log'],
     ['rails_http_error', 'warn', 'warn'],
@@ -221,6 +227,25 @@ describe('dispatchToRails logging', () => {
       vi.fn().mockResolvedValue(new Response('ok')),
     );
     expect(emitted).toHaveLength(1);
+  });
+
+  it('records the generated ID, final status and environment on a Worker dispatch', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('ok', { status: 200 })));
+    await dispatchToRails(
+      new Request(`${ORIGIN}/api/v0/x`, { headers: { 'x-request-id': 'external-marker' } }),
+      { ...RAILS_ENV, EDGE_ENV: 'test' },
+      true,
+      'generated-request-id',
+    );
+
+    const { json } = onlyLine();
+    expect(json.data).toMatchObject({
+      request_id: 'generated-request-id',
+      service: 'core',
+      environment: 'test',
+      status: 200,
+      upstream_status: 200,
+    });
   });
 });
 

@@ -1,6 +1,7 @@
 import '@tanstack/react-start/server-only';
 import { getEdgeEnv } from './cloudflare-env';
 import { parseRailsOrigin } from './rails-origin';
+import { getRequestId } from './request-log';
 
 const RAILS_FETCH_TIMEOUT_MS = 2000;
 
@@ -81,6 +82,8 @@ function buildSanitizedHeaders(init: RailsClientInit | undefined): Headers {
   for (const forbidden of FORBIDDEN_REQUEST_HEADERS) {
     headers.delete(forbidden);
   }
+  const requestId = getRequestId();
+  if (requestId !== undefined) headers.set('x-request-id', requestId);
   return headers;
 }
 
