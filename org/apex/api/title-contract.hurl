@@ -44,13 +44,6 @@ header "content-type" not contains "json"
 xpath "count(//title)" == 1
 xpath "string(//title)" matches /^.+ — UMAXICA \(ORG\)$/
 xpath "string(//title)" not matches /(?i)\b(auth|core|apex|side|edge|next|nextjs|hono|workers?|cloudflare|opennext)\b/
-GET {{base}}/offline
-HTTP 200
-[Asserts]
-xpath "count(//title)" == 1
-xpath "string(//title)" matches /^.+ — UMAXICA \(ORG\)$/
-xpath "string(//title)" not matches /(?i)\b(auth|core|apex|side|edge|next|nextjs|hono|workers?|cloudflare|opennext)\b/
-
 GET {{base}}/definitely-missing
 HTTP 404
 [Asserts]

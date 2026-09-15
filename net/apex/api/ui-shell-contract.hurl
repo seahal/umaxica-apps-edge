@@ -100,25 +100,15 @@ HTTP 200
 GET {{base}}/favicon.ico
 HTTP 200
 
-GET {{base}}/manifest.webmanifest
-HTTP 200
-[Asserts]
-header "content-type" matches /json/
-
 # Captured from the document above rather than written down: the URL differs
 # between `vite dev` and a build. See api/status-surfaces.hurl.
 GET {{base}}{{stylesheet_url}}
 HTTP 200
 
-GET {{base}}/service-worker-register.js
-HTTP 200
-[Asserts]
-header "content-type" matches /javascript/
-
 
 # The shell localises through the same language detector as the page copy.
-# Sent first in this file's cookie jar, so `Accept-Language` still decides —
-# see api/i18n.hurl for why that ordering matters.
+# Sent without a language cookie, so `Accept-Language` still decides — see
+# api/i18n.hurl for the detector's precedence and write boundary.
 GET {{base}}/about?lang=ja
 HTTP 200
 [Asserts]

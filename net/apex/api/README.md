@@ -58,14 +58,13 @@ itself, it belongs in this directory.
 no connection, no cookie jar, and no state between calls, so every call looks
 like a first-ever visit.
 
-`i18n.hurl` exists because of that. Hono's `languageDetector` caches its
-decision in a `language` cookie for a year and ranks that cookie above
-`Accept-Language`. Under `app.request()` the cookie is never sent back, so the
-header appeared to decide every time. Under any real client it decides once.
+`i18n.hurl` exists because of that. Hono's `languageDetector` reads an explicit
+`language` cookie before `Accept-Language`, while its cache is disabled so the
+request does not create or refresh that cookie. The in-process test still has
+no cookie jar, so this file sends each language input explicitly.
 
-Hurl keeps one cookie jar **per file**, which is why the language sequence has a
-file to itself: folding it into `routes.hurl` would have it inherit a cookie set
-by the requests above it.
+Hurl keeps one cookie jar **per file**. The language cases use explicit cookie
+headers so their inputs remain visible and independent of requests elsewhere.
 
 ## Conventions
 

@@ -6,10 +6,9 @@ import * as statusPage from '../src/status-page';
 afterEach(() => vi.restoreAllMocks());
 
 /*
- * `/offline` and `notFound` are HTTP surfaces: status, headers and bodies live
- * in `api/*.hurl`. What Vitest can still prove is that `createApexApp` wires
- * each path to the helper this unit owns. `app.request()` is the driver, never
- * the subject.
+ * `notFound` is an HTTP surface: status, headers and bodies live in `api/*.hurl`.
+ * What Vitest can still prove is that `createApexApp` wires each path to the
+ * helper this unit owns. `app.request()` is the driver, never the subject.
  */
 describe('apex surfaces wired to their helpers', () => {
   it.each(['/health.html', '/health.json'])(
@@ -25,13 +24,6 @@ describe('apex surfaces wired to their helpers', () => {
       expect(page).toHaveBeenCalledWith('ja', undefined);
     },
   );
-
-  it('runs /offline through offlinePageMarkup', async () => {
-    const markup = vi.spyOn(statusPage, 'offlinePageMarkup');
-    const app = createApexApp(() => undefined);
-    await app.request('/offline');
-    expect(markup).toHaveBeenCalled();
-  });
 
   it('runs an unmatched path through notFoundPage', async () => {
     const page = vi.spyOn(statusPage, 'notFoundPage');

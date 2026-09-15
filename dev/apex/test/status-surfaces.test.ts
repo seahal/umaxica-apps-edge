@@ -6,7 +6,7 @@ import { createApexApp } from '../src/create-apex-app';
 afterEach(() => vi.restoreAllMocks());
 
 /*
- * What `/offline` and the 404 page actually serve is asserted over real HTTP in
+ * What the 404 page actually serves is asserted over real HTTP in
  * `api/status-surfaces.hurl`. What remains here is the one status surface no
  * HTTP client can reach: the 500 page, which needs a route that throws.
  *

@@ -6,7 +6,7 @@ import { expectTitleContract } from './utils/title-contract';
 /*
  * The `<title>` contract on the one document no HTTP client can ask for.
  *
- * `/about`, `/health`, `/offline` and the 404 (including `/health.html` and
+ * `/about`, `/health` and the 404 (including `/health.html` and
  * `/health.json`) are checked against real responses in
  * `api/title-contract.hurl`. Those two paths are HTML 404, not health
  * documents. The 500 document needs a route that throws,

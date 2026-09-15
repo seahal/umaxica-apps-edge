@@ -50,7 +50,7 @@ export function requestThemeAttribute(request: Request): ThemeAttribute {
 
 /**
  * The attribute for the documents this unit builds as raw HTML rather than as
- * JSX — the status, offline and health pages. Empty when nothing is forced,
+ * JSX — the status and health pages. Empty when nothing is forced,
  * which is how those documents omit it as `renderer.tsx` does.
  *
  * Interpolating it into markup needs no escaping and gets none: the value is

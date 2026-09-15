@@ -11,7 +11,7 @@ import { renderer } from './renderer';
 import { renderAggregateHealth, renderHealthApi, renderProbe } from './runtime-health';
 import { apexSecurityHeaders, type AssetEnv } from './security-headers';
 import type { Meta } from './seo';
-import { errorPage, notFoundPage, offlinePageMarkup } from './status-page';
+import { errorPage, notFoundPage } from './status-page';
 import { apexStructuredLogger, type BaseLogger } from './structured-logger';
 import { requestThemeAttribute } from './theme';
 
@@ -109,7 +109,8 @@ function isUnmeteredProbe(path: string): boolean {
  * Every machine-facing endpoint, which is a WIDER set than the one above and
  * answers a different question: which responses must not be language-negotiated.
  *
- * `languageDetector` writes a `language` cookie as a side effect of running.
+ * `languageDetector` reads a `language` cookie as one input. Its cache is
+ * disabled below, so detection never writes a preference cookie as a side effect.
  * A monitor polling `/revision` is not a browser expressing a preference, and a
  * machine document that varies by locale is a document no probe can diff. Both
  * concerns used to share one path list, which is what let the limiter quietly
@@ -148,6 +149,7 @@ export function createApexApp(configurePageRoutes: ConfigurePageRoutes) {
   const detectLanguage = languageDetector({
     supportedLanguages: [...locales],
     fallbackLanguage: 'en',
+    caches: false,
   });
   app.use(async (c, next) => {
     if (isMachineEndpoint(c.req.path)) return next();
@@ -210,7 +212,6 @@ export function createApexApp(configurePageRoutes: ConfigurePageRoutes) {
       'X-Robots-Tag': 'noindex, nofollow',
     });
   });
-  app.get('/offline', (c) => c.html(offlinePageMarkup(requestThemeAttribute(c.req.raw))));
   app.route('/', pageRoutes);
   app.notFound((c) => notFoundPage(c.get('language'), requestThemeAttribute(c.req.raw)));
 

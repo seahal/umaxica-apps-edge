@@ -53,14 +53,9 @@ describe('static asset cache policy', () => {
   });
 
   /*
-   * The service worker is the one asset whose name is a contract with browsers
-   * that already registered it, so it can never be fingerprinted and must stay
-   * explicitly uncacheable.
+   * The service worker policy was removed with apex offline support. Keep this
+   * suite focused on hashed Vite assets.
    */
-  it('keeps the service worker uncacheable', () => {
-    expect(headers).toMatch(/^\/service-worker\.js$/mu);
-    expect(headers).toMatch(/^\s+Cache-Control: no-cache, no-store, must-revalidate$/mu);
-  });
 });
 
 /*

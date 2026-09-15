@@ -10,7 +10,7 @@ afterEach(() => vi.restoreAllMocks());
  * a route that throws `HTTPException`, a route that throws an unexpected error,
  * or a `RATE_LIMITER` binding that refuses. None is reachable from an HTTP
  * client, which is why these stay in Vitest while the surfaces they produce
- * (404, /offline, the security headers on an error response) moved to
+ * (404 and the security headers on an error response) moved to
  * `api/`. `app.request()` is the driver here, never the subject.
  */
 describe('apex error boundary', () => {

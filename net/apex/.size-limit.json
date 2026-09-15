@@ -1,8 +1,8 @@
 [
   {
-    "name": "client JavaScript (baseline 502 B, budget = +10%)",
-    "path": "public/*.js",
+    "name": "Worker bundle (baseline 47.2 kB gzip, budget = +10%)",
+    "path": "dist/umaxica_apps_edge_net_apex/index.js",
     "gzip": true,
-    "limit": "560 B"
+    "limit": "52 kB"
   }
 ]

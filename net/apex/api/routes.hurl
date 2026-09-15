@@ -65,8 +65,8 @@ header "referrer-policy" == "no-referrer"
 
 
 # /about is the one rendered page this unit serves. It goes through the JSX
-# renderer, so it carries the full shell: manifest link, favicon, stylesheet,
-# service worker registration, the SEO head and the title contract.
+# renderer, so it carries the full shell: favicon, stylesheet, the SEO head and
+# the title contract.
 GET {{base}}/about
 HTTP 200
 [Asserts]
@@ -79,11 +79,9 @@ xpath "string(//meta[@name='description']/@content)" == "umaxica.net is a UMAXIC
 xpath "string(//link[@rel='canonical']/@href)" == "https://umaxica.net/about"
 xpath "string(//meta[@name='robots']/@content)" == "index,follow"
 xpath "string(//meta[@name='twitter:card']/@content)" == "summary_large_image"
-xpath "//link[@rel='manifest'][@href='/manifest.webmanifest']" exists
 xpath "//link[@rel='icon'][@href='/favicon.ico']" exists
 xpath "count(//link[@rel='stylesheet'])" == 1
 xpath "string(//link[@rel='stylesheet']/@href)" matches /^\/[^"]+\.css(\?[^"]*)?$/
-xpath "//script[@src='/service-worker-register.js']" exists
 xpath "//head" exists
 xpath "//body" exists
 xpath "//main" exists
