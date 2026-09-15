@@ -3,9 +3,10 @@
 ## Status
 
 Accepted and implemented for the independent Edge slices recorded here on
-2026-09-15. The
-TanStack locale/authentication work and live production integration remain
-deferred until their external contracts are available.
+2026-09-15. The Rails Preference reference was inspected read-only at the
+specified SHA during the handoff review. TanStack public locale URL integration,
+authentication work and live production integration remain deferred because the
+published URL contract and external runtime contracts are not all approved.
 
 The twelve public content cells are TanStack Start/Vite in the current tree.
 The earlier Astro record in `adr/015-public-content-surfaces-astro.md` is kept
@@ -16,15 +17,18 @@ boundaries.
 
 The Edge repository is being changed while the Rails repository is undergoing a
 larger rewrite. The Rails reference SHA
-`7bee4819ffe2a402c63a04af2a368bfcaf253c0d` is not available in this local
-workspace, so Preference, JWT and authorization behavior cannot be inferred.
-The Edge work therefore needs explicit boundaries that can be tested with local
-fixtures and fake bindings without weakening authentication or changing Rails.
+`7bee4819ffe2a402c63a04af2a368bfcaf253c0d` was available only through a
+read-only temporary reference checkout during the handoff. Its Preference
+implementation can therefore be cited, while JWT and authorization behavior
+remain outside this work. The Edge work needs explicit boundaries that can be
+tested with local fixtures and fake bindings without weakening authentication or
+changing Rails.
 
 The implementation plan and its baseline are in
 [`plans/edge-parallel-contracts-2026-09.md`](../plans/edge-parallel-contracts-2026-09.md).
-The plan's P0 review approved only work that is independent of the missing Rails
-reference and keeps every deployment unit's local configuration boundary.
+The plan's P0 review approved only work that is independent of Rails or has a
+fixed, inspected contract, and keeps every deployment unit's local configuration
+boundary.
 
 ## Decision
 
@@ -78,11 +82,19 @@ language detector is configured with `caches: false`; Edge does not issue,
 refresh or delete the preference Cookie. Rails is the preference-cookie writer
 under the current contract.
 
-The TanStack `lx` precedence, Rails Cookie definition, Paraglide request
-isolation and locale URL behavior are held as P3 until the Rails implementation
-at the fixed reference can be inspected. No Accept-Language fallback, JWT
-decode, authentication stub or anonymous dashboard route is added in the
-meantime.
+The inspected Rails reference fixes the Preference facts needed for a later
+TanStack implementation: available locales are `en` and `ja`, locale input is
+lowercased and rejected when it is not in `I18n.available_locales`, the language
+Cookie name is `language`, and request context uses `lx` with `ri` in `jp`/`us`.
+Rails uses its Preference/Actor source for its own I18n locale; the Edge contract
+may read a valid Rails language Cookie for public display, but must never use it
+for authentication or forward it as a credential. The current public routes still
+use `/{lang}/` in canonical, hreflang and sitemap URLs. Connecting the new
+`lx` → Cookie → `ja` priority to those routes would make query-selected content
+disagree with the current path canonical. Query canonical adoption is not
+approved, so this route/SEO integration remains P3b NO-GO. No Accept-Language
+fallback change, JWT decode, authentication stub or anonymous dashboard route is
+added in the meantime.
 
 Hono uses the fixed Hono `bodyLimit` API. TanStack Start's fixed-version default
 CSRF behavior remains in place; no speculative `start.ts` or invented body
@@ -125,9 +137,9 @@ headers, cookies, authorization, body or exception text.
 
 The following remain outside this accepted parallel slice:
 
-- Rails Preference Cookie/JWT details, Core JWT/JWKS, OIDC, session, refresh,
-  revocation, AAL and final authorization;
-- TanStack public shell wiring for locale/region and authentication-dependent
+- Core JWT/JWKS, OIDC, session, refresh, revocation, AAL and final authorization;
+- TanStack public locale URL migration, Paraglide request isolation wiring,
+  invalid-`lx` URL normalization, region links and authentication-dependent
   dashboard routes;
 - canonical, hreflang, sitemap and any query-based SEO policy;
 - the apparent `info` host/region configuration question, until the active
@@ -139,17 +151,19 @@ The following remain outside this accepted parallel slice:
 - the existing production binding fail-fast follow-up, without inventing an
   Issue number.
 
-The local evidence records what was actually run. No Rails code, Rails runtime,
-Cloudflare deployment or remote GitHub operation is required by this decision.
+The local evidence records what was actually run. The Rails reference audit is
+recorded in
+[`evidence/2026-09-15-rails-preference-reference.md`](../evidence/2026-09-15-rails-preference-reference.md).
+No Rails code, Rails runtime, Cloudflare deployment or remote GitHub write was
+performed by this decision.
 
 ## Outcome
 
 Implemented Edge-only slices are recorded by commits `4929730c`, `5bc6538c`,
 `eca6a58b`, `963377c3`, `f92e2c8e`, `8fc13a12`, `9b78df1e`, `88a2f907`,
 `f8fadf08`, `0f83b4d6` and `86404e2e`, with their per-stage tests and evidence
-in `evidence/`. The plan's
-P3 locale/authentication stage remains explicitly NO-GO pending the Rails
-reference. P6's combined verification is recorded in
+in `evidence/`. The fixed Rails Preference contract is now audited; the public
+locale URL/SEO integration remains explicitly P3b NO-GO. P6's combined verification is recorded in
 `evidence/2026-09-15-edge-final-verification.md`. This ADR is the current
 summary of the transport, timeout, body, Cookie, entry, logging and offline
 boundaries for the parallel work. The type-only follow-up is `d9c32ce2`, and

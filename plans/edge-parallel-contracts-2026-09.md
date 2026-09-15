@@ -41,6 +41,10 @@ P0のbaseline以降、次の工程commitがローカルに積まれている。
 残っていた。これらは移動・破棄・stash・commitせず、今回のstageから除外する。
 実装工程はその差分と衝突しないpathだけで完了させる。
 
+引継ぎ後、Railsの指定SHAはEdge作業コピーの外にある一時bare repositoryへ
+読み取り専用で取得できた。Edgeのbranch、Rails作業ツリー、Railsの実行環境は変更していない。
+Preference契約の確認結果は `evidence/2026-09-15-rails-preference-reference.md` に記録する。
+
 ### 対象deployment unit
 
 Hono apex 5面:
@@ -149,8 +153,8 @@ DB/migration・認証設定、deadline propagation、CORS許可、retry/circuit 
 
 ### Rails完成待ちまたは実環境待ち
 
-- Preferenceの正確なCookie名、JWT形式、許可locale/正規化/不正値処理。
-- TanStackの`lx` routing、SSR/CSR初期locale、request isolationの最終実装。
+- Rails Preferenceの参照契約は指定SHAで確認済み。TanStackの`lx` routing、SSR/CSR初期locale、
+  request isolationへの接続は、現行のpath localeと未承認のquery canonical方針が衝突するため保留。
 - Rails-owned URLの残存routeとauth/base linkの最終照合。
 - production VPC/Bindingの存在、実RailsのContent-Type/schema/status、Railsがrequest IDを
   採用するか、実ネットワークのtimeout/途中切断。
@@ -248,12 +252,40 @@ unit-wide lintは既存生成`.astro`型宣言の診断で停止した。Hostの
 
 ### P3 — TanStack locale/region/public shell
 
-現状保留。Rails Preference実装とCookie定義を固定SHAから確認できるまで、`lx`規則、Cookie
-読み取り、Paraglide request isolation、region link、locale URL、認証依存dashboard接続、
-SEO/canonicalを変更しない。Rails参照コピーが利用可能になった後に、まず純粋parserと同時
-requestテストから再開する。
+#### P3a — Rails Preference契約の読み取りレビュー（完了）
 
-判定: **NO-GO（外部参照欠落）**。P3を実装したり、Accept-Languageを都合よく残してGO扱いしない。
+指定SHAの現物から、次の契約を固定した。
+
+- `config/initializers/locale.rb` の有効localeは `en` と `ja`。Railsの
+  `PreferenceBase#normalized_locale` は入力を小文字化し、`I18n.available_locales` にない値を
+  無効として扱う。
+- `app/controllers/concerns/preference_io_keys.rb` のlanguage Cookie名は `language`。
+  `PreferenceBase::LANGUAGE_COOKIE_KEY`も同じ値を参照する。`PreferenceGlobal`の`lx`は
+  request-local overlayで、入力を正規化してから有効値だけを残す。
+- `RequestContextContract`のregionは`jp`/`us`、defaultは`jp`。`lx`は`ri`と異なり、
+  有効localeかどうかをRailsのavailable localeで判定する。
+- `PreferenceLocalization`はActorのPreferenceとdefault localeからRailsのI18n localeを決める。
+  Railsのlanguage Cookieはブラウザ向けの書き込みミラーであり、Rails自身のPreference JWTや
+  DBの代替ソースとして信頼しない。Edgeが公開表示用に読み取る場合も、Cookie値を認証・認可や
+  Rails credential hopへ渡さない。
+
+この確認により、固定値を推測することを理由にしたP3の阻害は解消した。
+
+#### P3b — 公開URLへのlocale接続（保留）
+
+現行TanStack 12面は `/{lang}/...` をroute、canonical、hreflang、sitemap、Railsの
+`locale=`に一貫して使っている。ユーザー決定の新契約は有効な`lx` → Rails発行の有効な
+`language` Cookie → `ja`であり、Accept-Language、navigator、path prefixを新しいfallbackに
+しない。ここで`lx`またはCookieを画面localeへ接続すると、たとえば`/ja/?lx=en`のHTMLが英語に
+なり、現在の`/ja/` canonicalと矛盾する。
+
+query付きcanonicalを採用する明確な承認はまだない。path URLからquery URLへの移行、旧URLの
+redirect、相互hreflang、sitemap、Paraglide導入とrequest isolation、無効`lx`の有限な同一origin
+正規化は一つの公開URL/SEO工程として審査するまで変更しない。認証依存のdashboard接続と
+region linkも同じく保留し、現在の認証ガードを弱めない。
+
+判定: **P3aはGO（契約確認のみ）、P3bはNO-GO（公開URL・SEO契約未承認）**。P3全体を完了扱い
+にせず、現行locale実装をAccept-Languageの都合で改変しない。
 
 ### P4 — API clientと通信上限
 
@@ -392,7 +424,8 @@ sequential Playwright、unit test、worker manifest/generated checksを実行し
   owner-unknownの依存差分を含む現環境で、旧sourceと現sourceの比較buildも同じ超過を再現したため、
   budgetを変更せず後続課題として保留した。
 
-P6の文書整合と最終自己審査は完了した。P3はRails Preference参照欠落のためNO-GOのまま、
+P6の文書整合と最終自己審査は完了した。P3aのRails Preference契約監査は完了したが、P3bの
+公開locale URL接続は現行path canonicalと未承認のquery canonicalが衝突するためNO-GOのまま、
 production binding、実workerd/VPC、live Rails、Railsのrequest ID採用、既存browserへの
 Hono SW撤去rollout、SEO方針は保留である。P6は実装全体をproduction-readyとする判定ではない。
 
@@ -451,7 +484,8 @@ Hono SW撤去rollout、SEO方針は保留である。P6は実装全体をproduct
 3. **実行可能性** — RailsなしでP1/P2/P4/P5のfake binding/local stub/TDDが可能か。
 4. **現行境界** — 20面の単独build/test、unit固有config、Vite/TanStackの非stream SSR、
    既存のRails Set-Cookie透過を壊さないか。
-5. **保留の妥当性** — Rails Preference欠落とcanonical未決定を推測で埋めていないか。
+5. **保留の妥当性** — 確認済みのRails Preference契約と、未決定のcanonical/locale URLを
+   混同して推測実装していないか。
 6. **検証の誠実性** — baseline FAIL、未実施production/VPC/Chromium検証をPASSにしないか。
 
 ### 結果
@@ -464,13 +498,14 @@ Hono SW撤去rollout、SEO方針は保留である。P6は実装全体をproduct
 - P4は、既存clientの固定origin、schema validator、status mapping、local/fake fetcherがあり、
   Rails接続なしでbyte reader/timer/body/schemaをテストできるためGO。
 - P5は、SW sourceとCore dispatchの純粋なpath境界をlocal fixtureで検証できるためGO。
-- P3はRails SHAの実ファイルがないためNO-GO。Preference Cookie名・許可locale・正規化・
-  `lx`・Paraglideのrequest isolation・locale URL・SEOは実装しない。
+- P3aは指定SHAのPreference実装・テスト・ADRを静的に照合できたためGO。P3bは現行path
+  canonicalと未承認のquery canonicalが衝突するためNO-GOとした。Paraglideのrequest isolation、
+  invalid `lx`のURL正規化、locale URL、SEO、認証依存shellは実装しない。
 - P6のproduction build、専用port Hurl、Chromium、実workerd/VPC、Rails統合は、各工程で
   実行可能性を再確認してから判定する。P0のGOはこれらを実施済みという意味ではない。
 
-P0レビュー後の判定は、Rails待ちのP3を切り離した **P1/P2/P4/P5の限定GO** である。
-全20面の最終完成、Rails契約解消、production readinessのGOではない。
+P0レビュー後の判定は、Rails待ちのP3bを切り離した **P1/P2/P4/P5とP3aの限定GO** である。
+全20面の最終完成、公開locale URLの移行、production readinessのGOではない。
 
 ### P2b-apex 実装後の再審査
 
