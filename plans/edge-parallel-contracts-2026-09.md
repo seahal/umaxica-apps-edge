@@ -41,10 +41,14 @@ P0のbaseline以降、次の工程commitがローカルに積まれている。
 運用文書に残っていた旧Astroの実装記述をTanStack/Viteへ整合させた。どちらもRails、認証、
 通信契約、公開URLを変更しない独立したP6後続sliceである。
 
+現行HEADは、これらの記録を確定した`37f76d96`である。2026-09-17に現行HEADの総合check、
+20面build/unit test/Hurl/Chromiumを再実行し、結果を
+`evidence/2026-09-17-edge-final-audit.md`へ記録した。
+
 P3dのParaglide生成境界とCoreのrequest-local locale接続まで、公開URL/SEO契約から
 切り離せる範囲を追加実装した。P3bの公開`lx` URL接続は引き続き保留である。
 
-引継ぎ時に `pnpm-workspace.yaml`、`pnpm-lock.yaml`、12 public unit の
+引継ぎ時に `package.json`、`pnpm-workspace.yaml`、`pnpm-lock.yaml`、12 public unit の
 `wrangler.jsonc`、および root の一部文書に、所有者を確認できない未commit差分が
 残っていた。これらは移動・破棄・stash・commitせず、今回のstageから除外する。
 実装工程はその差分と衝突しないpathだけで完了させる。
@@ -528,6 +532,19 @@ root invariant 18 files（626 passed / 1 skipped）、`pnpm run format:check`、
 `git diff --check`を再実行し、実装pathのstaged差分を確認した。実装・検証は`0084cafa`で
 commitした。このsliceはコメント、表、検査説明だけの変更であり、HTTP応答、Rails transport、
 認証、Cookie、SWの動作を変更しない。
+
+#### P6c — 現行HEAD最終監査（2026-09-17、GO）
+
+`pnpm run check`を権限付きの単独実行で完了させ、`pnpm run build`、20面のunit test、20面の
+専用port Hurl、20面の直列Chromium、root invariantを現行HEADで再確認した。sandboxの並列
+実行で発生した`spawn EAGAIN`/`EPERM`は、同じコマンドを低負荷・権限付きで再実行して切り分けた。
+`pnpm run check:size`は既知のCore/public予算超過を再現したためFAILとして記録し、budget変更や
+閾値低下は行っていない。詳細は`evidence/2026-09-17-edge-final-audit.md`にある。
+
+現行worktreeの所有者不明差分は`AGENTS.md`、`package.json`、12 publicの`wrangler.jsonc`、
+`pnpm-workspace.yaml`、`pnpm-lock.yaml`であり、今回のstage対象から除外した。P3bの公開locale
+URL/SEO接続、Rails/auth、production binding、既存browserへのHono SW撤去rolloutは、契約または
+実環境待ちのNO-GO/保留のままである。
 
 ## TDDと検証の配置
 

@@ -4,9 +4,10 @@ Date: 2026-09-15
 
 ## Scope and review result
 
-The active local branch is `develop`; the current implementation head is
-`0084cafa`. The functional implementation head before the documentation-only
-follow-up was `6e26c49e`. The independent slices cover the five Hono apex workers, three
+The active local branch is `develop`; the current implementation record head is
+`37f76d96`. The active code and operations wording head is `0084cafa`, and the
+functional implementation head before those documentation-only follow-ups was
+`6e26c49e`. The independent slices cover the five Hono apex workers, three
 TanStack Core workers and twelve TanStack public content cells. The Rails
 Preference contract was audited read-only at the requested SHA. P3b, the
 public `lx` URL/SEO integration and authentication-dependent shell, remains
@@ -16,8 +17,9 @@ Paraglide generation boundary and Core request isolation, is complete.
 The final review was performed by the implementing agent; no separate review
 agent was available. The review kept the public API client, Core API client and
 Core Rails-owned transparent relay as separate contracts. It also checked that
-the owner-unknown changes in `AGENTS.md`, `pnpm-workspace.yaml`,
-`pnpm-lock.yaml` and the twelve public `wrangler.jsonc` files were never staged.
+the owner-unknown changes in `AGENTS.md`, `package.json`,
+`pnpm-workspace.yaml`, `pnpm-lock.yaml` and the twelve public `wrangler.jsonc`
+files were never staged.
 
 ## Commands actually run
 
@@ -62,8 +64,9 @@ The implementation commits are `4929730c`, `5bc6538c`, `eca6a58b`,
 stage-specific evidence files in this directory. The plan, ADR and this
 record were updated after the P3d verification in a separate documentation
 commit. The current owner-unknown worktree changes are the root `AGENTS.md`,
-twelve public `wrangler.jsonc` files, `pnpm-workspace.yaml` and
-`pnpm-lock.yaml`; they remain unstaged and uncommitted.
+`package.json`, twelve public `wrangler.jsonc` files, `pnpm-workspace.yaml` and
+`pnpm-lock.yaml`; they remain unstaged and uncommitted. A current-head rerun is
+recorded in `evidence/2026-09-17-edge-final-audit.md`.
 
 Production Cloudflare bindings, real workerd/VPC behavior, live Rails response
 schemas, Rails request-ID adoption, Rails authentication E2E, existing browser

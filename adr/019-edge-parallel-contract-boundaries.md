@@ -184,6 +184,9 @@ The Paraglide catalog and request-isolation boundary is implemented in
 The stale generated metadata and static hygiene follow-up is implemented in
 `6e26c49e`; active code and operations documentation were then aligned with
 the current TanStack/Vite tree in `0084cafa`.
+The final current-head audit, including the sequential unit, HTTP and browser
+checks, is recorded in
+`evidence/2026-09-17-edge-final-audit.md`.
 The public locale URL/SEO integration remains explicitly P3b NO-GO. P6's
 combined verification is recorded in
 `evidence/2026-09-15-edge-final-verification.md`. This ADR is the current
