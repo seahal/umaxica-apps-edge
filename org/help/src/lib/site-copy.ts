@@ -1,5 +1,5 @@
 import type { Locale } from '../i18n';
-import * as m from '../paraglide/messages';
+import { messagesFor } from './message-catalog';
 import { PUBLISHING_SURFACE } from './publishing-cell';
 import type { PublishingSurface } from './publishing-model';
 
@@ -20,38 +20,50 @@ export interface SiteCopy {
 }
 
 const COPY: Record<PublishingSurface, (locale: Locale) => SiteCopy> = {
-  docs: (locale) => ({
-    product: m.siteDocsProduct({}, { locale }),
-    siteName: m.siteDocsSiteName({}, { locale }),
-    heading: m.siteDocsHeading({}, { locale }),
-    description: m.siteDocsDescription({}, { locale }),
-    paragraphs: [m.siteDocsParagraph0({}, { locale })],
-    aboutParagraphs: [m.siteDocsAbout0({}, { locale }), m.siteDocsAbout1({}, { locale })],
-  }),
-  help: (locale) => ({
-    product: m.siteHelpProduct({}, { locale }),
-    siteName: m.siteHelpSiteName({}, { locale }),
-    heading: m.siteHelpHeading({}, { locale }),
-    description: m.siteHelpDescription({}, { locale }),
-    paragraphs: [m.siteHelpParagraph0({}, { locale })],
-    aboutParagraphs: [m.siteHelpAbout0({}, { locale }), m.siteHelpAbout1({}, { locale })],
-  }),
-  info: (locale) => ({
-    product: m.siteInfoProduct({}, { locale }),
-    siteName: m.siteInfoSiteName({}, { locale }),
-    heading: m.siteInfoHeading({}, { locale }),
-    description: m.siteInfoDescription({}, { locale }),
-    paragraphs: [m.siteInfoParagraph0({}, { locale })],
-    aboutParagraphs: [m.siteInfoAbout0({}, { locale }), m.siteInfoAbout1({}, { locale })],
-  }),
-  news: (locale) => ({
-    product: m.siteNewsProduct({}, { locale }),
-    siteName: m.siteNewsSiteName({}, { locale }),
-    heading: m.siteNewsHeading({}, { locale }),
-    description: m.siteNewsDescription({}, { locale }),
-    paragraphs: [m.siteNewsParagraph0({}, { locale })],
-    aboutParagraphs: [m.siteNewsAbout0({}, { locale }), m.siteNewsAbout1({}, { locale })],
-  }),
+  docs: (locale) => {
+    const m = messagesFor(locale);
+    return {
+      product: m.sitedocsproduct2({}),
+      siteName: m.sitedocssitename3({}),
+      heading: m.sitedocsheading2({}),
+      description: m.sitedocsdescription2({}),
+      paragraphs: [m.sitedocsparagraph02({})],
+      aboutParagraphs: [m.sitedocsabout02({}), m.sitedocsabout12({})],
+    };
+  },
+  help: (locale) => {
+    const m = messagesFor(locale);
+    return {
+      product: m.sitehelpproduct2({}),
+      siteName: m.sitehelpsitename3({}),
+      heading: m.sitehelpheading2({}),
+      description: m.sitehelpdescription2({}),
+      paragraphs: [m.sitehelpparagraph02({})],
+      aboutParagraphs: [m.sitehelpabout02({}), m.sitehelpabout12({})],
+    };
+  },
+  info: (locale) => {
+    const m = messagesFor(locale);
+    return {
+      product: m.siteinfoproduct2({}),
+      siteName: m.siteinfositename3({}),
+      heading: m.siteinfoheading2({}),
+      description: m.siteinfodescription2({}),
+      paragraphs: [m.siteinfoparagraph02({})],
+      aboutParagraphs: [m.siteinfoabout02({}), m.siteinfoabout12({})],
+    };
+  },
+  news: (locale) => {
+    const m = messagesFor(locale);
+    return {
+      product: m.sitenewsproduct2({}),
+      siteName: m.sitenewssitename3({}),
+      heading: m.sitenewsheading2({}),
+      description: m.sitenewsdescription2({}),
+      paragraphs: [m.sitenewsparagraph02({})],
+      aboutParagraphs: [m.sitenewsabout02({}), m.sitenewsabout12({})],
+    };
+  },
 };
 
 export function siteCopy(locale: Locale): SiteCopy {

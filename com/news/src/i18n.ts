@@ -7,7 +7,7 @@
  * identical without enabling Paraglide's cookie, browser preference, or URL
  * fallback strategies. Rails remains the only writer of the `language` cookie.
  */
-import * as m from './paraglide/messages';
+import { messagesFor } from './lib/message-catalog';
 
 export const LOCALES = ['ja', 'en'] as const;
 export type Locale = (typeof LOCALES)[number];
@@ -77,41 +77,44 @@ export interface UiStrings {
   unavailableBody: string;
 }
 
-const localized = (locale: Locale): UiStrings => ({
-  skipToMain: m.skipToMain({}, { locale }),
-  brand: m.brand({}, { locale }),
-  primaryNavLabel: m.primaryNavLabel({}, { locale }),
-  utilityNavLabel: m.utilityNavLabel({}, { locale }),
-  home: m.home({}, { locale }),
-  entries: m.entries({}, { locale }),
-  search: m.search({}, { locale }),
-  about: m.about({}, { locale }),
-  viewEntries: m.viewEntries({}, { locale }),
-  entriesTitle: m.entriesTitle({}, { locale }),
-  entriesHeading: m.entriesHeading({}, { locale }),
-  entriesDescription: m.entriesDescription({}, { locale }),
-  entriesEmpty: m.entriesEmpty({}, { locale }),
-  entriesPageTitle: (page) => m.entriesPageTitle({ page }, { locale }),
-  previous: m.previous({}, { locale }),
-  next: m.next({}, { locale }),
-  pagination: m.pagination({}, { locale }),
-  manage: m.manage({}, { locale }),
-  edit: m.edit({}, { locale }),
-  publishedAt: m.publishedAt({}, { locale }),
-  entryBodyStructured: m.entryBodyStructured({}, { locale }),
-  searchTitle: m.searchTitle({}, { locale }),
-  searchHeading: m.searchHeading({}, { locale }),
-  searchDescription: m.searchDescription({}, { locale }),
-  searchLabel: m.searchLabel({}, { locale }),
-  searchSubmit: m.searchSubmit({}, { locale }),
-  searchPrompt: m.searchPrompt({}, { locale }),
-  searchNoResults: (query) => m.searchNoResults({ query }, { locale }),
-  searchResultCount: (count, query) => m.searchResultCount({ count, query }, { locale }),
-  searchTemporaryNotice: m.searchTemporaryNotice({}, { locale }),
-  unavailableTitle: m.unavailableTitle({}, { locale }),
-  unavailableHeading: m.unavailableHeading({}, { locale }),
-  unavailableBody: m.unavailableBody({}, { locale }),
-});
+const localized = (locale: Locale): UiStrings => {
+  const m = messagesFor(locale);
+  return {
+    skipToMain: m.skiptomain2({}),
+    brand: m.brand({}),
+    primaryNavLabel: m.primarynavlabel2({}),
+    utilityNavLabel: m.utilitynavlabel2({}),
+    home: m.home({}),
+    entries: m.entries({}),
+    search: m.search({}),
+    about: m.about({}),
+    viewEntries: m.viewentries1({}),
+    entriesTitle: m.entriestitle1({}),
+    entriesHeading: m.entriesheading1({}),
+    entriesDescription: m.entriesdescription1({}),
+    entriesEmpty: m.entriesempty1({}),
+    entriesPageTitle: (page) => m.entriespagetitle2({ page }),
+    previous: m.previous({}),
+    next: m.next({}),
+    pagination: m.pagination({}),
+    manage: m.manage({}),
+    edit: m.edit({}),
+    publishedAt: m.publishedat1({}),
+    entryBodyStructured: m.entrybodystructured2({}),
+    searchTitle: m.searchtitle1({}),
+    searchHeading: m.searchheading1({}),
+    searchDescription: m.searchdescription1({}),
+    searchLabel: m.searchlabel1({}),
+    searchSubmit: m.searchsubmit1({}),
+    searchPrompt: m.searchprompt1({}),
+    searchNoResults: (query) => m.searchnoresults2({ query }),
+    searchResultCount: (count, query) => m.searchresultcount2({ count, query }),
+    searchTemporaryNotice: m.searchtemporarynotice2({}),
+    unavailableTitle: m.unavailabletitle1({}),
+    unavailableHeading: m.unavailableheading1({}),
+    unavailableBody: m.unavailablebody1({}),
+  };
+};
 
 /** The route-facing adapter keeps the existing typed `UI[locale]` API. */
 export const UI: Record<Locale, UiStrings> = {
