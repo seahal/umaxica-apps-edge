@@ -131,19 +131,21 @@ owners above do not.
 
 ## 5. Performance budget
 
-Measured with Size Limit (gzip) against each unit's own build output. Budget is
-baseline + 10%, rounded up: enough headroom that a dependency bump does not fail
-the gate, tight enough that a stray client component does.
+Measured with Size Limit (gzip) against each unit's own build output. The
+original baseline-plus-10% figures remain historical measurements. The current
+approved ceiling for the fifteen TanStack Start units is 150 kB; Apex keeps its
+52 kB ceiling. The ceiling applies to each unit's client JavaScript output and
+does not change the Apex Worker bundle rule.
 
 The frame figures were measured on 2026-08-23 and the apex figures on
 2026-08-18. `adr/013-frames-tanstack-start.md` records where the frame numbers
 came from and what they replaced.
 
-| Unit                                       | Baseline  | Budget |
-| ------------------------------------------ | --------- | ------ |
-| `{app,com,org}/{docs,help,info,news}` (12) | 101.84 kB | 112 kB |
-| `{app,com,org}/core` (3)                   | 117.3 kB  | 129 kB |
-| `{app,com,dev,net,org}/apex` (5)           | 502 B     | 560 B  |
+| Unit                                       | Baseline     | Budget |
+| ------------------------------------------ | ------------ | ------ |
+| `{app,com,org}/{docs,help,info,news}` (12) | 101.84 kB    | 150 kB |
+| `{app,com,org}/core` (3)                   | 117.3 kB     | 150 kB |
+| `{app,com,dev,net,org}/apex` (5)           | 47.1–47.2 kB | 52 kB  |
 
 The twelve satellites measured within 0.1 kB of each other and the three cores
 were identical, so each group carries one budget rather than three or twelve.
@@ -153,7 +155,8 @@ hashed client chunks.
 `dev/acme` used to hold the largest budget in this table, 300.96 kB against
 335 kB, almost all of it the Sentry SDK. It was deleted along with the rest of
 the Vercel surface; `umaxica.dev` is now served by `dev/apex`, which is a Hono
-Worker on the apex archetype and measures 502 B like its four siblings.
+Worker on the apex archetype and uses the same 52 kB ceiling as its four
+siblings.
 
 `app/core` used to be unmeasurable locally: its development environment binds a
 Workers VPC Service, which wrangler refuses to simulate and can only proxy after
@@ -163,14 +166,12 @@ credentials. Each frame's `vite.config.ts` passes `remoteBindings: false` unless
 siblings.
 
 `dev/apex` used to have no entry and no `.size-limit.json`, because it rendered
-HTML from template literals on Vercel and served no browser JavaScript. It is an
-apex Worker on Cloudflare now and carries the same 502 B / 560 B entry as the
-other four.
+HTML from template literals on Vercel. It is an Apex Worker on Cloudflare now
+and carries the same 52 kB Worker-bundle entry as the other four.
 
-The apex figure is not a bundler output. It is two hand-written static files —
-`service-worker.js` and `service-worker-register.js` — and the budget exists so
-that adding a third `<script>` to `renderer.tsx` is a decision someone makes on
-purpose.
+The Apex figure is the gzip size of the Vite-produced Worker bundle at each
+unit's configured `dist/umaxica_apps_edge_*` path. The 52 kB ceiling remains
+separate from the 150 kB client-JavaScript ceiling used by TanStack Start.
 
 ### Why no Size Limit preset
 

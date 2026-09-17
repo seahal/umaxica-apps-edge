@@ -60,3 +60,12 @@ canonical/hreflang/sitemap policy, live VPC/Rails schema verification, existing
 browser Hono service-worker retirement and production binding fail-fast remain
 separate follow-up work. These holds are recorded in the plan and ADR; no
 unapproved behavior was introduced to make the audit appear complete.
+
+## Subsequent TanStack budget decision
+
+After this audit, the public locale client cleanup was committed as
+`b15f0ae8`. The continuation review then approved a 150 kB gzip ceiling for
+all fifteen TanStack Start units and retained the Apex 52 kB ceiling. The
+fifteen `.size-limit.json` files were updated in `f4d94584`; no Apex limit was
+changed. The follow-up measurement passed all twenty units and is recorded in
+[`evidence/2026-09-17-tanstack-size-budget.md`](2026-09-17-tanstack-size-budget.md).

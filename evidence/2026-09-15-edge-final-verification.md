@@ -37,7 +37,7 @@ files were never staged.
 | changed-file Oxfmt, Oxlint, type-aware Oxlint and pre-commit hooks       | PASS                                                                                                                           |
 | per-unit typecheck                                                       | PASS for all 20 units after the Workers/DOM fixture overload fix                                                               |
 | `pnpm run check`                                                         | PASS: 20 unit static checks, unit tests and root invariants                                                                    |
-| per-unit `check:size` after build                                        | apex PASS at 48.46–48.56 kB gzip / 52 kB; Core FAIL at 129.82/129, 129.83/129 and 132.97/129; public FAIL at 122.65–122.69/112 |
+| per-unit `check:size` after build (旧設定での監査)                       | apex PASS at 48.46–48.56 kB gzip / 52 kB; Core FAIL at 129.82/129, 129.83/129 and 132.97/129; public FAIL at 122.65–122.69/112 |
 | `git diff --check`                                                       | PASS                                                                                                                           |
 
 The first sandbox attempts to run local servers and parallel browser tests hit
@@ -45,7 +45,10 @@ machine bind/process restrictions. Dedicated sequential local runs completed
 the same API and browser suites successfully; they did not use Rails,
 production bindings or deployed endpoints. The existing public bundle was
 already about 120.66–120.68 kB gzip against the 112 kB budget before P3d; the
-current result is about 122.65–122.69 kB. No budget was raised.
+current result at that audit was about 122.65–122.69 kB. The later continuation
+review explicitly approved a 150 kB ceiling for all fifteen TanStack Start
+units while retaining Apex's 52 kB ceiling; that change is recorded in
+`evidence/2026-09-17-tanstack-size-budget.md`.
 
 The earlier root `check` failure came from 64 tracked stale `.astro` metadata
 files and the public fixture overload; both were removed or corrected in the
@@ -59,8 +62,8 @@ the checks green.
 
 The implementation commits are `4929730c`, `5bc6538c`, `eca6a58b`,
 `963377c3`, `f92e2c8e`, `8fc13a12`, `9b78df1e`, `88a2f907`, `f8fadf08`,
-`0f83b4d6`, `86404e2e`, `d9c32ce2`, `84d6f22f`, `197b5e8b`, `6e26c49e` and
-`0084cafa`, with the
+`0f83b4d6`, `86404e2e`, `d9c32ce2`, `84d6f22f`, `197b5e8b`, `6e26c49e`,
+`0084cafa`, `b15f0ae8` and `f4d94584`, with the
 stage-specific evidence files in this directory. The plan, ADR and this
 record were updated after the P3d verification in a separate documentation
 commit. The current owner-unknown worktree changes are the root `AGENTS.md`,

@@ -41,7 +41,9 @@ P0のbaseline以降、次の工程commitがローカルに積まれている。
 運用文書に残っていた旧Astroの実装記述をTanStack/Viteへ整合させた。どちらもRails、認証、
 通信契約、公開URLを変更しない独立したP6後続sliceである。
 
-現行HEADは、これらの記録を確定した`37f76d96`である。2026-09-17に現行HEADの総合check、
+2026-09-17のP6c監査時点の記録HEADは`37f76d96`である。その後、public client bundleの
+locale参照を整理した`b15f0ae8`と、TanStack Startの承認済み150 kB上限を反映した
+`f4d94584`を積んだ。2026-09-17に現行HEADの総合check、
 20面build/unit test/Hurl/Chromiumを再実行し、結果を
 `evidence/2026-09-17-edge-final-audit.md`へ記録した。
 
@@ -489,17 +491,18 @@ sequential Playwright、unit test、worker manifest/generated checks、root inva
   overloadに合わせて`appendChild`へ変更し、Paraglide由来の型エラーはない。
 - `pnpm run check`: 20面のstatic checksとunit test、root invariantを含めてPASS。過去に追跡された
   stale `.astro`生成物と、timeout状態のtype-aware lint警告を別工程で解消した。
-- `pnpm run check:size`: apex 5面は48.46–48.56 kB gzip / 52 kBでPASS。Coreは
+- `pnpm run check:size`（150 kB承認前の旧設定）: apex 5面は48.46–48.56 kB gzip / 52 kBでPASS。Coreは
   129.82/129、129.83/129、132.97/129 kBでFAIL、public 12面は122.65–122.69/112 kBでFAIL。
   publicの変更前比較は約120.66–120.68 kBで既にbudget超過し、Paraglide後の増分を確認した。
-  budget変更や無関係な最適化は行わず、性能後続課題として保留する。
+  この結果は旧設定での監査結果であり、後続の明示的な上限決定前の記録である。
 - `git diff --check`とcommit直前のstaged差分レビュー: PASS。owner-unknownの差分は未stageのまま。
 
 P6の文書整合と最終自己審査は完了した。P3aのRails Preference契約監査、P3cのinfo global host
 境界、P3dのParaglide生成/request isolation境界は完了した。一方、P3bの公開locale URL接続は
 現行path canonicalと未承認のquery canonicalが衝突するためNO-GOのまま、JWT/authentication、
 production binding、実workerd/VPC、live Rails、Railsのrequest ID採用、既存browserへのHono SW
-撤去rollout、SEO方針は保留である。size budgetは後続課題として、今回の完了判定を広げる理由にはしない。
+撤去rollout、SEO方針は保留である。TanStackのbundle上限はP6dで150 kBへ明示的に更新し、
+その基準で全20面のsize checkをgreenにした。Apexの52 kB上限は維持する。
 P6は実装全体をproduction-readyとする判定ではない。
 
 #### P6a — stale Astro生成物・root衛生・型/lintの完了（追加、GO）
@@ -545,6 +548,19 @@ commitした。このsliceはコメント、表、検査説明だけの変更で
 `pnpm-workspace.yaml`、`pnpm-lock.yaml`であり、今回のstage対象から除外した。P3bの公開locale
 URL/SEO接続、Rails/auth、production binding、既存browserへのHono SW撤去rolloutは、契約または
 実環境待ちのNO-GO/保留のままである。
+
+#### P6d — TanStack Start bundle ceiling update (2026-09-17、GO)
+
+継続レビューで利用者から、TanStack Startの15面について150 kBを承認し、Apexは現行のまま
+と明示された。public 12面の112 kB、Core 3面の129 kBを各unitの`.size-limit.json`で150 kBへ
+更新し、Apex 5面の52 kB設定は変更しなかった。baselineの記載は比較可能性のため残し、設定名は
+承認済み上限であることが分かる表記へ変更した。
+
+既存のP3d後buildを前提に`pnpm -r --no-bail --workspace-concurrency=1 run check:size`を実行し、
+20面すべてPASSを確認した。実測はTanStack public 121.67–121.71 kB、Core 129.83–132.97 kB、
+Apex 48.82–48.93 kB gzipだった。設定変更はbundleの挙動を変えず、基準の更新だけである。
+差分レビュー、`git diff --cached --check`、pre-commitのformat/spellingを通過させ、
+`f4d94584`としてcommitした。
 
 ## TDDと検証の配置
 

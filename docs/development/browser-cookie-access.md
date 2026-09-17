@@ -57,8 +57,8 @@ Adding a cookie library to any unit's dependencies is not allowed, and neither i
   `document.cookie` is one flat string that has to be parsed; there is nothing
   left for a library to do here.
 - **It costs no bytes.** The browser-bundle budgets in each unit's
-  `.size-limit.json` are baseline + 10%, tight enough that a stray dependency
-  fails the gate. A platform API spends none of that budget.
+  `.size-limit.json` are 150 kB for TanStack Start and 52 kB for Apex. A
+  platform API spends none of that budget.
 
 The same API is reachable from a service worker as
 `ServiceWorkerGlobalScope.cookieStore`, and a `change` event is available in both

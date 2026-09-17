@@ -151,6 +151,16 @@ for that relay, with the same generated ID and final Edge status; it does not
 add a duplicate generic completion record. No log path accepts raw URL,
 headers, cookies, authorization, body or exception text.
 
+### 5. Use the approved client bundle ceilings
+
+The twelve public TanStack Start cells and three Core cells use a 150 kB gzip
+ceiling for `dist/client/assets/**/*.js`, as explicitly approved during the
+2026-09-17 continuation review. Their earlier 112 kB and 129 kB values remain
+historical baseline-plus-10% measurements. The five Hono Apex workers retain
+their existing 52 kB ceiling; this decision does not loosen their bundle rule.
+The measured TanStack outputs are below 150 kB, so the per-unit `check:size`
+gate is green without changing application behavior or hiding a build failure.
+
 ## Deferred decisions and verification
 
 The following remain outside this accepted parallel slice:
@@ -181,6 +191,8 @@ in `evidence/`. The fixed Rails Preference contract is now audited, and the
 info global-host correction is implemented in `84d6f22f` with its own evidence.
 The Paraglide catalog and request-isolation boundary is implemented in
 `197b5e8b`, with its own evidence.
+The public locale client bundle cleanup is implemented in `b15f0ae8`, and the
+approved 150 kB TanStack ceiling is recorded in `f4d94584`.
 The stale generated metadata and static hygiene follow-up is implemented in
 `6e26c49e`; active code and operations documentation were then aligned with
 the current TanStack/Vite tree in `0084cafa`.
