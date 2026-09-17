@@ -36,6 +36,12 @@ allowBuilds:
 
 catalog:
   '@astrojs/cloudflare': 14.3.1
+  # Paraglide is the generated, request-isolated message runtime for the
+  # fifteen TanStack frames. The strategy list is pinned in each Vite config;
+  # this catalog keeps compiler behavior identical across all units.
+  '@inlang/paraglide-js': 2.23.1
+  '@inlang/plugin-m-function-matcher': 2.2.15
+  '@inlang/plugin-message-format': 4.3.0
   # React islands on the twelve Astro publishing homes. Pinned next to Astro so
   # the content surfaces cannot drift onto an integration the 7.3 line rejects.
   '@astrojs/react': 6.0.5
@@ -43,12 +49,6 @@ catalog:
   '@cloudflare/workers-types': ^5.20260903.1
   '@fontsource-variable/inter': ^5.3.0
   '@hono/structured-logger': ^1.0.0
-  # Paraglide is the generated, request-isolated message runtime for the
-  # fifteen TanStack frames. The strategy list is pinned in each Vite config;
-  # this catalog keeps compiler behavior identical across all units.
-  '@inlang/paraglide-js': 2.23.1
-  '@inlang/plugin-m-function-matcher': 2.2.15
-  '@inlang/plugin-message-format': 4.3.0
   # Hurl is a Rust binary; this package is the official npm distribution of it
   # (bins `hurl` and `hurlfmt`). Installing it as a devDependency rather than
   # documenting a `brew`/`apt`/`cargo` step is what keeps pnpm the only entry
@@ -67,7 +67,7 @@ catalog:
   # subtle one. The preset packages are deliberately not used: @size-limit/time
   # (which preset-app pulls in) needs a headless Chrome that neither CI nor the
   # Containerfile installs — the same reason `test:e2e` is not a CI gate.
-  '@size-limit/file': ^13.0.3
+  '@size-limit/file': ^14.0.0
   # Tailwind v4 has no JS config file: the theme is declared in each unit's own
   # stylesheet with `@theme`. One engine, one delivery mechanism, because every
   # unit builds with Vite: `@tailwindcss/vite`.
@@ -99,7 +99,7 @@ catalog:
   # here changes what a test MEANS rather than whether it runs.
   '@testing-library/jest-dom': ^7.0.1
   '@testing-library/react': ^16.3.3
-  '@types/node': ^26.5.1
+  '@types/node': ^26.6.1
   '@types/react': ^19.2.18
   '@types/react-dom': ^19.2.7
   # React Fast Refresh and the JSX transform for the Vite-built units. The five
@@ -115,10 +115,10 @@ catalog:
   # different major could disagree about what the config file even means.
   # Astro (unscoped). See '@astrojs/cloudflare' above for the pilot rationale.
   astro: 7.3.2
-  cspell: ^10.3.0
-  dependency-cruiser: ^18.2.0
+  cspell: ^10.3.2
+  dependency-cruiser: ^18.3.1
   happy-dom: ^20.13.2
-  hono: ^4.13.7
+  hono: ^4.13.8
   knip: ^6.35.1
   # The static analysis toolchain. These were literal strings in twenty-two
   # manifests until they drifted (knip sat at 6.32.1 in every unit and 6.32.2 at
@@ -126,15 +126,15 @@ catalog:
   # or type rule that fires in CI and not on a developer's machine is worse than
   # the rule being off. oxlint and oxlint-tsgolint in particular have to move
   # together — tsgolint is the type-aware backend oxlint shells out to.
-  oxfmt: ^0.67.0
-  oxlint: 1.82.0
+  oxfmt: ^0.68.0
+  oxlint: 1.83.0
   oxlint-tsgolint: ^7.0.2001
   react: ^19.2.8
   react-aria-components: ^1.21.0
   react-dom: ^19.2.8
   # The frontend performance budget runner. See '@size-limit/file' above for why
   # the two move together and why no preset is used.
-  size-limit: ^13.0.3
+  size-limit: ^14.0.0
   # Workspace dependency-consistency checking. It reads this very file — the
   # catalog definitions and the `catalog:` specifiers pointing at them — so it
   # belongs to the repository root rather than to any unit.
@@ -160,11 +160,11 @@ catalog:
   # Vitest already resolves a transitive copy of Vite; this entry is the direct,
   # version-pinned one, so the two cannot disagree about which major is in play.
   vite: ^8.2.2
-  vitest: ^5.0.0
+  vitest: ^5.0.1
   # Floor set by `@cloudflare/vite-plugin`'s peer range (^4.127.0), not chosen
   # independently. Bumping the plugin without bumping this is a resolution
   # failure rather than a subtle one.
-  wrangler: ^4.131.1
+  wrangler: ^4.132.0
 
 ignoredBuiltDependencies:
   - esbuild
