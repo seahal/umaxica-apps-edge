@@ -39,6 +39,10 @@
       "head_sampling_rate": 1
     }
   },
+  // Workers Cache API / default cache behaviour, enabled explicitly.
+  "cache": {
+    "enabled": true
+  },
   "upload_source_maps": false,
   "placement": {
     "mode": "smart"
