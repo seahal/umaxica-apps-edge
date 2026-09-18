@@ -241,4 +241,48 @@ describe('rails client factory', () => {
     const [requestUrl] = binding.fetch.mock.calls[0] as [string, RequestInit];
     expect(requestUrl).toBe(`${PRIVATE_RAILS_ORIGIN}/api/v0/health.json`);
   });
+
+  it('ignores a ProxyError-shaped 500 when content-encoding is not identity', async () => {
+    const binding = makeBinding(
+      new Response('ProxyError: connection_refused', {
+        status: 500,
+        headers: {
+          'content-type': 'text/plain;charset=UTF-8',
+          'content-encoding': 'gzip',
+        },
+      }),
+    );
+    const client = createRailsClient(binding, PRIVATE_RAILS_ORIGIN);
+    const result = await client.fetch('/api/v0/health.json');
+    expect(result.kind).toBe('http-error');
+  });
+
+  it('reports timeout when reading a ProxyError body is aborted', async () => {
+    const abort = new AbortController();
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        pull() {
+          return new Promise<void>(() => {});
+        },
+      }),
+      {
+        status: 500,
+        headers: { 'content-type': 'text/plain;charset=UTF-8' },
+      },
+    );
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(abort.signal);
+    try {
+      const binding = {
+        fetch: vi.fn(async () => {
+          queueMicrotask(() => abort.abort(new DOMException('timed out', 'TimeoutError')));
+          return response;
+        }),
+      };
+      const client = createRailsClient(binding, PRIVATE_RAILS_ORIGIN);
+      const result = await client.fetch('/api/v0/health.json');
+      expect(result.kind).toBe('timeout');
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
 });
