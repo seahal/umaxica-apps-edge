@@ -27,4 +27,7 @@ describe('public display locale boundary', () => {
   it('does not treat a similarly named cookie as the Rails language cookie', () => {
     expect(resolveDisplayLocale(requestFor('', 'language_backup=en'))).toBe('ja');
   });
+  it('skips cookie fragments that carry no name/value separator', () => {
+    expect(resolveDisplayLocale(requestFor('', 'flag; language=en'))).toBe('en');
+  });
 });

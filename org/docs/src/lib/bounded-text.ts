@@ -47,20 +47,19 @@ export async function readBoundedText(
       throw signal.reason ?? new DOMException('The operation was aborted.', 'AbortError');
     }
 
-    let onAbort: (() => void) | undefined;
+    let rejectAbort!: (reason?: unknown) => void;
     const aborted = new Promise<never>((_, reject) => {
-      onAbort = () => {
-        reject(signal.reason ?? new DOMException('The operation was aborted.', 'AbortError'));
-      };
-      signal.addEventListener('abort', onAbort, { once: true });
+      rejectAbort = reject;
     });
+    const onAbort = () => {
+      rejectAbort(signal.reason ?? new DOMException('The operation was aborted.', 'AbortError'));
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
 
     try {
       return await Promise.race([reader.read(), aborted]);
     } finally {
-      if (onAbort !== undefined) {
-        signal.removeEventListener('abort', onAbort);
-      }
+      signal.removeEventListener('abort', onAbort);
     }
   };
 

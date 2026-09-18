@@ -215,4 +215,13 @@ describe('request handler', () => {
     expect(development.headers.get('Content-Security-Policy')).not.toContain('nonce-');
     expect(development.headers.get('Content-Security-Policy')).toContain("'unsafe-eval'");
   });
+
+  it('maps an aborted body boundary to the generation-timeout response', async () => {
+    const boundary = await import('../src/lib/request-boundary');
+    vi.spyOn(boundary, 'limitRequestBody').mockResolvedValue({ kind: 'aborted' });
+    const router = vi.fn(ok);
+    const response = await handleRequest(new Request('http://localhost/ja/'), router, true);
+    expect(response.status).toBe(503);
+    expect(router).not.toHaveBeenCalled();
+  });
 });
