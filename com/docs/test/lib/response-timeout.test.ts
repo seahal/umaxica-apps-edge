@@ -67,3 +67,41 @@ describe('response generation timeout', () => {
     }
   });
 });
+
+it('surfaces an exception thrown by the timeout handler', async () => {
+  vi.useFakeTimers();
+  try {
+    const responsePromise = withResponseGenerationTimeout(
+      () => new Promise<Response>(() => {}),
+      () => {
+        throw new Error('timeout handler failed');
+      },
+    );
+    const assertion = expect(responsePromise).rejects.toThrow('timeout handler failed');
+    await vi.advanceTimersByTimeAsync(EDGE_RESPONSE_TIMEOUT_MS);
+    await assertion;
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('ignores a late operation success after the timeout response has won', async () => {
+  vi.useFakeTimers();
+  try {
+    let resolveOperation: ((value: Response) => void) | undefined;
+    const responsePromise = withResponseGenerationTimeout(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveOperation = resolve;
+        }),
+      responseGenerationTimeoutResponse,
+    );
+
+    await vi.advanceTimersByTimeAsync(EDGE_RESPONSE_TIMEOUT_MS);
+    await expect(responsePromise).resolves.toMatchObject({ status: 503 });
+    resolveOperation?.(new Response('late success'));
+    await Promise.resolve();
+  } finally {
+    vi.useRealTimers();
+  }
+});
