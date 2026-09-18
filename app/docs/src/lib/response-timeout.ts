@@ -50,6 +50,7 @@ export async function withResponseGenerationTimeout<T>(
       );
     });
   } finally {
-    if (timer !== undefined) clearTimeout(timer);
+    // Timer is assigned synchronously in the Promise executor before any await.
+    clearTimeout(timer);
   }
 }
