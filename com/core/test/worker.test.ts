@@ -657,4 +657,26 @@ describe('com/core worker.ts dispatch', () => {
     expect(response.status).toBe(500);
     await expect(response.text()).resolves.toBe('rails error page');
   });
+
+  it('surfaces a fixed 500 when application dispatch throws', async () => {
+    appFetch.mockRejectedValue(new Error('handler exploded'));
+
+    const response = await worker.fetch(new Request('https://jp.umaxica.com/'), makeEnv(), ctx);
+
+    expect(response.status).toBe(500);
+    expect(await response.text()).toBe('Internal Server Error\n');
+    expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('maps an aborted body boundary to the generation-timeout response', async () => {
+    const boundary = await import('../src/lib/request-boundary');
+    vi.spyOn(boundary, 'limitRequestBody').mockResolvedValue({ kind: 'aborted' });
+    appFetch.mockResolvedValue(new Response('should not render', { status: 200 }));
+
+    const response = await worker.fetch(new Request('https://jp.umaxica.com/'), makeEnv(), ctx);
+
+    expect(response.status).toBe(503);
+    expect(await response.text()).toBe('Service Unavailable\n');
+    expect(appFetch).not.toHaveBeenCalled();
+  });
 });

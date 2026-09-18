@@ -343,7 +343,48 @@ describe('rails health api consumer', () => {
       makeClient({
         kind: 'ok',
         status: 200,
-        response: jsonResponse(200, { status: 'pass', checks }),
+        response: jsonResponse(200, {
+          status: 'pass',
+          timestamp: PASS_DOCUMENT.timestamp,
+          checks,
+        }),
+      }),
+    );
+    expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
+  });
+
+  it('reports invalid-contract when a named check is missing', async () => {
+    const report = await checkRailsHealth(
+      makeClient({
+        kind: 'ok',
+        status: 200,
+        response: jsonResponse(200, {
+          status: 'pass',
+          timestamp: PASS_DOCUMENT.timestamp,
+          checks: {
+            startup: { status: 'pass' },
+            liveness: { status: 'pass' },
+          },
+        }),
+      }),
+    );
+    expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
+  });
+
+  it('reports invalid-contract when a check entry is an array', async () => {
+    const report = await checkRailsHealth(
+      makeClient({
+        kind: 'ok',
+        status: 200,
+        response: jsonResponse(200, {
+          status: 'pass',
+          timestamp: PASS_DOCUMENT.timestamp,
+          checks: {
+            startup: { status: 'pass' },
+            liveness: { status: 'pass' },
+            readiness: [{ status: 'pass' }],
+          },
+        }),
       }),
     );
     expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
@@ -358,6 +399,7 @@ describe('rails health api consumer', () => {
         status: 200,
         response: jsonResponse(200, {
           status: 'pass',
+          timestamp: PASS_DOCUMENT.timestamp,
           checks: {
             startup: { status: 'pass' },
             liveness: { status: 'pass' },
@@ -366,6 +408,30 @@ describe('rails health api consumer', () => {
         }),
       }),
     );
+    expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
+  });
+
+  it('reports invalid-contract for a non-identity content-encoding', async () => {
+    const response = new Response(JSON.stringify(PASS_DOCUMENT), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+        'content-encoding': 'gzip',
+      },
+    });
+    const report = await checkRailsHealth(makeClient({ kind: 'ok', status: 200, response }));
+    expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
+  });
+
+  it('reports invalid-contract when Content-Length alone exceeds the body bound', async () => {
+    const response = new Response(JSON.stringify(PASS_DOCUMENT), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+        'content-length': '70000',
+      },
+    });
+    const report = await checkRailsHealth(makeClient({ kind: 'ok', status: 200, response }));
     expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
   });
 
