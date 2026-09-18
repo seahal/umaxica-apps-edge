@@ -28,3 +28,7 @@ describe('Core display locale boundary', () => {
     expect(resolveDisplayLocale(requestFor('', 'language_backup=en'))).toBe('ja');
   });
 });
+
+it('skips cookie fragments that carry no name/value separator', () => {
+  expect(resolveDisplayLocale(requestFor('', 'flag; language=en'))).toBe('en');
+});
