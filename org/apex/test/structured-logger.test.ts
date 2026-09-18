@@ -74,3 +74,69 @@ describe('apex structured logger', () => {
     expect(output).not.toContain('/levels');
   });
 });
+
+describe('apex structured logger field normalization', () => {
+  type RecordLine = { level: string; msg?: string; data: Record<string, unknown> };
+
+  function collectRecords(
+    log: ReturnType<typeof vi.spyOn>,
+    warn: ReturnType<typeof vi.spyOn>,
+    error: ReturnType<typeof vi.spyOn>,
+  ): RecordLine[] {
+    return [...log.mock.calls, ...warn.mock.calls, ...error.mock.calls].map(
+      ([line]) => JSON.parse(String(line)) as RecordLine,
+    );
+  }
+
+  it('maps unrecognized HTTP methods to OTHER without leaking the raw verb', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const app = new Hono<ApexEnv>();
+    app.use(requestId({ limitLength: 0 }));
+    app.use(apexStructuredLogger);
+    app.all('/', (c) => c.text('ok'));
+
+    const response = await app.request('/', { method: 'PROPFIND' });
+    expect(response.status).toBe(200);
+
+    const records = collectRecords(log, warn, error);
+    expect(records.some((r) => r.data['method'] === 'OTHER')).toBe(true);
+    expect(JSON.stringify(records)).not.toContain('PROPFIND');
+  });
+
+  it('maps unrecognized EDGE_ENV values to unknown while keeping known values closed', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const app = new Hono<ApexEnv>();
+    app.use(requestId({ limitLength: 0 }));
+    app.use(apexStructuredLogger);
+    app.get('/about', (c) => c.text('ok'));
+
+    const response = await app.request('/about', undefined, {
+      EDGE_ENV: 'staging-secret-label',
+    });
+    expect(response.status).toBe(200);
+
+    const records = collectRecords(log, warn, error);
+    expect(records.some((r) => r.data['environment'] === 'unknown')).toBe(true);
+    expect(JSON.stringify(records)).not.toContain('staging-secret-label');
+  });
+
+  it('classifies the document root as route root', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const app = new Hono<ApexEnv>();
+    app.use(requestId({ limitLength: 0 }));
+    app.use(apexStructuredLogger);
+    app.get('/', (c) => c.text('ok'));
+
+    const response = await app.request('/');
+    expect(response.status).toBe(200);
+
+    const records = collectRecords(log, warn, error);
+    expect(records.some((r) => r.data['route'] === 'root')).toBe(true);
+  });
+});
