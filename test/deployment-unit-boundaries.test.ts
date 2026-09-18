@@ -77,6 +77,73 @@ function sourceFilesUnderUnits(): { path: string; unit: string }[] {
   );
 }
 
+// Every `../`-prefixed path token, whatever surrounds it (quotes, a shell
+// word, a CSS `url(`). Not preceded by a word character or dot, so `a../b`
+// and `.../` are not paths.
+const PARENT_PATH = /(?<![\w.])(\.\.\/[^\s'"`,;)\]}]*)/gu;
+
+// Binary assets and the committed TanStack route tree (generated, and made of
+// in-unit `./routes/...` specifiers only) carry no hand-written references.
+const NOT_IMPLEMENTATION =
+  /\.(?:md|png|jpe?g|gif|ico|webp|avif|svg|woff2?|ttf|otf)$|\/routeTree\.gen\.ts$/u;
+
+function implementationFilesUnderUnits(): { path: string; unit: string }[] {
+  return trackedFiles()
+    .filter((path) => !NOT_IMPLEMENTATION.test(path))
+    .filter((path) => existsSync(join(repoRoot, path)))
+    .flatMap((path) => {
+      const unit = owningUnit(path);
+      return unit ? [{ path, unit }] : [];
+    });
+}
+
+// `resolve(...)` / `join(...)` from `node:path`, bare or as `path.x(...)`.
+// `.join(` on anything else (an array) is not matched.
+const PATH_CALL = /(?:\bpath\.|(?<![\w$.]))(?:resolve|join)\s*\(/gu;
+
+/** The argument text of the call whose `(` ends at `open`, or null if unbalanced. */
+function callArguments(contents: string, open: number): string[] | null {
+  const args: string[] = [];
+  let depth = 0;
+  let start = open;
+  for (let i = open; i < contents.length; i += 1) {
+    const char = contents[i];
+    if (char === '(' || char === '[' || char === '{') depth += 1;
+    else if (char === ')' || char === ']' || char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        args.push(contents.slice(start + 1, i));
+        return args.map((arg) => arg.trim()).filter(Boolean);
+      }
+    } else if (char === ',' && depth === 1) {
+      args.push(contents.slice(start + 1, i));
+      start = i;
+    }
+  }
+  return null;
+}
+
+/**
+ * The directory a `node:path` call resolves to, when every argument is static:
+ * a known base (`import.meta.dirname`, `__dirname`, `process.cwd()` — a unit's
+ * scripts run from the unit root) followed by string literals. Anything
+ * dynamic makes the call unknowable, and an unknowable call is not a violation.
+ */
+function staticPathTarget(args: string[], file: string, unit: string): string | null {
+  const [base, ...rest] = args;
+  let from: string;
+  if (base === 'import.meta.dirname' || base === '__dirname') from = dirname(file);
+  else if (base === 'process.cwd()') from = join(repoRoot, unit);
+  else return null;
+  const segments: string[] = [];
+  for (const arg of rest) {
+    const literal = arg.match(/^(['"])([^'"\\]*)\1$/u);
+    if (!literal) return null;
+    segments.push(literal[2] as string);
+  }
+  return resolve(from, ...segments);
+}
+
 describe('deployment unit boundaries', () => {
   it('reads a plausible set of units from pnpm-workspace.yaml', () => {
     // Everything below is only as strong as this list. If the parse silently
@@ -90,19 +157,22 @@ describe('deployment unit boundaries', () => {
   it('finds source files to check', () => {
     // Same guard: an empty file list would make the boundary test meaningless.
     expect(sourceFilesUnderUnits().length).toBeGreaterThan(100);
+    expect(implementationFilesUnderUnits().length).toBeGreaterThan(sourceFilesUnderUnits().length);
   });
 
-  it('never imports another deployment unit source file', () => {
+  it('never reaches outside its own deployment unit by relative path', () => {
+    // Both escapes break extraction: into a sibling unit, and into the
+    // repository root (`tools/`, `scripts/`, a root config, a root fixture).
+    // The root is only orchestration — it will not exist next to an extracted
+    // unit — so "does not resolve into another unit" is not enough.
     const violations: string[] = [];
 
     for (const { path, unit } of sourceFilesUnderUnits()) {
       const contents = readFileSync(join(repoRoot, path), 'utf8');
       for (const [, specifier] of contents.matchAll(RELATIVE_SPECIFIER)) {
-        const resolved = resolve(dirname(join(repoRoot, path)), specifier);
-        const target = relative(repoRoot, resolved);
-        const targetUnit = owningUnit(target);
-        if (targetUnit !== null && targetUnit !== unit) {
-          violations.push(`${path} -> ${specifier} (resolves into ${targetUnit})`);
+        const target = relative(repoRoot, resolve(dirname(join(repoRoot, path)), specifier));
+        if (owningUnit(target) !== unit) {
+          violations.push(`${path} -> ${specifier} (resolves to ${target || '.'})`);
         }
       }
     }
@@ -110,6 +180,53 @@ describe('deployment unit boundaries', () => {
     // Each unit owns its own components, types, hooks and utilities, including
     // code that is identical across units. Copy the implementation into this
     // unit rather than importing across the boundary. See CLAUDE.md.
+    expect(violations).toEqual([]);
+  });
+
+  it('never names a path outside its own deployment unit in any implementation file', () => {
+    // The import scan above only reads module specifiers. Configuration reaches
+    // files too — a `../../tools/x.mjs` in a package.json script, a `$schema`,
+    // `@import`/`@source` in a stylesheet, `main` in wrangler.jsonc, a Knip
+    // `entry`, an inlang `modules` path. Any `../` token that resolves outside
+    // the unit is an escape, whatever the file type. Prose (`*.md`) is exempt:
+    // a unit README may cite a root ADR without depending on it.
+    const violations: string[] = [];
+
+    for (const { path, unit } of implementationFilesUnderUnits()) {
+      const contents = readFileSync(join(repoRoot, path), 'utf8');
+      for (const [, reference] of contents.matchAll(PARENT_PATH)) {
+        const target = relative(repoRoot, resolve(dirname(join(repoRoot, path)), reference));
+        if (owningUnit(target) !== unit) {
+          violations.push(`${path}: ${reference} (resolves to ${target || '.'})`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('never builds a path outside its own deployment unit with node:path', () => {
+    // `resolve(import.meta.dirname, '..', '..', 'tools')` escapes without a
+    // single `../` token, so the text scan above cannot see it. Only calls whose
+    // arguments are all static are judged; see staticPathTarget.
+    const violations: string[] = [];
+
+    for (const { path, unit } of sourceFilesUnderUnits()) {
+      const contents = readFileSync(join(repoRoot, path), 'utf8');
+      if (!/['"](?:node:)?path['"]/u.test(contents)) continue;
+      for (const match of contents.matchAll(PATH_CALL)) {
+        const open = (match.index ?? 0) + match[0].length - 1;
+        const args = callArguments(contents, open);
+        if (!args) continue;
+        const target = staticPathTarget(args, join(repoRoot, path), unit);
+        if (target === null) continue;
+        const repoRelative = relative(repoRoot, target);
+        if (owningUnit(repoRelative) !== unit) {
+          violations.push(`${path}: ${match[0]}${args.join(', ')}) -> ${repoRelative || '.'}`);
+        }
+      }
+    }
+
     expect(violations).toEqual([]);
   });
 
@@ -178,6 +295,34 @@ describe('deployment unit boundaries', () => {
         const resolved = relative(repoRoot, resolve(dirname(tsconfigPath), target));
         if (owningUnit(resolved) !== unit) {
           violations.push(`${unit}/tsconfig.json extends ${target} (${resolved})`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('declares every package its tsconfig loads through "types"', () => {
+    // `"types": ["node"]` resolves `@types/node` the same way an import does,
+    // so an undeclared entry only works while the root happens to hoist it.
+    const violations: string[] = [];
+
+    for (const unit of units) {
+      const tsconfigPath = join(repoRoot, unit, 'tsconfig.json');
+      const manifestPath = join(repoRoot, unit, 'package.json');
+      if (!existsSync(tsconfigPath) || !existsSync(manifestPath)) continue;
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      const declared = new Set(
+        Object.keys({ ...manifest.dependencies, ...manifest.devDependencies }),
+      );
+      const list = readFileSync(tsconfigPath, 'utf8').match(/"types"\s*:\s*\[([^\]]*)\]/u);
+      for (const [, entry] of (list?.[1] ?? '').matchAll(/"([^"]+)"/gu)) {
+        if (entry === undefined || entry.startsWith('.')) continue;
+        const name = entry.startsWith('@')
+          ? entry.split('/').slice(0, 2).join('/')
+          : (entry.split('/')[0] as string);
+        if (!declared.has(name) && !declared.has(`@types/${name}`)) {
+          violations.push(`${unit}/tsconfig.json types "${entry}" is not a declared dependency`);
         }
       }
     }

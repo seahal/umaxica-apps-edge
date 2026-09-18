@@ -115,11 +115,11 @@ catalog:
   # different major could disagree about what the config file even means.
   # Astro (unscoped). See '@astrojs/cloudflare' above for the pilot rationale.
   astro: 7.3.2
-  cspell: ^10.3.2
+  cspell: ^10.3.3
   dependency-cruiser: ^18.3.1
   happy-dom: ^20.13.2
   hono: ^4.13.8
-  knip: ^6.35.1
+  knip: ^6.36.0
   # The static analysis toolchain. These were literal strings in twenty-two
   # manifests until they drifted (knip sat at 6.32.1 in every unit and 6.32.2 at
   # the root), which is exactly the failure a catalog exists to prevent: a lint
@@ -164,7 +164,7 @@ catalog:
   # Floor set by `@cloudflare/vite-plugin`'s peer range (^4.127.0), not chosen
   # independently. Bumping the plugin without bumping this is a resolution
   # failure rather than a subtle one.
-  wrangler: ^4.132.0
+  wrangler: ^4.133.0
 
 ignoredBuiltDependencies:
   - esbuild
