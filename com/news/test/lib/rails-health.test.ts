@@ -209,17 +209,6 @@ describe('rails health api consumer', () => {
     expect(report.kind).toBe('invalid-contract');
   });
 
-  it('reports invalid-contract when checks is an array', async () => {
-    const report = await checkRailsHealth(
-      makeClient({
-        kind: 'ok',
-        status: 200,
-        response: jsonResponse(200, { ...PASS_DOCUMENT, checks: [] }),
-      }),
-    );
-    expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
-  });
-
   it.each([
     ['missing', undefined],
     ['without a timezone', '2026-09-05T09:33:29'],
@@ -354,7 +343,48 @@ describe('rails health api consumer', () => {
       makeClient({
         kind: 'ok',
         status: 200,
-        response: jsonResponse(200, { status: 'pass', checks }),
+        response: jsonResponse(200, {
+          status: 'pass',
+          timestamp: PASS_DOCUMENT.timestamp,
+          checks,
+        }),
+      }),
+    );
+    expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
+  });
+
+  it('reports invalid-contract when a named check is missing', async () => {
+    const report = await checkRailsHealth(
+      makeClient({
+        kind: 'ok',
+        status: 200,
+        response: jsonResponse(200, {
+          status: 'pass',
+          timestamp: PASS_DOCUMENT.timestamp,
+          checks: {
+            startup: { status: 'pass' },
+            liveness: { status: 'pass' },
+          },
+        }),
+      }),
+    );
+    expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
+  });
+
+  it('reports invalid-contract when a check entry is an array', async () => {
+    const report = await checkRailsHealth(
+      makeClient({
+        kind: 'ok',
+        status: 200,
+        response: jsonResponse(200, {
+          status: 'pass',
+          timestamp: PASS_DOCUMENT.timestamp,
+          checks: {
+            startup: { status: 'pass' },
+            liveness: { status: 'pass' },
+            readiness: [{ status: 'pass' }],
+          },
+        }),
       }),
     );
     expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
@@ -381,20 +411,27 @@ describe('rails health api consumer', () => {
     expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
   });
 
-  it.each([
-    ['null', null],
-    ['an array', []],
-  ])('reports invalid-contract when readiness is %s', async (_label, readiness) => {
-    const report = await checkRailsHealth(
-      makeClient({
-        kind: 'ok',
-        status: 200,
-        response: jsonResponse(200, {
-          ...PASS_DOCUMENT,
-          checks: { ...PASS_DOCUMENT.checks, readiness },
-        }),
-      }),
-    );
+  it('reports invalid-contract for a non-identity content-encoding', async () => {
+    const response = new Response(JSON.stringify(PASS_DOCUMENT), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+        'content-encoding': 'gzip',
+      },
+    });
+    const report = await checkRailsHealth(makeClient({ kind: 'ok', status: 200, response }));
+    expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
+  });
+
+  it('reports invalid-contract when Content-Length alone exceeds the body bound', async () => {
+    const response = new Response(JSON.stringify(PASS_DOCUMENT), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+        'content-length': '70000',
+      },
+    });
+    const report = await checkRailsHealth(makeClient({ kind: 'ok', status: 200, response }));
     expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
   });
 
@@ -432,6 +469,30 @@ describe('rails health api consumer', () => {
       makeClient({ kind: 'ok', status: 200, response: jsonResponse(200, oversized) }),
     );
     expect(report).toEqual({ kind: 'invalid-contract', status: 200 });
+  });
+
+  it('reports unreachable when the Health body times out after headers', async () => {
+    const controller = new AbortController();
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        pull() {
+          return new Promise<void>(() => {
+            // Keep the body pending until the request signal aborts it.
+          });
+        },
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    );
+    const reportPromise = checkRailsHealth(
+      makeClient({ kind: 'ok', status: 200, response, signal: controller.signal }),
+    );
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    controller.abort(new DOMException('timed out', 'TimeoutError'));
+
+    await expect(reportPromise).resolves.toEqual({ kind: 'unreachable' });
   });
 
   it('reports invalid-contract when the body stream fails mid-read', async () => {
