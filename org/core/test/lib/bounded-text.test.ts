@@ -56,3 +56,113 @@ describe('readBoundedText', () => {
     ).rejects.toMatchObject({ name: 'TimeoutError' });
   });
 });
+
+it('rejects a non-integer or negative byte bound before touching the body', async () => {
+  await expect(readBoundedText(new Response('body'), -1)).rejects.toThrow(
+    'maxBytes must be a non-negative integer',
+  );
+  await expect(readBoundedText(new Response('body'), 1.5)).rejects.toThrow(
+    'maxBytes must be a non-negative integer',
+  );
+});
+
+it('rejects when the signal aborts after headers while a chunk is pending', async () => {
+  const abort = new AbortController();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      // Leave the first read pending until abort fires.
+      abort.signal.addEventListener(
+        'abort',
+        () => {
+          controller.error(abort.signal.reason);
+        },
+        { once: true },
+      );
+    },
+  });
+
+  const pending = readBoundedText(new Response(stream), 100, abort.signal);
+  await Promise.resolve();
+  abort.abort();
+  await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+});
+
+it('rejects an already-aborted signal that carries no reason', async () => {
+  const abort = new AbortController();
+  abort.abort();
+  await expect(readBoundedText(new Response('body'), 100, abort.signal)).rejects.toMatchObject({
+    name: 'AbortError',
+  });
+});
+
+it('rejects when the signal is already aborted at the start of a subsequent chunk read', async () => {
+  const abort = new AbortController();
+  let pulls = 0;
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulls += 1;
+      if (pulls === 1) {
+        controller.enqueue(new TextEncoder().encode('a'));
+        abort.abort(new DOMException('stopped', 'AbortError'));
+        return;
+      }
+      return new Promise<void>(() => {});
+    },
+  });
+
+  await expect(readBoundedText(new Response(stream), 100, abort.signal)).rejects.toMatchObject({
+    name: 'AbortError',
+  });
+});
+
+it('uses AbortError when an aborted signal exposes an empty reason', async () => {
+  const abort = new AbortController();
+  abort.abort(new DOMException('x', 'AbortError'));
+  Object.defineProperty(abort.signal, 'reason', { configurable: true, get: () => undefined });
+
+  await expect(readBoundedText(new Response('body'), 100, abort.signal)).rejects.toMatchObject({
+    name: 'AbortError',
+  });
+});
+
+it('uses AbortError when abort fires mid-read with an empty reason', async () => {
+  const abort = new AbortController();
+  Object.defineProperty(abort.signal, 'reason', { configurable: true, get: () => undefined });
+  const stream = new ReadableStream<Uint8Array>({
+    start() {
+      // First read hangs until abort rejects the race.
+    },
+    pull() {
+      return new Promise<void>(() => {});
+    },
+  });
+
+  const pending = readBoundedText(new Response(stream), 100, abort.signal);
+  await Promise.resolve();
+  abort.abort(new DOMException('ignored', 'AbortError'));
+  await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+});
+
+it('uses AbortError when a subsequent chunk sees an aborted signal with empty reason', async () => {
+  const abort = new AbortController();
+  let pulls = 0;
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulls += 1;
+      if (pulls === 1) {
+        controller.enqueue(new TextEncoder().encode('a'));
+        abort.abort(new DOMException('stopped', 'AbortError'));
+        Object.defineProperty(abort.signal, 'reason', {
+          configurable: true,
+          get: () => undefined,
+        });
+        return;
+      }
+      return new Promise<void>(() => {});
+    },
+  });
+
+  await expect(readBoundedText(new Response(stream), 100, abort.signal)).rejects.toMatchObject({
+    name: 'AbortError',
+  });
+});
