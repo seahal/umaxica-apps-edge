@@ -126,7 +126,7 @@ catalog:
   # Exact, not a range, and deliberately so: V8 coverage remapping has to match
   # the vitest it instruments, and this was already an exact literal in all
   # twenty-two manifests. Catalogued to keep it that way from one place.
-  '@vitest/coverage-v8': 4.1.11
+  '@vitest/coverage-v8': 5.0.0
   # The spell checker. Pinned here rather than per unit because the dictionary
   # it reads (.cspell/project-words.txt) is repository-wide: a unit resolving a
   # different major could disagree about what the config file even means.
