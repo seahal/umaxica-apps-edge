@@ -67,9 +67,13 @@ jobs:
         run: node tools/check-workers.mjs
 
   # Static analysis of this workflow and .github/actions/: template injection,
-  # over-broad permissions, persisted credentials, unpinned `uses:`.
-  # `advanced-security: false` makes a finding fail the job instead of only
-  # uploading it to code scanning.
+  # over-broad permissions, persisted credentials, unpinned `uses:`. Any finding
+  # fails the job.
+  #
+  # zizmor itself, from PyPI through the runner's own pipx — not
+  # zizmor-action, which runs zizmor in a Docker container that ubuntu-slim
+  # does not have. Pinned so a new audit in a zizmor release arrives as a
+  # reviewed bump, not as a red CI on an unrelated change.
   zizmor:
     runs-on: ubuntu-slim
     timeout-minutes: 5
@@ -77,12 +81,20 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           persist-credentials: false
-      - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+      - run: pipx run zizmor==1.30.1 --format github .github/
+
+  # GitHub's own review of the dependency changes a pull request introduces:
+  # a newly added or upgraded package with a known high/critical advisory fails
+  # it, which `pnpm audit` on the whole tree cannot single out. Pull requests
+  # only — the action compares the PR's base and head.
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
-          advanced-security: false
-          # Pinned so a new audit in a zizmor release arrives as a reviewed bump,
-          # not as a red CI on an unrelated change.
-          version: 1.30.1
+          fail-on-severity: high
 
   # One Knip run per DEPLOYMENT UNIT, not one for the monorepo. The gate answers
   # "would this unit still hold together as its own repository?", so each run is
@@ -100,7 +112,7 @@ jobs:
   # costs more than the CI minutes a filter would save.
   knip:
     name: knip:${{ matrix.platform }}:${{ matrix.unit }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -180,7 +192,46 @@ jobs:
           save-cache: ${{ github.event_name == 'push' }}
       - run: pnpm run typecheck
 
+  # One Vitest run per deployment unit, so a red check names the unit, and one
+  # for the repository invariants in `test/`, which belong to no unit.
   test:
+    name: test (${{ matrix.target }})
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - app/apex
+          - app/core
+          - app/docs
+          - app/help
+          - app/info
+          - app/news
+          - com/apex
+          - com/core
+          - com/docs
+          - com/help
+          - com/info
+          - com/news
+          - dev/apex
+          - net/apex
+          - org/apex
+          - org/core
+          - org/docs
+          - org/help
+          - org/info
+          - org/news
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+      - run: pnpm -C "$TARGET" run test
+        env:
+          TARGET: ${{ matrix.target }}
+
+  test-repo:
     runs-on: ubuntu-slim
     timeout-minutes: 10
     steps:
@@ -188,7 +239,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: $/.github/actions/setup
-      - run: pnpm run test
+      - run: pnpm run test:repo
 
   # Shuffled-order run of the same suites, as a separate job so the fast `test`
   # gate above is never slowed by it. Shuffles file and within-file test order
@@ -196,14 +247,51 @@ jobs:
   # catch order dependence, module-state leakage and global leakage. A failure
   # here is a shared-state defect in a test, not a reason to add a retry.
   test-stress:
+    name: test-stress (${{ matrix.target }})
     runs-on: ubuntu-slim
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - app/apex
+          - app/core
+          - app/docs
+          - app/help
+          - app/info
+          - app/news
+          - com/apex
+          - com/core
+          - com/docs
+          - com/help
+          - com/info
+          - com/news
+          - dev/apex
+          - net/apex
+          - org/apex
+          - org/core
+          - org/docs
+          - org/help
+          - org/info
+          - org/news
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           persist-credentials: false
       - uses: $/.github/actions/setup
-      - run: pnpm run test:stress
+      - run: pnpm -C "$TARGET" run test:stress
+        env:
+          TARGET: ${{ matrix.target }}
+
+  test-repo-stress:
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+      - run: pnpm run test:repo:stress
 
   # The browser bundle budget. This job builds, but building is the *means*,
   # not the question: "does it build?" is already answered by Cloudflare, which

@@ -1,0 +1,48 @@
+name: CodeQL
+# GitHub's own code scanning, as an advanced setup so it runs on ubuntu-slim like
+# every other job in this repository. It replaces the repository's CodeQL
+# default setup (same languages, same default query suite), which GitHub ran on
+# ubuntu-latest; the two cannot be enabled together.
+#
+# `actions` analyses the workflows and .github/actions/ — the GitHub-maintained
+# counterpart to the `zizmor` job in integration.yaml. `javascript-typescript`
+# covers all twenty units. Neither needs a build (`build-mode: none`).
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+  schedule:
+    # Weekly, so new queries reach code that has not changed.
+    - cron: '17 3 * * 1'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
+jobs:
+  analyze:
+    name: analyze (${{ matrix.language }})
+    runs-on: ubuntu-slim
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - actions
+          - javascript-typescript
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+      - uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          category: /language:${{ matrix.language }}

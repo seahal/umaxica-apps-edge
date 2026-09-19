@@ -152,4 +152,4 @@ HSTS        # RFC 6797 HTTP Strict Transport Security, set in every _headers
 
 # --- CI tooling ---
 zizmor      # GitHub Actions static analyser (the `zizmor` job)
-zizmorcore  # its GitHub organisation, in `uses: zizmorcore/zizmor-action`
+pipx        # runs zizmor from PyPI on ubuntu-slim
