@@ -25,3 +25,4 @@ Current boundary records:
 - [ADR 018](018-core-rails-direct-internet.md) — Core direct Internet transport
 - [ADR 019](019-edge-parallel-contract-boundaries.md) — Edge boundaries that can ship beside the Rails rewrite
 - [ADR 020](020-wrangler-device-login.md) — Wrangler device login
+- [ADR 021](021-hsts-preload.md) — HSTS with preload
