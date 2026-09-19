@@ -154,6 +154,11 @@ jobs:
         env:
           UNIT_DIR: ${{ matrix.dir }}
           NODE_OPTIONS: '--max-old-space-size=4096'
+          # Knip's own switch for oxc-parser's raw-transfer mode, which reserves
+          # one multi-gigabyte ArrayBuffer up front. On ubuntu-slim that fails
+          # with "RangeError: Array buffer allocation failed"; the ordinary
+          # parse path gives the same result.
+          KNIP_DISABLE_RAW_TRANSFER: '1'
 
   secret-scan:
     runs-on: ubuntu-slim

@@ -169,7 +169,19 @@ describe('optional local Compose override', () => {
       copyFileSync(join(repoRoot, 'compose.override.yaml.example'), overridePath);
       const merged = spawnSync(
         engine as string,
-        ['compose', '-f', 'compose.yaml', '-f', overridePath, 'config'],
+        // The same file list the Dev Container passes (`dockerComposeFile` in
+        // .devcontainer/devcontainer.json): `core`, which the example
+        // overrides, is defined in .devcontainer/compose.yaml, not compose.yaml.
+        [
+          'compose',
+          '-f',
+          'compose.yaml',
+          '-f',
+          '.devcontainer/compose.yaml',
+          '-f',
+          overridePath,
+          'config',
+        ],
         { cwd: repoRoot, encoding: 'utf8' },
       );
       expect(merged.stderr).not.toMatch(/items at \d+ and \d+ are equal/u);
