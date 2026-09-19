@@ -10,43 +10,79 @@ defaults:
     shell: bash
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded pull-request runs are cancelled; pushes to main/develop are not,
+  # so every commit on those branches keeps its own verdict and a breakage can
+  # be pinned to the commit that caused it.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:
-  audit:
+  # The repository-level gates, in ONE job. Each used to be its own job, and
+  # each job spent one to three minutes restoring the pnpm store and installing
+  # the workspace to run a check that takes seconds. They now share that setup.
+  #
+  # Every step still runs when an earlier one fails (`!cancelled()`), so one red
+  # gate never masks another, and the failing step's name says which gate it
+  # was. Each is one `pnpm run …`, the same command Lefthook and a developer run,
+  # so a red step is reproducible by copying one line.
+  #
+  # None of them has a `--fix` counterpart in CI. `syncpack fix` exists as
+  # `pnpm run fix:deps`, and it is a local command on purpose: a workflow that
+  # repairs the tree hides the drift it was hired to report.
+  static:
     runs-on: ubuntu-slim
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          cache: true
-          # `install` defaults to true, so leaving it out ran `pnpm install`
-          # here AND again in the explicit step below — twice per job, across
-          # 52 jobs. The explicit step is the one kept, because
-          # `--frozen-lockfile` is the stricter contract: it fails on a lockfile
-          # the manifests no longer agree with instead of quietly updating it.
-          install: false
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level=high
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+      - name: audit
+        run: pnpm audit --audit-level=high
+      - name: format
+        if: ${{ !cancelled() }}
+        run: pnpm run format:check
+      - name: lint
+        if: ${{ !cancelled() }}
+        run: pnpm run lint
+      - name: architecture
+        if: ${{ !cancelled() }}
+        run: pnpm run check:architecture
+      - name: deps
+        if: ${{ !cancelled() }}
+        run: pnpm run check:deps
+      - name: spelling
+        if: ${{ !cancelled() }}
+        run: pnpm run check:spelling
+      # `wrangler types` is regenerated and then re-checked, so a wrangler.jsonc
+      # change whose bindings were never regenerated fails here rather than
+      # surfacing as a type error nobody can reproduce.
+      - name: generated-types
+        if: ${{ !cancelled() }}
+        run: pnpm run check:generated
+      # Needs only Node: `tools/check-workers.mjs` imports `node:` builtins and
+      # its own local lib.
+      - name: check-workers
+        if: ${{ !cancelled() }}
+        run: node tools/check-workers.mjs
 
-  outdated:
+  # Static analysis of this workflow and .github/actions/: template injection,
+  # over-broad permissions, persisted credentials, unpinned `uses:`.
+  # `advanced-security: false` makes a finding fail the job instead of only
+  # uploading it to code scanning.
+  zizmor:
     runs-on: ubuntu-slim
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          cache: true
-          # `install` defaults to true, so leaving it out ran `pnpm install`
-          # here AND again in the explicit step below — twice per job, across
-          # 52 jobs. The explicit step is the one kept, because
-          # `--frozen-lockfile` is the stricter contract: it fails on a lockfile
-          # the manifests no longer agree with instead of quietly updating it.
-          install: false
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm outdated || true
+          persist-credentials: false
+      - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          advanced-security: false
+          # Pinned so a new audit in a zizmor release arrives as a reviewed bump,
+          # not as a red CI on an unrelated change.
+          version: 1.30.1
 
   # One Knip run per DEPLOYMENT UNIT, not one for the monorepo. The gate answers
   # "would this unit still hold together as its own repository?", so each run is
@@ -91,17 +127,10 @@ jobs:
           - { platform: cloudflare, unit: org-news, dir: org/news }
           - { platform: cloudflare, unit: dev-apex, dir: dev/apex }
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          cache: true
-          # `install` defaults to true, so leaving it out ran `pnpm install`
-          # here AND again in the explicit step below — twice per job, across
-          # 52 jobs. The explicit step is the one kept, because
-          # `--frozen-lockfile` is the stricter contract: it fails on a lockfile
-          # the manifests no longer agree with instead of quietly updating it.
-          install: false
-      - run: pnpm install --frozen-lockfile
+          persist-credentials: false
+      - uses: $/.github/actions/setup
       # No --include filter: the default report already covers unused files,
       # exports, types, dependencies and devDependencies, and restricting it to
       # unlisted/unresolved/binaries was hiding the first three.
@@ -109,181 +138,56 @@ jobs:
       # `run knip`, not `exec knip`: the script carries
       # `--treat-config-hints-as-errors`, and calling the binary directly would
       # have left CI running a weaker check than the one a developer runs.
-      - run: pnpm --dir ${{ matrix.dir }} run knip
+      - run: pnpm --dir "$UNIT_DIR" run knip
         env:
+          UNIT_DIR: ${{ matrix.dir }}
           NODE_OPTIONS: '--max-old-space-size=4096'
 
   secret-scan:
     runs-on: ubuntu-slim
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
+          persist-credentials: false
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  format:
-    runs-on: ubuntu-slim
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
-        with:
-          cache: true
-          # `install` defaults to true, so leaving it out ran `pnpm install`
-          # here AND again in the explicit step below — twice per job, across
-          # 52 jobs. The explicit step is the one kept, because
-          # `--frozen-lockfile` is the stricter contract: it fails on a lockfile
-          # the manifests no longer agree with instead of quietly updating it.
-          install: false
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run format:check
-
-  lint:
-    runs-on: ubuntu-slim
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
-        with:
-          cache: true
-          # `install` defaults to true, so leaving it out ran `pnpm install`
-          # here AND again in the explicit step below — twice per job, across
-          # 52 jobs. The explicit step is the one kept, because
-          # `--frozen-lockfile` is the stricter contract: it fails on a lockfile
-          # the manifests no longer agree with instead of quietly updating it.
-          install: false
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run lint
-
-  # The three repository-level hygiene gates. Each is one `pnpm run check:*`,
-  # the same command Lefthook and a developer run — no tool flags live in this
-  # file, so a red check here is reproducible by copying one line.
-  #
-  # None of them has a `--fix` counterpart in CI. `syncpack fix` exists as
-  # `pnpm run fix:deps`, and it is a local command on purpose: a workflow that
-  # repairs the tree hides the drift it was hired to report.
-  architecture:
-    runs-on: ubuntu-slim
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
-        with:
-          cache: true
-          install: false
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run check:architecture
-
-  deps:
-    runs-on: ubuntu-slim
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
-        with:
-          cache: true
-          install: false
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run check:deps
-
-  spelling:
-    runs-on: ubuntu-slim
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
-        with:
-          cache: true
-          install: false
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run check:spelling
 
   lint-types:
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          cache: true
-          # `install` defaults to true, so leaving it out ran `pnpm install`
-          # here AND again in the explicit step below — twice per job, across
-          # 52 jobs. The explicit step is the one kept, because
-          # `--frozen-lockfile` is the stricter contract: it fails on a lockfile
-          # the manifests no longer agree with instead of quietly updating it.
-          install: false
-      - run: pnpm install --frozen-lockfile
+          persist-credentials: false
+      - uses: $/.github/actions/setup
       - run: pnpm run lint:types
-
-  # `wrangler types` is regenerated and then re-checked, so a wrangler.jsonc
-  # change whose bindings were never regenerated fails here rather than
-  # surfacing as a type error nobody can reproduce.
-  generated-types:
-    runs-on: ubuntu-slim
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
-        with:
-          cache: true
-          # `install` defaults to true, so leaving it out ran `pnpm install`
-          # here AND again in the explicit step below — twice per job, across
-          # 52 jobs. The explicit step is the one kept, because
-          # `--frozen-lockfile` is the stricter contract: it fails on a lockfile
-          # the manifests no longer agree with instead of quietly updating it.
-          install: false
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run check:generated
-
-  check-workers:
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
-        with:
-          # This job needs Node, not node_modules: `tools/check-workers.mjs`
-          # imports only `node:` builtins and its own local lib. Without this,
-          # `install`'s default of true made it install the whole workspace to
-          # run a script that does not read it.
-          install: false
-      - run: node tools/check-workers.mjs
 
   typecheck:
     runs-on: ubuntu-slim
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          cache: true
-          # `install` defaults to true, so leaving it out ran `pnpm install`
-          # here AND again in the explicit step below — twice per job, across
-          # 52 jobs. The explicit step is the one kept, because
-          # `--frozen-lockfile` is the stricter contract: it fails on a lockfile
-          # the manifests no longer agree with instead of quietly updating it.
-          install: false
-      - run: pnpm install --frozen-lockfile
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+        with:
+          # The one job that saves the pnpm store (see .github/actions/setup).
+          # Pushes only: a pull_request cache is scoped to its merge ref and
+          # would be restorable by nothing else.
+          save-cache: ${{ github.event_name == 'push' }}
       - run: pnpm run typecheck
 
   test:
     runs-on: ubuntu-slim
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          cache: true
-          # `install` defaults to true, so leaving it out ran `pnpm install`
-          # here AND again in the explicit step below — twice per job, across
-          # 52 jobs. The explicit step is the one kept, because
-          # `--frozen-lockfile` is the stricter contract: it fails on a lockfile
-          # the manifests no longer agree with instead of quietly updating it.
-          install: false
-      - run: pnpm install --frozen-lockfile
+          persist-credentials: false
+      - uses: $/.github/actions/setup
       - run: pnpm run test
 
   # Shuffled-order run of the same suites, as a separate job so the fast `test`
@@ -295,12 +199,10 @@ jobs:
     runs-on: ubuntu-slim
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          cache: true
-          install: false
-      - run: pnpm install --frozen-lockfile
+          persist-credentials: false
+      - uses: $/.github/actions/setup
       - run: pnpm run test:stress
 
   # The browser bundle budget. This job builds, but building is the *means*,
@@ -342,25 +244,22 @@ jobs:
           - org/help
           - org/info
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          cache: true
-          # `install` defaults to true, so leaving it out ran `pnpm install`
-          # here AND again in the explicit step below — twice per job, across
-          # 52 jobs. The explicit step is the one kept, because
-          # `--frozen-lockfile` is the stricter contract: it fails on a lockfile
-          # the manifests no longer agree with instead of quietly updating it.
-          install: false
-      - run: pnpm install --frozen-lockfile
+          persist-credentials: false
+      - uses: $/.github/actions/setup
       # Not a build gate — the input the measurement below needs.
-      - run: pnpm -C ${{ matrix.target }} run build
+      - run: pnpm -C "$TARGET" run build
+        env:
+          TARGET: ${{ matrix.target }}
       # `--if-present` is kept as a guard rather than a carve-out: every unit
       # in this matrix now declares `check:size`, including dev/apex, which
       # gained a .size-limit.json when it moved onto Workers and the shared
       # apex archetype. The flag means adding a unit without a budget fails
       # loudly at review rather than silently at the pnpm exit code.
-      - run: pnpm -C ${{ matrix.target }} run --if-present check:size
+      - run: pnpm -C "$TARGET" run --if-present check:size
+        env:
+          TARGET: ${{ matrix.target }}
 
   # The HTTP contract gate. Each unit's `test:api` starts its own server through
   # `api/run.mjs`, runs Hurl against it and stops it again, so this job needs no
@@ -390,6 +289,7 @@ jobs:
           - com/news
           - com/help
           - com/info
+          - dev/apex
           - net/apex
           - org/apex
           - org/core
@@ -398,10 +298,10 @@ jobs:
           - org/help
           - org/info
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/setup@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          cache: true
-          install: false
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm -C ${{ matrix.target }} run test:api
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+      - run: pnpm -C "$TARGET" run test:api
+        env:
+          TARGET: ${{ matrix.target }}
