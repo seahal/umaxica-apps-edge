@@ -176,7 +176,7 @@ catalog:
   #
   # Vitest already resolves a transitive copy of Vite; this entry is the direct,
   # version-pinned one, so the two cannot disagree about which major is in play.
-  vite: ^8.2.2
+  vite: ^8.3.0
   vitest: ^4.1.11
   # Floor set by `@cloudflare/vite-plugin`'s peer range (^4.127.0), not chosen
   # independently. Bumping the plugin without bumping this is a resolution
