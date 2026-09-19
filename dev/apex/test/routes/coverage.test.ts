@@ -15,22 +15,33 @@ import app from '../../src/index';
  */
 describe('security headers on short-circuited requests', () => {
   it('keeps them on a request the error boundary catches', async () => {
-    const isoSpy = vi.spyOn(Date.prototype, 'toISOString').mockImplementation(() => {
+    const isoSpy = vi.spyOn(Date.prototype, 'getUTCFullYear').mockImplementation(() => {
       throw new Error('ISO String error');
     });
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const res = await app.request('/health', {}, {});
+    const res = await app.request('/about', {}, {});
 
     expect(res.status).toBe(500);
     expect(res.headers.get('x-content-type-options')).toBe('nosniff');
     expect(res.headers.get('content-security-policy')).toContain("default-src 'self'");
     await expect(res.text()).resolves.toContain('HTTP 500');
-    expect(consoleSpy).toHaveBeenCalledWith('Unhandled apex error', {
-      error: 'Error',
-      method: 'GET',
-      path: '/health',
+    const record = JSON.parse(String(consoleSpy.mock.calls.at(-1)?.[0])) as {
+      level: string;
+      msg?: string;
+      data: Record<string, unknown>;
+    };
+    expect(record).toMatchObject({
+      level: 'error',
+      msg: 'request error',
+      data: {
+        method: 'GET',
+        route: 'about',
+        status: 500,
+        outcome: 'failed',
+      },
     });
+    expect(JSON.stringify(record)).not.toContain('ISO String error');
 
     isoSpy.mockRestore();
     consoleSpy.mockRestore();

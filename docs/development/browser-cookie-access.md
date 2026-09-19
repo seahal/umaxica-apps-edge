@@ -5,8 +5,8 @@ has to read or write a cookie, what does it use?** The answer is the Cookie
 Store API — the global `cookieStore` — and nothing else. No cookie library, and
 not `document.cookie`.
 
-It says nothing about the server. Hono, the frames' server side, and Rails keep
-the cookie handling they have.
+It does not choose a browser API for server code. The current Edge contract is
+recorded below where it deliberately disables Edge-owned preference writes.
 
 ## 1. What exists today
 
@@ -23,13 +23,13 @@ the next reader does not go looking for the module this file is about:
   `sessionStorage`. The client components that exist — `status-documents.tsx`,
   `service-worker-registration.tsx`, `app-chrome.tsx` — read no storage of any
   kind.
-- **The only cookie anything in this repository writes is `language`**, and it
-  is written by Hono, not by us. (The apex workers also _read_ a `theme` cookie
-  in `src/theme.ts` to force a colour scheme, but nothing here sets it.) `*/apex/src/create-apex-app.ts` mounts
-  `languageDetector({ supportedLanguages: [...locales], fallbackLanguage: 'en' })`,
-  whose un-overridden defaults set the cookie `HttpOnly`, `Secure`,
-  `SameSite=Strict`, `Max-Age=31536000`. `*/apex/api/i18n.hurl` pins the first,
-  third and fourth of those, plus the querystring → cookie → header precedence.
+- **Edge does not write a preference cookie.** The apex workers still _read_
+  `language` through Hono's `languageDetector` and _read_ `theme` in
+  `src/theme.ts`, but every detector is mounted with `caches: false`, so the
+  request does not refresh, set or delete `language`. `*/apex/api/i18n.hurl`
+  pins the querystring → cookie → `Accept-Language` precedence and the absence
+  of `Set-Cookie`. Rails remains the preference-cookie writer under the
+  current contract.
 - **The Core workers delete cookies in both directions on the frame-owned path.**
   `{app,com,org}/core/src/worker.ts` strips `cookie` from the request before the
   frame sees it and `set-cookie` from the response before the browser does;
@@ -57,8 +57,8 @@ Adding a cookie library to any unit's dependencies is not allowed, and neither i
   `document.cookie` is one flat string that has to be parsed; there is nothing
   left for a library to do here.
 - **It costs no bytes.** The browser-bundle budgets in each unit's
-  `.size-limit.json` are baseline + 10%, tight enough that a stray dependency
-  fails the gate. A platform API spends none of that budget.
+  `.size-limit.json` are 150 kB for TanStack Start and 52 kB for Apex. A
+  platform API spends none of that budget.
 
 The same API is reachable from a service worker as
 `ServiceWorkerGlobalScope.cookieStore`, and a `change` event is available in both
@@ -66,10 +66,12 @@ scopes — so a cookie can be observed rather than polled.
 
 ## 3. What this rule does not change
 
-The server keeps what it has. `hono/cookie`, the `languageDetector` middleware in
-the apex workers, any future server-side cookie access inside a frame, and every
-cookie Rails sets or reads are all outside this rule's scope. It governs code
-that runs in a browser tab or a service worker, and nothing else.
+The browser API rule does not replace server-side cookie parsing. Hono's
+`languageDetector` keeps its existing read order, while `caches: false` keeps
+the Edge from writing preference cookies. Any future server-side cookie access
+inside a frame and every cookie Rails sets or reads remain server concerns. The
+current contract permits Rails to issue preference cookies; Edge-owned browser
+preference saving is disabled.
 
 ADR 007's cookie boundary also stands, and it has a consequence that is easy to
 walk into:
@@ -79,9 +81,10 @@ walk into:
 `{app,com,org}/core/src/worker.ts` deletes every `Set-Cookie` from the
 frame-owned response, and `Headers.delete()` in Workers removes all values, not
 the first. A server route or server function that sets a cookie will appear to
-work locally and emit nothing through the Worker. The two surfaces that can issue a cookie to a
-browser are the apex workers (Hono) and Rails, reached through the Rails-owned
-path prefixes listed in ADR 007.
+work locally and emit nothing through the Worker. Rails is the only preference-
+cookie writer. Rails-owned path prefixes listed in ADR 007 may preserve its
+`Set-Cookie`; the apex workers can read display preferences, but they do not
+issue, refresh or delete them.
 
 ## 4. What an implementer will hit
 

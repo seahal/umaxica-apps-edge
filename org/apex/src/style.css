@@ -163,7 +163,7 @@
    *
    * Applied unconditionally rather than under `:lang(ja)`. Every rule here is
    * either CJK-only in effect (`line-break`) or desirable in both languages
-   * (`overflow-wrap`), and this unit's health, status and offline documents
+   * (`overflow-wrap`), and this unit's health and status documents
    * are separate root documents that a `:lang()` selector on the root would
    * miss.
    *

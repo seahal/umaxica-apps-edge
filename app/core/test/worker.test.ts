@@ -28,12 +28,19 @@ vi.mock('../src/lib/health-request', () => ({
 
 vi.mock('../src/lib/rate-limit', () => ({ checkRateLimit }));
 
+import { CORE_PUBLIC_HOST } from '../src/lib/core-host-policy';
+import { EDGE_INPUT_MAX_BYTES } from '../src/lib/request-boundary';
+import { EDGE_RESPONSE_TIMEOUT_MS } from '../src/lib/response-timeout';
 import worker from '../src/worker';
 
-function makeEnv(vpc?: { fetch: (request: Request) => Promise<Response> }): CloudflareEnv {
-  return {
-    UMAXICA_APPS_EDGE_CF_WORKERS_VPC: vpc,
-  } as unknown as CloudflareEnv;
+// Rails is reached with the runtime's global `fetch`, so a Rails stand-in is a
+// stubbed global plus a `RAILS_ORIGIN`; `afterEach` restores the real one.
+function makeEnv(rails?: { fetch: (request: Request) => Promise<Response> }): CloudflareEnv {
+  if (!rails) {
+    return {} as CloudflareEnv;
+  }
+  vi.stubGlobal('fetch', rails.fetch);
+  return { RAILS_ORIGIN: 'https://rails.example' } as unknown as CloudflareEnv;
 }
 
 const ctx = {
@@ -53,6 +60,34 @@ describe('app/core worker.ts dispatch', () => {
     checkRateLimit.mockReset();
     appFetch.mockReset();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('rejects an unknown URL host before downstream work and ignores X-Forwarded-Host', async () => {
+    const railsFetch = vi.fn();
+    appFetch.mockResolvedValue(new Response('should not render', { status: 200 }));
+
+    const response = await worker.fetch(
+      new Request('https://unknown.example/api/v0/session?secret-query-marker', {
+        headers: {
+          'x-forwarded-host': 'jp.umaxica.app',
+          'x-request-id': 'external-secret-marker',
+        },
+      }),
+      makeEnv({ fetch: railsFetch }),
+      ctx,
+    );
+
+    expect(response.status).toBe(421);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('content-type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+    expect(response.headers.get('x-request-id')).toMatch(/^[0-9a-f-]{36}$/iu);
+    expect(response.headers.get('x-request-id')).not.toBe('external-secret-marker');
+    expect(await response.text()).toBe('Misdirected Request\n');
+    expect(checkRateLimit).not.toHaveBeenCalled();
+    expect(appFetch).not.toHaveBeenCalled();
+    expect(railsFetch).not.toHaveBeenCalled();
   });
 
   it('strips the Cookie header entirely before calling handler.fetch for an application-owned request', async () => {
@@ -67,8 +102,96 @@ describe('app/core worker.ts dispatch', () => {
     expect(appFetch).toHaveBeenCalledTimes(1);
     const forwardedRequest = appFetch.mock.calls[0]?.[0] as Request;
     expect(forwardedRequest.headers.get('cookie')).toBeNull();
+    expect(forwardedRequest.headers.get('x-request-id')).toMatch(/^[0-9a-f-]{36}$/iu);
     expect(response.status).toBe(200);
     expect(await response.text()).toBe('ok');
+  });
+
+  it('passes only the validated display locale and overwrites a forged internal header', async () => {
+    appFetch.mockResolvedValue(new Response('ok', { status: 200 }));
+
+    const request = new Request('https://jp.umaxica.app/?lx=EN', {
+      headers: {
+        cookie: 'language=ja',
+        'x-edge-display-locale': 'ja',
+      },
+    });
+
+    await worker.fetch(request, makeEnv(), ctx);
+
+    const forwardedRequest = appFetch.mock.calls[0]?.[0] as Request;
+    expect(forwardedRequest.headers.get('cookie')).toBeNull();
+    expect(forwardedRequest.headers.get('x-edge-display-locale')).toBe('en');
+  });
+
+  it('rejects an oversized application body before calling handler.fetch', async () => {
+    appFetch.mockResolvedValue(new Response('should not render', { status: 200 }));
+
+    const response = await worker.fetch(
+      new Request(`https://${CORE_PUBLIC_HOST}/submit`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: new Uint8Array(EDGE_INPUT_MAX_BYTES + 1),
+      }),
+      makeEnv(),
+      ctx,
+    );
+
+    expect(response.status).toBe(413);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(appFetch).not.toHaveBeenCalled();
+  });
+
+  it('reconstructs an exact-size streamed application body for the handler', async () => {
+    appFetch.mockImplementation(async (forwardedRequest: Request) => {
+      return new Response(String((await forwardedRequest.arrayBuffer()).byteLength));
+    });
+    const exact = new TextEncoder().encode('あ'.repeat(21_845) + 'a');
+    expect(exact.byteLength).toBe(EDGE_INPUT_MAX_BYTES);
+
+    const init = {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: 'ignored=1' },
+      body: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(exact);
+          controller.close();
+        },
+      }),
+      duplex: 'half' as const,
+    };
+    const response = await worker.fetch(
+      new Request(`https://${CORE_PUBLIC_HOST}/submit`, init),
+      makeEnv(),
+      ctx,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toBe(String(EDGE_INPUT_MAX_BYTES));
+    const forwardedRequest = appFetch.mock.calls[0]?.[0] as Request;
+    expect(forwardedRequest.headers.get('cookie')).toBeNull();
+  });
+
+  it('returns a hardened 503 when application response generation exceeds three seconds', async () => {
+    vi.useFakeTimers();
+    try {
+      const responsePromise = worker.fetch(
+        new Request(`https://${CORE_PUBLIC_HOST}/`),
+        makeEnv(),
+        ctx,
+      );
+      appFetch.mockReturnValue(new Promise<Response>(() => {}));
+
+      await vi.advanceTimersByTimeAsync(EDGE_RESPONSE_TIMEOUT_MS);
+      const response = await responsePromise;
+
+      expect(response.status).toBe(503);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('strips every Set-Cookie header from the application response before it reaches the caller', async () => {
@@ -91,6 +214,7 @@ describe('app/core worker.ts dispatch', () => {
       headers: {
         cookie: 'session=abc',
         'x-csrf-token': 'token-123',
+        'x-request-id': 'external-secret-marker',
       },
     });
 
@@ -101,6 +225,8 @@ describe('app/core worker.ts dispatch', () => {
     const railsRequest = railsFetch.mock.calls[0]?.[0] as Request;
     expect(railsRequest.headers.get('cookie')).toBe('session=abc');
     expect(railsRequest.headers.get('x-csrf-token')).toBe('token-123');
+    expect(railsRequest.headers.get('x-request-id')).toMatch(/^[0-9a-f-]{36}$/iu);
+    expect(railsRequest.headers.get('x-request-id')).not.toBe('external-secret-marker');
     const railsUrl = new URL(railsRequest.url);
     expect(railsUrl.pathname).toBe('/api/v0/session');
     expect(railsUrl.searchParams.get('foo')).toBe('bar');
@@ -142,28 +268,32 @@ describe('app/core worker.ts dispatch', () => {
     expect(checkRateLimit.mock.calls[0]?.[1]).toBe(env.RATE_LIMITER);
   });
 
-  it.each(['/assets/index-abc123.js', '/assets/style-abc123.css', '/favicon.ico'])(
-    'exempts %s from the limiter',
-    async (path) => {
-      // `/assets/` is where Vite writes this frame's hashed output, and the
-      // favicon is the one unhashed file a document references. An
-      // image-optimisation route would be a real Worker route — a page with many
-      // images could spend its whole budget on its own thumbnails — so it would
-      // have to be exempted here too. This frame has none:
-      // and it has no image-optimisation route at all.
-      appFetch.mockResolvedValue(new Response('asset', { status: 200 }));
+  it.each([
+    '/assets/index-abc123.js',
+    '/assets/style-abc123.css',
+    '/favicon.ico',
+    '/health/startups',
+    '/health/livenesses',
+    '/api/v0/health.json',
+  ])('exempts %s from the limiter', async (path) => {
+    // `/assets/` is where Vite writes this frame's hashed output, and the
+    // favicon is the one unhashed file a document references. An
+    // image-optimisation route would be a real Worker route — a page with many
+    // images could spend its whole budget on its own thumbnails — so it would
+    // have to be exempted here too. This frame has none:
+    // and it has no image-optimisation route at all.
+    appFetch.mockResolvedValue(new Response('asset', { status: 200 }));
 
-      const response = await worker.fetch(
-        new Request(`https://jp.umaxica.app${path}`),
-        makeEnv(),
-        ctx,
-      );
+    const response = await worker.fetch(
+      new Request(`https://jp.umaxica.app${path}`),
+      makeEnv(),
+      ctx,
+    );
 
-      expect(checkRateLimit).not.toHaveBeenCalled();
-      expect(appFetch).toHaveBeenCalledTimes(1);
-      expect(response.status).toBe(200);
-    },
-  );
+    expect(checkRateLimit).not.toHaveBeenCalled();
+    expect(appFetch).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(200);
+  });
 
   /*
    * The three responses `worker.ts` produces ITSELF, rather than passing through
@@ -369,14 +499,62 @@ describe('app/core worker.ts dispatch', () => {
     expect(response.status).toBe(404);
   });
 
-  it('leaves the existing /health route reachable through the application (not blocked)', async () => {
-    appFetch.mockResolvedValue(new Response('{"status":"ok"}', { status: 200 }));
-    const request = new Request('https://jp.umaxica.app/health');
+  it.each(['/health', '/health/startups', '/health/livenesses', '/health/readinesses'])(
+    'leaves %s reachable through the application (not blocked)',
+    async (path) => {
+      appFetch.mockResolvedValue(new Response('ok\n', { status: 200 }));
+      const request = new Request(`https://jp.umaxica.app${path}`);
 
-    const response = await worker.fetch(request, makeEnv(), ctx);
+      const response = await worker.fetch(request, makeEnv(), ctx);
 
-    expect(appFetch).toHaveBeenCalledTimes(1);
-    expect(response.status).toBe(200);
+      expect(appFetch).toHaveBeenCalledTimes(1);
+      expect(response.status).toBe(200);
+    },
+  );
+
+  /*
+   * The exempt set is the three probes that cannot fail and cannot reach a
+   * downstream hop. These five look adjacent to it and are metered anyway,
+   * which is the half of the rule a list of exemptions cannot state:
+   *
+   *   /health, /health/readinesses     fetch Rails at RAILS_ORIGIN
+   *                                    (`src/routes/health.ts`,
+   *                                    `src/routes/health.readinesses.ts`). An
+   *                                    exemption here is an unauthenticated,
+   *                                    uncounted path into the Rails origin.
+   *   /revision, /api/v0/revision.json deployment metadata, not probes.
+   *   /                                the ordinary case, pinned alongside them
+   *                                    so a regression that exempts everything
+   *                                    fails here rather than silently passing.
+   */
+  it.each(['/health', '/health/readinesses', '/revision', '/api/v0/revision.json', '/'])(
+    'meters %s',
+    async (path) => {
+      checkRateLimit.mockResolvedValue(new Response('Too Many Requests', { status: 429 }));
+
+      const response = await worker.fetch(
+        new Request(`https://jp.umaxica.app${path}`),
+        makeEnv(),
+        ctx,
+      );
+
+      expect(checkRateLimit).toHaveBeenCalledTimes(1);
+      expect(response.status).toBe(429);
+      expect(appFetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not exempt lookalike health paths from the limiter', async () => {
+    checkRateLimit.mockResolvedValue(new Response('Too Many Requests', { status: 429 }));
+
+    const response = await worker.fetch(
+      new Request('https://jp.umaxica.app/healthiness'),
+      makeEnv(),
+      ctx,
+    );
+
+    expect(response.status).toBe(429);
+    expect(appFetch).not.toHaveBeenCalled();
   });
 
   it('forwards a non-GET RAILS-owned request with a body without corruption or buffering', async () => {
@@ -397,7 +575,29 @@ describe('app/core worker.ts dispatch', () => {
     expect(response.status).toBe(201);
   });
 
-  it('fails closed with 503 when the Rails VPC binding is absent, without falling back to the application', async () => {
+  it('does not apply the Edge application body limit to a Rails-owned request', async () => {
+    const oversizedBytes = EDGE_INPUT_MAX_BYTES + 1;
+    const railsFetch = vi.fn().mockImplementation(async (railsRequest: Request) => {
+      return new Response(String((await railsRequest.arrayBuffer()).byteLength), { status: 201 });
+    });
+
+    const response = await worker.fetch(
+      new Request(`https://${CORE_PUBLIC_HOST}/api/v0/session`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: new Uint8Array(oversizedBytes),
+      }),
+      makeEnv({ fetch: railsFetch }),
+      ctx,
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.text()).resolves.toBe(String(oversizedBytes));
+    expect(railsFetch).toHaveBeenCalledTimes(1);
+    expect(appFetch).not.toHaveBeenCalled();
+  });
+
+  it('fails closed with 503 when no Rails origin is configured, without falling back to the application', async () => {
     const request = new Request('https://jp.umaxica.app/api/v0/session');
 
     const response = await worker.fetch(request, makeEnv(undefined), ctx);
@@ -408,42 +608,37 @@ describe('app/core worker.ts dispatch', () => {
 
   it.each([
     [
-      'the VPC binding fetch rejects',
+      'the Rails fetch rejects',
       () => vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED 10.0.0.7:3000')),
+      503,
     ],
     [
       'the request times out',
       () =>
         vi.fn().mockRejectedValue(Object.assign(new Error('timed out'), { name: 'TimeoutError' })),
+      504,
     ],
-    [
-      'Workers VPC answers its ProxyError 500',
-      () =>
-        vi.fn().mockResolvedValue(
-          new Response('ProxyError: connection_refused', {
-            status: 500,
-            headers: { 'content-type': 'text/plain' },
-          }),
-        ),
-    ],
-  ])('answers 503 and never reaches the application when %s', async (_label, makeRailsFetch) => {
-    const railsFetch = makeRailsFetch();
-    const request = new Request('https://jp.umaxica.app/api/v0/session', {
-      method: 'POST',
-      headers: { cookie: 'session=abc' },
-      body: '{"a":1}',
-    });
+  ])(
+    'answers the expected failure status and never reaches the application when %s',
+    async (_label, makeRailsFetch, expectedStatus) => {
+      const railsFetch = makeRailsFetch();
+      const request = new Request('https://jp.umaxica.app/api/v0/session', {
+        method: 'POST',
+        headers: { cookie: 'session=abc' },
+        body: '{"a":1}',
+      });
 
-    const response = await worker.fetch(request, makeEnv({ fetch: railsFetch }), ctx);
+      const response = await worker.fetch(request, makeEnv({ fetch: railsFetch }), ctx);
 
-    expect(response.status).toBe(503);
-    // A Rails or transport failure is never an invitation to try the application, and
-    // never an invitation to try Rails a second time.
-    expect(appFetch).not.toHaveBeenCalled();
-    expect(railsFetch).toHaveBeenCalledTimes(1);
-    expect(response.headers.get('cache-control')).toContain('no-store');
-    await expect(response.text()).resolves.not.toContain('ECONNREFUSED');
-  });
+      expect(response.status).toBe(expectedStatus);
+      // A Rails or transport failure is never an invitation to try the application, and
+      // never an invitation to try Rails a second time.
+      expect(appFetch).not.toHaveBeenCalled();
+      expect(railsFetch).toHaveBeenCalledTimes(1);
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      await expect(response.text()).resolves.not.toContain('ECONNREFUSED');
+    },
+  );
 
   it('keeps a Rails 500 of its own making distinct from a transport failure', async () => {
     const railsFetch = vi
@@ -461,5 +656,27 @@ describe('app/core worker.ts dispatch', () => {
     expect(appFetch).not.toHaveBeenCalled();
     expect(response.status).toBe(500);
     await expect(response.text()).resolves.toBe('rails error page');
+  });
+
+  it('surfaces a fixed 500 when application dispatch throws', async () => {
+    appFetch.mockRejectedValue(new Error('handler exploded'));
+
+    const response = await worker.fetch(new Request('https://jp.umaxica.app/'), makeEnv(), ctx);
+
+    expect(response.status).toBe(500);
+    expect(await response.text()).toBe('Internal Server Error\n');
+    expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('maps an aborted body boundary to the generation-timeout response', async () => {
+    const boundary = await import('../src/lib/request-boundary');
+    vi.spyOn(boundary, 'limitRequestBody').mockResolvedValue({ kind: 'aborted' });
+    appFetch.mockResolvedValue(new Response('should not render', { status: 200 }));
+
+    const response = await worker.fetch(new Request('https://jp.umaxica.app/'), makeEnv(), ctx);
+
+    expect(response.status).toBe(503);
+    expect(await response.text()).toBe('Service Unavailable\n');
+    expect(appFetch).not.toHaveBeenCalled();
   });
 });

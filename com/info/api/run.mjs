@@ -12,12 +12,21 @@
 // already listening and only starts one when nothing answers — the same
 // contract as Playwright's `reuseExistingServer`, which is why `pnpm run dev`
 // in another terminal still works exactly as it did.
+//
+// The server it starts is `pnpm run serve:api`: the Worker BUILT, then served by
+// `vite preview`. Not `vite dev`, whose on-demand compile made the first
+// requests on a small CI runner outlast the response budget and answer 503 —
+// failures of the dev server, not of the contract under test.
 
 import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const PORT = 5103;
 const READY_PATH = '/health';
+// An unmatched path every unit's Hurl suite hits. A dev server's first compile
+// of the not-found document can answer 500 while `/health` is already 200;
+// waiting on this path means the suite starts after that compile, not during it.
+const WARM_PATH = '/__definitely_not_found__';
 
 // Set EDGE_API_BASE to run the same files against a preview deployment. Nothing
 // is spawned or torn down in that case: the target is not ours to manage.
@@ -32,22 +41,37 @@ const POLL_INTERVAL_MS = 500;
 
 const unitDir = new URL('..', import.meta.url);
 
-async function isListening() {
+async function probe(path) {
   try {
-    // Any answer proves a server is on the port. A 404 or a 500 is still an
-    // answer; asserting on the status is the suite's job, not the probe's.
-    await fetch(new URL(READY_PATH, BASE), { signal: AbortSignal.timeout(2000) });
-    return true;
+    const response = await fetch(new URL(path, BASE), { signal: AbortSignal.timeout(2000) });
+    // Drain so the connection is not held open across polls.
+    await response.arrayBuffer();
+    return response;
   } catch {
-    return false;
+    return null;
   }
+}
+
+async function isListening() {
+  // Any answer proves a server is on the port. A 404 or a 500 is still an
+  // answer; asserting on the status is the suite's job, not the probe's.
+  return (await probe(READY_PATH)) !== null;
+}
+
+async function isReady() {
+  // Playwright waits for 2xx on `/health`. Match that, then wait until an
+  // unmatched URL is no longer a 5xx compile miss.
+  const health = await probe(READY_PATH);
+  if (health === null || health.status < 200 || health.status >= 300) return false;
+  const missing = await probe(WARM_PATH);
+  return missing !== null && missing.status < 500;
 }
 
 function startServer() {
   // `detached` puts the server in its own process group. `vite dev` and
   // `wrangler dev` both fork children that outlive a bare `child.kill()`, and an
   // orphaned worker holding the port makes the NEXT run reuse a stale server.
-  const server = spawn('pnpm', ['run', 'dev'], {
+  const server = spawn('pnpm', ['run', 'serve:api'], {
     cwd: unitDir,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -99,7 +123,12 @@ function runHurl() {
     // `@orangeopensource/hurl`; `test/deployment-unit-boundaries.test.ts` maps
     // the command word to that name so a unit cannot run a binary it does not
     // declare.
-    const hurl = spawn('hurl', ['--test', '--variable', `base=${BASE}`, 'api'], {
+    //
+    // `--jobs 1` turns off Hurl's default `--test` parallelism. Parallel files
+    // all hit `WARM_PATH` at once and race the dev server's first compile of the
+    // not-found document, which answers 500 instead of 404. Playwright already
+    // uses `workers: 1`.
+    const hurl = spawn('hurl', ['--test', '--jobs', '1', '--variable', `base=${BASE}`, 'api'], {
       cwd: unitDir,
       stdio: 'inherit',
     });
@@ -113,37 +142,43 @@ function runHurl() {
   });
 }
 
+async function waitUntilReady({ hasExited, log }) {
+  const deadline = Date.now() + READY_TIMEOUT_MS;
+  while (!(await isReady())) {
+    if (hasExited()) {
+      process.stderr.write(`the server exited before it answered\n${log()}`);
+      return 1;
+    }
+    if (Date.now() > deadline) {
+      process.stderr.write(
+        `the server did not become ready (${READY_PATH} 2xx, ${WARM_PATH} not 5xx) within ${READY_TIMEOUT_MS / 1000}s\n${log()}`,
+      );
+      return 1;
+    }
+    await delay(POLL_INTERVAL_MS);
+  }
+  return 0;
+}
+
 async function main() {
   if (await isListening()) {
     process.stderr.write(`reusing the server already answering on ${BASE}\n`);
-    return runHurl();
+    return (await waitUntilReady({ hasExited: () => false, log: () => '' })) || runHurl();
   }
 
   if (EXTERNAL_BASE !== undefined) {
-    // Starting a local dev server would silently test something other than what
+    // Starting a local server would silently test something other than what
     // was asked for.
     process.stderr.write(`nothing is answering on ${EXTERNAL_BASE} (EDGE_API_BASE)\n`);
     return 1;
   }
 
-  process.stderr.write(`starting \`pnpm run dev\` on ${BASE}\n`);
+  process.stderr.write(`starting \`pnpm run serve:api\` on ${BASE}\n`);
   const { server, log, hasExited } = startServer();
 
   try {
-    const deadline = Date.now() + READY_TIMEOUT_MS;
-    while (!(await isListening())) {
-      if (hasExited()) {
-        process.stderr.write(`the dev server exited before it answered\n${log()}`);
-        return 1;
-      }
-      if (Date.now() > deadline) {
-        process.stderr.write(
-          `the dev server did not answer ${READY_PATH} within ${READY_TIMEOUT_MS / 1000}s\n${log()}`,
-        );
-        return 1;
-      }
-      await delay(POLL_INTERVAL_MS);
-    }
+    const ready = await waitUntilReady({ hasExited, log });
+    if (ready !== 0) return ready;
     return await runHurl();
   } finally {
     await stopServer(server);

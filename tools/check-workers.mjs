@@ -358,7 +358,9 @@ function checkViteWorker(ws, config) {
 // which copies `public/` into `dist/client` and hands that directory to
 // `assets.directory` in the OUTPUT wrangler.json — so `public/` is the source of
 // truth for the deployed asset surface in every unit, and a file missing from git
-// is a file missing from the deploy.
+// is a file missing from the deploy. The required asset set still differs by
+// worker class: TanStack frames publish the offline Service Worker, while Hono
+// apex workers deliberately removed that feature.
 const trackedFiles = (() => {
   let cache = null;
   return () => {
@@ -377,6 +379,12 @@ const trackedFiles = (() => {
 // on by test/standard-url-contract.test.ts and by each unit's standard-contract
 // e2e spec, both of which read the working tree and so cannot see this gap.
 const REQUIRED_PUBLIC_ASSETS = ['_headers', 'service-worker.js'];
+const STANDALONE_REQUIRED_PUBLIC_ASSETS = ['_headers'];
+const STANDALONE_FORBIDDEN_PUBLIC_ASSETS = [
+  'service-worker.js',
+  'service-worker-register.js',
+  'manifest.webmanifest',
+];
 
 // The one asset that is generated rather than committed: Tailwind's output.
 //
@@ -426,16 +434,22 @@ function checkGeneratedAsset(ws, relative, tracked) {
   }
 }
 
-function checkPublicAssets(ws) {
+function checkPublicAssets(ws, { required = REQUIRED_PUBLIC_ASSETS, forbidden = [] } = {}) {
   const publicDir = join(root, ws, 'public');
   if (!existsSync(publicDir)) {
     fail(ws, "public/ is missing — it is this worker's deployed static asset surface");
     return;
   }
 
-  for (const asset of REQUIRED_PUBLIC_ASSETS) {
+  for (const asset of required) {
     if (!existsSync(join(publicDir, asset))) {
       fail(ws, `public/${asset} is missing`);
+    }
+  }
+
+  for (const asset of forbidden) {
+    if (existsSync(join(publicDir, asset))) {
+      fail(ws, `public/${asset} is forbidden for this worker class`);
     }
   }
 
@@ -472,8 +486,28 @@ for (const ws of manifest.railsBacked) {
 for (const ws of manifest.railsBackedVite ?? []) {
   const config = loadWrangler(ws);
   if (!config) continue;
-  // `local` is the extra tier: vite dev runs the Worker in workerd, so the
-  // everyday loop needs an environment that declares no VPC Service.
+  // `local` is the extra tier: vite dev runs the Worker in workerd, and it is
+  // the tier whose `RAILS_ORIGIN` points at the development container's Rails.
+  checkEnvironments(ws, config, ['local', 'development', 'test']);
+  checkViteWorker(ws, config);
+  checkPublicAssets(ws);
+
+  // The Cores reach Rails over the public internet at `RAILS_ORIGIN`, not over
+  // Workers VPC — adr/018-core-rails-direct-internet.md.
+  if (vpcBindings(config).length > 0) {
+    fail(
+      ws,
+      'railsBackedVite workers must not declare vpc_services — they reach Rails at RAILS_ORIGIN',
+    );
+  }
+}
+
+// The twelve public content cells: the same Vite + TanStack Start Worker shape as
+// the Cores (checkViteWorker), but Rails is reached over the Workers VPC binding,
+// so they carry the VPC policy and a `vpc` tier. adr/019.
+for (const ws of manifest.railsBackedVpcVite ?? []) {
+  const config = loadWrangler(ws);
+  if (!config) continue;
   checkEnvironments(ws, config, ['local', 'development', 'vpc', 'test']);
   checkViteWorker(ws, config);
   checkPublicAssets(ws);
@@ -489,6 +523,7 @@ for (const ws of manifest.railsBackedVite ?? []) {
 for (const ws of [
   ...manifest.railsBacked,
   ...(manifest.railsBackedVite ?? []),
+  ...(manifest.railsBackedVpcVite ?? []),
   ...manifest.contentSurface,
 ]) {
   const pkgPath = join(root, ws, 'package.json');
@@ -535,7 +570,10 @@ for (const ws of manifest.standalone) {
   const config = loadWrangler(ws);
   if (!config) continue;
   checkEnvironments(ws, config);
-  checkPublicAssets(ws);
+  checkPublicAssets(ws, {
+    required: STANDALONE_REQUIRED_PUBLIC_ASSETS,
+    forbidden: STANDALONE_FORBIDDEN_PUBLIC_ASSETS,
+  });
   if (vpcBindings(config).length > 0) {
     fail(ws, 'standalone workers must not declare vpc_services');
   }
@@ -613,6 +651,7 @@ for (const ws of manifest.standalone) {
   for (const ws of [
     ...manifest.railsBacked,
     ...(manifest.railsBackedVite ?? []),
+    ...(manifest.railsBackedVpcVite ?? []),
     ...manifest.contentSurface,
     ...manifest.standalone,
   ]) {
@@ -649,6 +688,7 @@ if (failures.length > 0) {
 const checked =
   manifest.railsBacked.length +
   (manifest.railsBackedVite ?? []).length +
+  (manifest.railsBackedVpcVite ?? []).length +
   manifest.contentSurface.length +
   manifest.standalone.length;
 process.stdout.write(`check-workers: OK (${checked} workers validated)\n`);

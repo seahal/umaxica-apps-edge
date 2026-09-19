@@ -19,5 +19,7 @@ claude      # then /login
 codex login
 ```
 
-Run `scripts/check-ai-tools` for versions and non-billable authentication resolution. A
-credential does not authorize a paid model request; obtain explicit approval before one.
+Run `scripts/check-ai-tools` to check tool versions, Bubblewrap availability, Codex sandbox
+startup, and non-billable authentication resolution. The sandbox check runs
+`codex sandbox /usr/bin/true` and does not send a model request. A credential does not
+authorize a paid model request; obtain explicit approval before one.

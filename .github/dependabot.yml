@@ -6,3 +6,23 @@ updates:
       interval: 'weekly'
     cooldown:
       default-days: 7
+    # react-start pins an exact react-router, so bumping either alone installs
+    # two router copies and breaks route typing. One PR moves them together.
+    groups:
+      tanstack:
+        patterns:
+          - '@tanstack/*'
+  # Workflow and composite-action `uses:` pins. Grouped so a checkout/cache/setup
+  # bump arrives as one PR instead of one per action.
+  - package-ecosystem: 'github-actions'
+    directories:
+      - '/'
+      - '/.github/actions/*'
+    schedule:
+      interval: 'weekly'
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns:
+          - '*'

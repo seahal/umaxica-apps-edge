@@ -25,9 +25,12 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import * as appCore from '../app/core/src/lib/core-dispatch';
+import * as appHost from '../app/core/src/lib/core-host-policy';
 import { classifyRailsRouteClass } from '../app/core/src/lib/rails-dispatch-log';
 import * as comCore from '../com/core/src/lib/core-dispatch';
+import * as comHost from '../com/core/src/lib/core-host-policy';
 import * as orgCore from '../org/core/src/lib/core-dispatch';
+import * as orgHost from '../org/core/src/lib/core-host-policy';
 
 const repoRoot = join(import.meta.dirname, '..');
 const read = (relativePath: string) => readFileSync(join(repoRoot, relativePath), 'utf8');
@@ -36,6 +39,12 @@ const CORES = [
   { brand: 'app', module: appCore },
   { brand: 'com', module: comCore },
   { brand: 'org', module: orgCore },
+] as const;
+
+const CORE_HOST_POLICIES = [
+  { brand: 'app', module: appHost },
+  { brand: 'com', module: comHost },
+  { brand: 'org', module: orgHost },
 ] as const;
 
 type Ownership = 'rails' | 'blocked' | 'next';
@@ -48,6 +57,16 @@ const OWNERSHIP: ReadonlyArray<{ path: string; owner: Ownership; why?: string }>
   // --- Rails-owned, prefix matched -----------------------------------------
   { path: '/api/v0/session', owner: 'rails' },
   { path: '/api/v0', owner: 'rails' },
+  {
+    path: '/api/v0/health.json',
+    owner: 'next',
+    why: 'Edge self-health JSON; remaining /api/v0/* stay Rails',
+  },
+  {
+    path: '/api/v0/revision.json',
+    owner: 'next',
+    why: 'Edge Workers version metadata; remaining /api/v0/* stay Rails',
+  },
   { path: '/web/v0/thing', owner: 'rails' },
   { path: '/web/v0', owner: 'rails' },
   { path: '/edge/v0/widgets', owner: 'rails' },
@@ -65,7 +84,22 @@ const OWNERSHIP: ReadonlyArray<{ path: string; owner: Ownership; why?: string }>
   {
     path: '/health',
     owner: 'next',
-    why: 'the unified Edge+Rails health document; Rails also serves /health',
+    why: 'Edge text/plain aggregate; Rails also serves /health',
+  },
+  {
+    path: '/health/startups',
+    owner: 'next',
+    why: 'Kubernetes startupProbe; Edge-owned, not Rails JSON',
+  },
+  {
+    path: '/health/livenesses',
+    owner: 'next',
+    why: 'Kubernetes livenessProbe; Edge-owned, not Rails JSON',
+  },
+  {
+    path: '/health/readinesses',
+    owner: 'next',
+    why: 'Kubernetes readinessProbe; Edge-owned, not Rails JSON',
   },
   {
     path: '/health/liveness.json',
@@ -108,6 +142,7 @@ describe('route ownership contract', () => {
     // one for a path nobody thought about.
     const overrides = [
       '/health',
+      '/health/startups',
       '/health/liveness.json',
       '/robots.txt',
       '/sitemap.xml',
@@ -121,12 +156,16 @@ describe('route ownership contract', () => {
   });
 
   it('keeps the exact /health path out of the /health/ block on every Core', () => {
-    // The asymmetry that makes a unified health entry point possible: BLOCKED is
-    // a raw `startsWith('/health/')`, so `/health` itself reaches the application
-    // while everything under it 404s before either Rails or the application runs.
+    // BLOCKED is a raw `startsWith('/health/')`, so `/health` itself reaches the
+    // application. The three Kubernetes probes are an allow-list; Rails JSON
+    // and any other suffix still 404 before either side runs.
     for (const { brand, module } of CORES) {
       expect(module.classifyCorePath('/health'), brand).toBe('next');
+      expect(module.classifyCorePath('/health/startups'), brand).toBe('next');
+      expect(module.classifyCorePath('/health/livenesses'), brand).toBe('next');
+      expect(module.classifyCorePath('/health/readinesses'), brand).toBe('next');
       expect(module.classifyCorePath('/health/'), brand).toBe('blocked');
+      expect(module.classifyCorePath('/health/liveness.json'), brand).toBe('blocked');
     }
   });
 });
@@ -140,17 +179,6 @@ describe('the three Cores stay one implementation', () => {
       CORES.map(({ brand }) => normalize(read(`${brand}/core/src/lib/core-dispatch.ts`))),
     );
     expect(digests.size, 'the three dispatch modules have diverged').toBe(1);
-  });
-
-  it('gives each Core its own public hostname', () => {
-    // Normalizing above would hide a copy left pointing at a sibling brand, which
-    // Workers VPC would not fail on — routing is by service_id, and the Host
-    // header only reaches Rails' Host Authorization. So it is pinned separately.
-    for (const { brand } of CORES) {
-      expect(read(`${brand}/core/src/lib/core-dispatch.ts`)).toContain(
-        `const PUBLIC_CORE_HOST = 'jp.umaxica.${brand}';`,
-      );
-    }
   });
 
   it('keeps worker.ts byte-identical across all three', () => {
@@ -187,6 +215,28 @@ describe('the three Cores stay one implementation', () => {
   });
 });
 
+describe('Core Host policy follows the existing deployment configuration', () => {
+  it('derives public and workers.dev hosts from each unit’s canonical and wrangler entries', () => {
+    for (const { brand, module } of CORE_HOST_POLICIES) {
+      const vite = read(`${brand}/core/vite.config.ts`);
+      const wrangler = read(`${brand}/core/wrangler.jsonc`);
+      const publicHosts = [...vite.matchAll(/['"]((?:jp|us)\.umaxica\.[a-z]+)['"]/gu)].map(
+        ([, host]) => host,
+      );
+      const workerName = /"name": "([^"]+)"/u.exec(wrangler)?.[1];
+
+      expect(publicHosts, `${brand}/core Vite Host entries`).toEqual([
+        module.CORE_PUBLIC_HOST,
+        module.CORE_ALTERNATE_HOST,
+      ]);
+      expect(workerName, `${brand}/core wrangler Worker name`).toBe(module.CORE_WORKER_NAME);
+      expect(wrangler, `${brand}/core must keep workers.dev enabled`).toContain(
+        '"workers_dev": true',
+      );
+    }
+  });
+});
+
 describe('one Rails timeout budget per frame', () => {
   it('matches the dispatch timeout to the Rails client timeout, in every Core', () => {
     /*
@@ -206,6 +256,8 @@ describe('one Rails timeout budget per frame', () => {
 
       expect(dispatch, `${brand}/core declares no dispatch timeout`).toBeDefined();
       expect(client, `${brand}/core declares no client timeout`).toBeDefined();
+      expect(dispatch, `${brand}/core dispatch timeout must stay at 2 seconds`).toBe('2000');
+      expect(client, `${brand}/core client timeout must stay at 2 seconds`).toBe('2000');
       expect(dispatch, `${brand}/core waits two different lengths for one Rails`).toBe(client);
     }
   });
@@ -260,23 +312,13 @@ describe("Edge's own health does not depend on Rails being up", () => {
     }
   });
 
-  it('reports the two halves of /health independently', () => {
-    /*
-     * `/health` answers 503 when either half is down — that is the decision in
-     * ADR 009, reversing the earlier "a Rails outage must not make Edge
-     * unhealthy" position. What must NOT happen is the Rails half taking the
-     * Edge half's information with it: an operator looking at a 503 needs to see
-     * which half failed.
-     *
-     * Behaviour is covered per frame in `test/health-route.test.ts`. This pins
-     * the structural reason it holds: the Rails probe is resolved before the
-     * block that can throw, and both are always serialized.
-     */
+  it('keeps Core /health on the Health API consumer without proxying Rails JSON', () => {
     for (const { brand } of CORES) {
       const source = read(`${brand}/core/src/routes/health.ts`);
-      expect(source).toContain('function resolveRailsClient()');
-      expect(source).toContain("edge: { status: 'error' }");
-      expect(source).toContain('rails,');
+      expect(source).toContain('renderAggregateHealth');
+      expect(source).toContain('checkRailsHealth');
+      expect(source).not.toContain('checkRailsLiveness');
+      expect(source).not.toContain('Response.json');
     }
   });
 });

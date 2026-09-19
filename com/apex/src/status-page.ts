@@ -4,7 +4,7 @@ import { defaultLocale } from './i18n/config';
 import { themeAttributeMarkup, type ThemeAttribute } from './theme';
 
 /*
- * The status, offline, 404 and 429 documents are chrome-free by design (see
+ * The status, 404 and 429 documents are chrome-free by design (see
  * docs/design/ui-shell-contract.md §15) but no longer unstyled: they link the
  * same compiled stylesheet as every other document this unit serves, which the
  * assets binding answers without invoking the Worker.
@@ -82,13 +82,4 @@ export function errorPage(
     '/about',
     locale === 'ja' ? 'このURLについて' : 'About this URL',
   );
-}
-
-/**
- * The offline document the service worker falls back to. Same chrome-free
- * shape as `statusPage`, but it is not a status: it is served 200 by
- * `create-apex-app.ts`, because the request for it succeeded.
- */
-export function offlinePageMarkup(theme: ThemeAttribute): string {
-  return `<!doctype html><html lang="${defaultLocale}"${themeAttributeMarkup(theme)}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${buildBrandTitle('オフライン', { brandName: DEFAULT_BRAND_NAME, tld: BRAND_TLD })}</title>${STATUS_STYLESHEET}</head><body class="${STATUS_BODY}"><main class="grid gap-3"><h1 class="${STATUS_HEADING}">オフラインです</h1><p>ネットワーク接続を確認して再読み込みしてください。</p><p><a class="text-brand" href="/">トップへ戻る</a></p></main></body></html>`;
 }

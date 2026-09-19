@@ -1,5 +1,5 @@
 /**
- * Shared-FQDN Core dispatch for `jp.umaxica.org`.
+ * Shared-FQDN Core dispatch for `jp.umaxica.app`.
  *
  * This is the browser-facing counterpart to `rails-client.ts` /
  * `rails-health.ts`, which stay untouched server-to-server health-check
@@ -13,34 +13,13 @@
  * runtime invokes for every request — before any application code runs.
  */
 import { withSecurityHeaders } from '../security-headers';
-import { readBoundedText } from './bounded-text';
 import {
   classifyRailsRouteClass,
   logRailsDispatch,
-  normalizeProxyErrorCode,
   normalizeRailsMethod,
 } from './rails-dispatch-log';
-
-/**
- * The public, browser-facing hostname for this app's Core frame. Used as the
- * literal origin of the outbound Rails request — not just a header value.
- *
- * Per the Cloudflare Workers VPC binding docs (`fetch()` on a VPC-bound
- * `Fetcher`): "The host provided in fetch() does not control routing. It
- * only populates the Host header and, when using https, the SNI value" —
- * routing is entirely determined by the binding's `service_id`
- * (`UMAXICA_APPS_EDGE_CF_WORKERS_VPC`, see `wrangler.jsonc`). So building the
- * request against this public origin costs nothing on routing correctness,
- * and satisfies Rails' Host Authorization, which expects a public host.
- *
- * `Host` is deliberately NOT set by mutating a `Headers` object: `host` is a
- * forbidden header name under the Fetch standard and silently fails to set
- * on a `Request` (confirmed against Fetch spec / runtime `Headers`
- * behavior). Driving it through the request URL itself is the only reliable
- * way to control it, in both a Workers runtime and this file's own tests.
- */
-const PUBLIC_CORE_HOST = 'jp.umaxica.org';
-const PUBLIC_CORE_ORIGIN = `https://${PUBLIC_CORE_HOST}`;
+import { parseRailsOrigin } from './rails-origin';
+import { normalizeEdgeEnvironment } from './request-log';
 
 export type PathOwnership = 'rails' | 'blocked' | 'next';
 
@@ -56,13 +35,16 @@ export type PathOwnership = 'rails' | 'blocked' | 'next';
  * Several paths exist on BOTH sides. Edge keeps them anyway. These are
  * intentional overrides, not gaps in the audit:
  *
- *   /health/*     Rails serves liveness, readiness and startup here. BLOCKED at
- *                 the edge: a Rails-internal health namespace has no business
- *                 being reachable through the public FQDN. Diagnostics are
- *                 published by Edge's own `/health`, which probes Rails liveness
- *                 over the VPC binding and reports it as one field.
- *   /health       Rails serves it. NEXT anyway, because this is that unified
- *                 entry point (`src/app/health/route.ts`).
+ *   /health/*     Rails serves JSON probes here. BLOCKED at the edge except the
+ *                 three Edge text/plain probes (`/health/startups`,
+ *                 `/health/livenesses`, `/health/readinesses`). Rails-internal
+ *                 JSON (`/health/liveness.json` and siblings) stays off the
+ *                 public FQDN.
+ *   /api/v0/health.json  Rails serves a Health API here. NEXT anyway: Edge
+ *                 self-health for this Worker.
+ *   /api/v0/revision.json  Edge Workers version metadata. NEXT. Other `/api/v0/*`
+ *                 stay Rails.
+ *   /health       Rails serves it. NEXT anyway: Edge's human-readable aggregate.
  *   /robots.txt   Rails serves it. NEXT: Edge owns the crawler contract for the
  *                 public FQDN (`src/app/robots.ts`).
  *   /sitemap.xml  Rails serves it. NEXT, same reason (`src/app/sitemap.ts`).
@@ -90,36 +72,44 @@ const RAILS_OWNED_EXACT = new Set([
  * Deliberately scoped to `/health/` WITH a further path segment, and matched by
  * a raw `startsWith` rather than by `matchesPrefix()` below. That asymmetry is
  * load-bearing: it is what lets the exact path `/health` fall through to the
- * APPLICATION and serve the unified Edge+Rails health document, while
- * `/health/anything` still 404s before either Rails or the application is
- * invoked.
+ * APPLICATION. The three Kubernetes probes are an allow-list under that prefix;
+ * every other `/health/…` path, including Rails' `*.json` probes, still 404s
+ * before either Rails or the application is invoked.
  */
 const BLOCKED_PREFIX = '/health/';
+
+const APPLICATION_HEALTH_PROBES = new Set([
+  '/health/startups',
+  '/health/livenesses',
+  '/health/readinesses',
+]);
 
 /*
  * Matches `rails-client.ts`'s `RAILS_FETCH_TIMEOUT_MS`, deliberately — one Rails
  * timeout budget for this frame, whichever direction the call comes from.
  * `test/core-dispatch-contract.test.ts` pins the two together.
  */
-const RAILS_DISPATCH_TIMEOUT_MS = 5000;
-
-/*
- * Long enough for `ProxyError: <code>`, short enough that a real Rails error
- * page is never pulled into memory just to be classified — a bound
- * `readBoundedText` now actually enforces, rather than one applied after the
- * whole body was already read. Mirrors the constant of the same name in
- * `rails-client.ts`.
- */
-const PROXY_ERROR_MAX_CHARS = 200;
+const RAILS_DISPATCH_TIMEOUT_MS = 2000;
 
 function matchesPrefix(pathname: string, prefix: string): boolean {
   const withoutTrailingSlash = prefix.slice(0, -1);
   return pathname === withoutTrailingSlash || pathname.startsWith(prefix);
 }
 
+const EDGE_SELF_HEALTH_API = '/api/v0/health.json';
+const EDGE_REVISION_API = '/api/v0/revision.json';
+
 export function classifyCorePath(pathname: string): PathOwnership {
   if (pathname.startsWith(BLOCKED_PREFIX)) {
-    return 'blocked';
+    return APPLICATION_HEALTH_PROBES.has(pathname) ? 'next' : 'blocked';
+  }
+  /*
+   * Edge self-health is machine JSON for THIS Worker. The rest of `/api/v0/`
+   * stays Rails-owned (ADR 007). Rails publishes the same path on its origin;
+   * that document is consumed privately by `rails-health.ts`, never here.
+   */
+  if (pathname === EDGE_SELF_HEALTH_API || pathname === EDGE_REVISION_API) {
+    return 'next';
   }
   if (RAILS_OWNED_EXACT.has(pathname)) {
     return 'rails';
@@ -143,21 +133,25 @@ export function blockedCoreResponse(): Response {
 
 /**
  * The only body a failed dispatch is allowed to carry: a fixed string chosen
- * from two literals.
+ * from three literals.
  *
- * No exception message, no `ProxyError` code, no private hostname and no VPC
- * service id ever reaches the browser. The specific cause goes to Workers Logs
- * through `logRailsDispatch()` instead, where it is not attacker-visible.
+ * No exception message and no Rails hostname ever reaches the browser. The
+ * specific cause goes to Workers Logs through `logRailsDispatch()` instead,
+ * where it is not attacker-visible.
  */
 function railsUnavailableResponse(
-  reason: 'not-configured' | 'upstream',
+  reason: 'not-configured' | 'upstream' | 'timeout',
   isProduction: boolean,
 ): Response {
   // Fail closed, visibly — same principle as `getRailsClient()` returning
   // `null`. Never falls through to the application, never silently succeeds against
   // a dev resource in production.
   const body =
-    reason === 'not-configured' ? 'Rails transport not configured' : 'Rails upstream unavailable';
+    reason === 'not-configured'
+      ? 'Rails transport not configured'
+      : reason === 'timeout'
+        ? 'Rails upstream timeout'
+        : 'Rails upstream unavailable';
 
   // `Content-Type` is stated rather than left off. A body with no declared type
   // is a body the browser is free to sniff, and this one is served on the same
@@ -168,7 +162,7 @@ function railsUnavailableResponse(
   // while a real Rails response passes through untouched.
   return withSecurityHeaders(
     new Response(body, {
-      status: 503,
+      status: reason === 'timeout' ? 504 : 503,
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate',
         'Content-Type': 'text/plain; charset=utf-8',
@@ -194,64 +188,33 @@ function isTimeoutError(error: unknown): boolean {
 }
 
 /**
- * The `ProxyError: <code>` Workers VPC answers with when it cannot reach the
- * private origin, or null for any other response.
- *
- * Workers VPC does NOT throw when the origin is unreachable — measured
- * 2026-08-09 by stopping Rails, and recorded at the matching function in
- * `rails-client.ts`. It answers an ordinary HTTP 500 whose body carries the
- * documented code:
- *
- *   500  text/plain  "ProxyError: connection_refused"
- *
- * Passing that through would present the most common real failure — Rails being
- * down — to the browser as a Rails-authored 500, indistinguishable from Rails
- * returning 500 from its own code. So it is claimed here and answered 503.
- *
- * Deliberately narrow, and deliberately only on a failing response: a 500 with a
- * `text/plain` body is the only thing inspected, the read is bounded, and it
- * happens on a clone so a genuine Rails 500 is still returned with its body
- * intact. Nothing on the success path touches the body at all.
- */
-async function readProxyErrorCode(response: Response): Promise<string | null> {
-  if (response.status !== 500) {
-    return null;
-  }
-  if (!response.headers.get('content-type')?.startsWith('text/plain')) {
-    return null;
-  }
-
-  try {
-    const body = await readBoundedText(response.clone(), PROXY_ERROR_MAX_CHARS);
-    return /^ProxyError:\s*(\w+)/iu.exec(body)?.[1] ?? null;
-  } catch {
-    // A body that cannot be read is not evidence of anything; leave the
-    // response to be passed through as the Rails error it appears to be.
-    return null;
-  }
-}
-
-/**
  * Builds the outbound Rails request for a browser-facing, Rails-owned path.
  *
  * Preserves method, path, query, body (streamed, not buffered), and every
  * header the browser sent — Cookie, Origin, Referer, CSRF headers,
  * content-type, accept, user-agent, conditional/cache headers — verbatim.
  *
- * `Host` is the PUBLIC Core hostname — not a VPC routing label, and not
- * `X-Forwarded-Host` (deliberately absent). The VPC binding's `fetch()`
- * routes entirely by `service_id`, so building the request against the
- * public origin does not affect routing, and satisfies Rails' Host
- * Authorization expectation of a public host.
+ * The request is built against `RAILS_ORIGIN`, so `Host` is the Rails host.
+ * `host` is a forbidden header name under the Fetch standard, so the URL is the
+ * only thing that can set it. Client-supplied proxy identity headers
+ * (`Forwarded`, `X-Forwarded-*`, `X-Real-IP`) are dropped rather than relayed:
+ * they are whatever the browser chose to send.
  */
-function buildRailsRequest(request: Request, incomingUrl: URL): Request {
-  const target = new URL(incomingUrl.pathname + incomingUrl.search, PUBLIC_CORE_ORIGIN);
+function buildRailsRequest(
+  request: Request,
+  incomingUrl: URL,
+  origin: string,
+  requestId: string | undefined,
+): Request {
+  const target = new URL(incomingUrl.pathname + incomingUrl.search, origin);
   const headers = new Headers(request.headers);
   for (const name of [...headers.keys()]) {
     if (name === 'forwarded' || name === 'x-real-ip' || name.startsWith('x-forwarded-')) {
       headers.delete(name);
     }
   }
+  headers.delete('x-request-id');
+  if (requestId !== undefined) headers.set('x-request-id', requestId);
 
   const hasBody = request.method !== 'GET' && request.method !== 'HEAD' && request.body !== null;
 
@@ -261,75 +224,82 @@ function buildRailsRequest(request: Request, incomingUrl: URL): Request {
     body: request.body,
     redirect: 'manual',
     // Carried on the Request rather than passed as a second argument to
-    // `binding.fetch()`: an init object makes the runtime rebuild the Request,
-    // and rebuilding one whose body is a half-duplex stream is exactly what
-    // this dispatch must not do. `fetch()` honours `request.signal`.
+    // `fetch()`: an init object makes the runtime rebuild the Request, and
+    // rebuilding one whose body is a half-duplex stream is exactly what this
+    // dispatch must not do. `fetch()` honours `request.signal`.
     signal: AbortSignal.timeout(RAILS_DISPATCH_TIMEOUT_MS),
     ...(hasBody ? ({ duplex: 'half' } as { duplex: 'half' }) : {}),
   });
 }
 
 /**
- * Dispatches a Rails-owned browser request over the Workers VPC binding.
+ * Dispatches a Rails-owned browser request to `RAILS_ORIGIN` over the public
+ * internet.
  *
  * Never calls into the application — not on success and not on any failure.
  * When Rails answers, its response is returned unchanged (status, `Location`,
  * `Set-Cookie`, body, content-type, cache headers), including a 404, a 405 or a
  * 500 of its own making.
  *
- * The four ways this can fail all answer 503 and are distinguished only in the
- * log: no binding, a thrown `fetch`, a timeout, and the `ProxyError` 500 Workers
- * VPC returns instead of throwing. There is exactly one `binding.fetch()` call
- * and no retry loop, for mutations as much as for reads — a retried POST that
- * timed out is a second mutation, not a second chance.
+ * A missing origin or unreachable upstream answers 503; a timeout answers 504.
+ * The cases are distinguished in the response and the log. There is exactly
+ * one `fetch()` call and no retry loop, for mutations as much as for reads — a
+ * retried POST that timed out is a second mutation, not a second chance.
  */
 export async function dispatchToRails(
   request: Request,
-  env: Pick<CloudflareEnv, 'UMAXICA_APPS_EDGE_CF_WORKERS_VPC'>,
+  // `RAILS_ORIGIN` is intentionally absent from the current wrangler config,
+  // so generated `CloudflareEnv` has no property in common with an optional
+  // `RAILS_ORIGIN` shape. Read the future binding defensively until a tier
+  // actually declares it; this keeps the production fail-closed behavior and
+  // avoids a type assertion at the Worker boundary.
+  env: unknown,
   isProduction: boolean,
+  requestId?: string,
 ): Promise<Response> {
   const incomingUrl = new URL(request.url);
   const routeClass = classifyRailsRouteClass(incomingUrl.pathname);
   const method = normalizeRailsMethod(request.method);
   const startedAt = Date.now();
+  const environment =
+    typeof env === 'object' && env !== null && 'EDGE_ENV' in env
+      ? normalizeEdgeEnvironment(Reflect.get(env, 'EDGE_ENV'))
+      : 'unknown';
+  const logContext = (status: number) =>
+    requestId === undefined
+      ? {}
+      : { request_id: requestId, service: 'core' as const, environment, status };
 
-  const binding = env.UMAXICA_APPS_EDGE_CF_WORKERS_VPC;
-  if (!binding) {
+  const railsOrigin =
+    typeof env === 'object' && env !== null && 'RAILS_ORIGIN' in env
+      ? Reflect.get(env, 'RAILS_ORIGIN')
+      : undefined;
+  const origin = parseRailsOrigin(railsOrigin);
+  if (origin === null) {
     logRailsDispatch({
       route_class: routeClass,
       method,
-      outcome: 'binding_not_configured',
+      outcome: 'origin_not_configured',
       duration_ms: Date.now() - startedAt,
+      ...logContext(503),
     });
     return railsUnavailableResponse('not-configured', isProduction);
   }
 
-  const railsRequest = buildRailsRequest(request, incomingUrl);
+  const railsRequest = buildRailsRequest(request, incomingUrl, origin, requestId);
 
   let response: Response;
   try {
-    response = await binding.fetch(railsRequest);
+    response = await fetch(railsRequest);
   } catch (error) {
     logRailsDispatch({
       route_class: routeClass,
       method,
-      outcome: isTimeoutError(error) ? 'timeout' : 'vpc_unreachable',
+      outcome: isTimeoutError(error) ? 'timeout' : 'upstream_unreachable',
       duration_ms: Date.now() - startedAt,
+      ...logContext(isTimeoutError(error) ? 504 : 503),
     });
-    return railsUnavailableResponse('upstream', isProduction);
-  }
-
-  const proxyErrorCode = await readProxyErrorCode(response);
-  if (proxyErrorCode !== null) {
-    logRailsDispatch({
-      route_class: routeClass,
-      method,
-      outcome: 'vpc_unreachable',
-      duration_ms: Date.now() - startedAt,
-      upstream_status: response.status,
-      proxy_error_code: normalizeProxyErrorCode(proxyErrorCode),
-    });
-    return railsUnavailableResponse('upstream', isProduction);
+    return railsUnavailableResponse(isTimeoutError(error) ? 'timeout' : 'upstream', isProduction);
   }
 
   logRailsDispatch({
@@ -340,6 +310,7 @@ export async function dispatchToRails(
     outcome: response.status < 400 ? 'rails_ok' : 'rails_http_error',
     duration_ms: Date.now() - startedAt,
     upstream_status: response.status,
+    ...logContext(response.status),
   });
   return response;
 }

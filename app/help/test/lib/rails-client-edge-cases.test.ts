@@ -18,6 +18,49 @@ describe('Rails client edge cases', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('reports an abort timeout as timeout, not unreachable', async () => {
+    const client = createRailsClient(
+      {
+        fetch: vi.fn(() =>
+          Promise.reject(new DOMException('The operation was aborted.', 'TimeoutError')),
+        ),
+      },
+      'http://core.example.localhost:3000',
+    );
+
+    await expect(client.fetch('/health')).resolves.toEqual({ kind: 'timeout' });
+  });
+
+  it('aborts a request that has not produced headers after 2000 ms', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetch = vi.fn(
+        (_input: string, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            const signal = init?.signal;
+            if (signal === undefined || signal === null) {
+              reject(new Error('missing timeout signal'));
+              return;
+            }
+            signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+          }),
+      );
+      const client = createRailsClient({ fetch }, 'http://core.example.localhost:3000');
+      const resultPromise = client.fetch('/health');
+      const signal = fetch.mock.calls[0]?.[1]?.signal;
+
+      expect(signal).toBeInstanceOf(AbortSignal);
+      if (!(signal instanceof AbortSignal)) return;
+      await vi.advanceTimersByTimeAsync(1999);
+      expect(signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+
+      await expect(resultPromise).resolves.toEqual({ kind: 'timeout' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('reports non-Error transport failures without losing their message', async () => {
     const client = createRailsClient(
       { fetch: vi.fn(() => Promise.reject('socket unavailable')) },
@@ -63,17 +106,19 @@ describe('Rails client edge cases', () => {
     });
   });
 
-  it('applies transport credentials after stripping caller credentials', async () => {
+  it('strips caller credentials and adds none of its own', async () => {
     const fetch = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) =>
       Promise.resolve(new Response('ok')),
     );
-    const client = createRailsClient({ fetch }, 'http://core.example.localhost:3000', {
-      authorization: 'Bearer transport',
-    });
+    const client = createRailsClient({ fetch }, 'http://core.example.localhost:3000');
 
-    await client.fetch('/health', { headers: { authorization: 'Bearer caller' } });
+    await client.fetch('/health', {
+      headers: { authorization: 'Bearer caller', cookie: 'session=1', accept: 'application/json' },
+    });
     const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
-    expect(headers.get('authorization')).toBe('Bearer transport');
+    expect(headers.get('authorization')).toBeNull();
+    expect(headers.get('cookie')).toBeNull();
+    expect(headers.get('accept')).toBe('application/json');
   });
 
   it('fails closed when the configured origin is not normalized', async () => {

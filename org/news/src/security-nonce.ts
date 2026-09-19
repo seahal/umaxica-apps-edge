@@ -81,3 +81,38 @@ export function runWithNonce<T>(nonce: string | undefined, fn: () => T): T {
 export function getRequestNonce(): string | undefined {
   return nonceStorage.getStore();
 }
+
+export type RequestIdStore = {
+  run: <T>(requestId: string, fn: () => T) => T;
+  getStore: () => string | undefined;
+};
+
+let currentRequestId: string | undefined;
+
+let requestIdStorage: RequestIdStore = {
+  run: (requestId, fn) => {
+    const previous = currentRequestId;
+    currentRequestId = requestId;
+    try {
+      return fn();
+    } finally {
+      currentRequestId = previous;
+    }
+  },
+  getStore: () => currentRequestId,
+};
+
+/** Replaces the process-wide request ID store with the Worker-local store. */
+export function installRequestIdStore(store: RequestIdStore): void {
+  requestIdStorage = store;
+}
+
+/** Runs server work with the ID generated at the Edge request boundary. */
+export function runWithRequestId<T>(requestId: string, fn: () => T): T {
+  return requestIdStorage.run(requestId, fn);
+}
+
+/** Returns the request ID for the current server request, when one exists. */
+export function getRequestId(): string | undefined {
+  return requestIdStorage.getStore();
+}

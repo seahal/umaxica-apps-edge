@@ -10,7 +10,7 @@
 # Asserting on a real response closes that gap. Read the header values here as
 # the contract; `security-headers.ts` is one implementation of it.
 
-GET {{base}}/
+GET {{base}}/ja/
 HTTP 200
 [Asserts]
 header "content-security-policy" contains "default-src 'self'"
@@ -22,21 +22,17 @@ header "content-security-policy" contains "frame-ancestors 'none'"
 header "content-security-policy" contains "img-src 'self' data:"
 header "content-security-policy" contains "object-src 'none'"
 header "content-security-policy" contains "upgrade-insecure-requests"
-# THIS RUNNER STARTS A DEV SERVER, and the development policy is the loose one.
-# `script-src` and `style-src` carry 'unsafe-inline' here, and `script-src` also
-# carries 'unsafe-eval', because Vite injects inline scripts of its own and both
-# the dev bundle and React's development build call eval().
-#
-# A PRODUCTION response carries none of the three: it names a per-request nonce
-# instead, which TanStack stamps on the one inline script it emits. No client
-# talking to a dev server can observe that, so the production half —
-# 'unsafe-inline' absent, a nonce present and unique per response — is asserted
-# in test/content-security-policy.test.ts.
+# Two servers can answer here. `api/run.mjs` builds the Worker and serves the
+# build, whose policy is the production one: a per-request nonce and no
+# 'unsafe-inline'. A `pnpm dev` already listening is reused instead, and there
+# Vite needs 'unsafe-inline' (and React's development build 'unsafe-eval').
+# Either answer is valid; that the nonce is unique per response is asserted in
+# test/content-security-policy.test.ts, which no single HTTP exchange can show.
 #
 # The negative assertions below are the part with teeth: the loosening must stay
 # confined to those two directives whichever server is answering.
-header "content-security-policy" matches "script-src 'self' 'unsafe-inline'( 'unsafe-eval')?;"
-header "content-security-policy" contains "style-src 'self' 'unsafe-inline'"
+header "content-security-policy" matches "script-src 'self' (?:'nonce-[A-Za-z0-9+/=]+'|'unsafe-inline'(?: 'unsafe-eval')?);"
+header "content-security-policy" matches "style-src 'self' (?:'nonce-[A-Za-z0-9+/=]+'|'unsafe-inline');"
 header "content-security-policy" not contains "default-src 'self' 'unsafe-inline'"
 header "content-security-policy" not matches "(?:default-src|style-src|connect-src)[^;]*unsafe-eval"
 # A nonce authorises elements, never attributes, so these two are stated in both
@@ -46,6 +42,7 @@ header "content-security-policy" contains "style-src-attr 'none'"
 header "content-security-policy" not contains "*"
 header "strict-transport-security" contains "max-age=31536000"
 header "strict-transport-security" contains "includeSubDomains"
+header "strict-transport-security" contains "preload"
 header "x-content-type-options" == "nosniff"
 header "x-frame-options" == "DENY"
 header "referrer-policy" == "no-referrer"
@@ -72,6 +69,16 @@ header "x-content-type-options" == "nosniff"
 header "x-frame-options" == "DENY"
 header "referrer-policy" == "no-referrer"
 
+# And on a Publishing failure document, whose status the request boundary
+# rewrites: the rewrite must not drop the headers.
+GET {{base}}/ja/entries/
+HTTP 503
+[Asserts]
+header "content-security-policy" contains "default-src 'self'"
+header "content-security-policy" contains "frame-ancestors 'none'"
+header "x-content-type-options" == "nosniff"
+header "x-frame-options" == "DENY"
+header "referrer-policy" == "no-referrer"
 
 # And on a JSON route handler, which does not go through the page renderer at
 # all.
