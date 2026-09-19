@@ -22,6 +22,7 @@
     "test:cov": "vitest run --coverage",
     "test:stress": "vitest run --sequence.shuffle --no-cache",
     "test:api": "node api/run.mjs",
+    "serve:api": "CLOUDFLARE_ENV=local PUBLIC_REGION=jp vite build && CLOUDFLARE_ENV=local vite preview --port 5108 --strictPort",
     "test:e2e": "playwright test",
     "preknip": "pnpm run i18n:compile",
     "knip": "knip --treat-config-hints-as-errors",

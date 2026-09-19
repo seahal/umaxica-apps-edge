@@ -4,7 +4,7 @@
 server with [Hurl](https://hurl.dev).
 
 ```sh
-pnpm run test:api                      # starts a server, runs the suite, stops it
+pnpm run test:api                      # builds, serves the build, runs the suite, stops it
 pnpm run dev &&  pnpm run test:api     # or reuse one you already have
 ```
 
@@ -18,6 +18,11 @@ port first and reuses whatever is already answering, exactly as
 `playwright.config.ts` does with `reuseExistingServer`; it only starts a server
 when nothing does, and then it stops the whole process group it started. Running
 `pnpm run dev` in another terminal therefore behaves as it always did.
+
+The server it starts is `pnpm run serve:api` — the Worker built, then served by
+`vite preview` — not `vite dev`. A dev server compiles each route on its first
+request, and on a small CI runner that alone outlasted the response budget and
+answered 503: a failure of the dev server, not of the contract.
 
 Set `EDGE_API_BASE` to run these files against a preview deployment. Nothing is
 started or stopped in that case — a remote target is not ours to manage — and a
@@ -68,9 +73,9 @@ stayed green if that wiring had been deleted outright.
 One assertion did come back to Vitest, in
 `test/content-security-policy.test.ts`, and the reason is the mirror image:
 `script-src` carries `'unsafe-eval'` under `vite dev` and must not carry it in a
-build, and the server this runner starts is a dev server. The development policy
-is asserted here, on a real response; the production one is unobservable from
-here at any depth, so the branch that produces it is asserted there instead.
+build, and this runner may be answered by either (it reuses a running `pnpm
+dev`). This file accepts either policy on a real response; that a build's nonce
+is fresh per response needs two responses compared, so that is asserted there.
 
 ## Conventions
 

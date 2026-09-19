@@ -12,6 +12,11 @@
 // already listening and only starts one when nothing answers — the same
 // contract as Playwright's `reuseExistingServer`, which is why `pnpm run dev`
 // in another terminal still works exactly as it did.
+//
+// The server it starts is `pnpm run serve:api`: the Worker BUILT, then served by
+// `vite preview`. Not `vite dev`, whose on-demand compile made the first
+// requests on a small CI runner outlast the response budget and answer 503 —
+// failures of the dev server, not of the contract under test.
 
 import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -66,7 +71,7 @@ function startServer() {
   // `detached` puts the server in its own process group. `vite dev` and
   // `wrangler dev` both fork children that outlive a bare `child.kill()`, and an
   // orphaned worker holding the port makes the NEXT run reuse a stale server.
-  const server = spawn('pnpm', ['run', 'dev'], {
+  const server = spawn('pnpm', ['run', 'serve:api'], {
     cwd: unitDir,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -141,12 +146,12 @@ async function waitUntilReady({ hasExited, log }) {
   const deadline = Date.now() + READY_TIMEOUT_MS;
   while (!(await isReady())) {
     if (hasExited()) {
-      process.stderr.write(`the dev server exited before it answered\n${log()}`);
+      process.stderr.write(`the server exited before it answered\n${log()}`);
       return 1;
     }
     if (Date.now() > deadline) {
       process.stderr.write(
-        `the dev server did not become ready (${READY_PATH} 2xx, ${WARM_PATH} not 5xx) within ${READY_TIMEOUT_MS / 1000}s\n${log()}`,
+        `the server did not become ready (${READY_PATH} 2xx, ${WARM_PATH} not 5xx) within ${READY_TIMEOUT_MS / 1000}s\n${log()}`,
       );
       return 1;
     }
@@ -162,13 +167,13 @@ async function main() {
   }
 
   if (EXTERNAL_BASE !== undefined) {
-    // Starting a local dev server would silently test something other than what
+    // Starting a local server would silently test something other than what
     // was asked for.
     process.stderr.write(`nothing is answering on ${EXTERNAL_BASE} (EDGE_API_BASE)\n`);
     return 1;
   }
 
-  process.stderr.write(`starting \`pnpm run dev\` on ${BASE}\n`);
+  process.stderr.write(`starting \`pnpm run serve:api\` on ${BASE}\n`);
   const { server, log, hasExited } = startServer();
 
   try {

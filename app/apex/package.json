@@ -18,6 +18,7 @@
     "test:cov": "vitest run --coverage",
     "test:stress": "vitest run --sequence.shuffle --no-cache",
     "test:api": "node api/run.mjs",
+    "serve:api": "CLOUDFLARE_ENV=development vite build && CLOUDFLARE_ENV=development vite preview --port 5401 --strictPort",
     "test:e2e": "playwright test",
     "knip": "knip --treat-config-hints-as-errors",
     "lint": "oxlint --report-unused-disable-directives .",
