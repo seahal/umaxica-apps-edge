@@ -181,13 +181,22 @@ describe('optional local Compose override', () => {
           '-f',
           overridePath,
           'config',
+          '--format',
+          'json',
         ],
         { cwd: repoRoot, encoding: 'utf8' },
       );
       expect(merged.stderr).not.toMatch(/items at \d+ and \d+ are equal/u);
       expect(merged.status, merged.stderr).toBe(0);
-      expect(merged.stdout.match(/label=disable/gu)).toHaveLength(1);
-      expect(merged.stdout.match(/no-new-privileges:true/gu)?.length).toBeGreaterThanOrEqual(1);
+      // Read `core` itself rather than counting strings in the whole document:
+      // `config` also echoes top-level `x-` extensions, and compose.yaml's
+      // `x-unit` anchor carries a `label=disable` of its own.
+      const config = JSON.parse(merged.stdout) as {
+        services: Record<string, { security_opt?: string[] }>;
+      };
+      const securityOpt = config.services['core']?.security_opt ?? [];
+      expect(securityOpt.filter((entry) => entry === 'label=disable')).toHaveLength(1);
+      expect(securityOpt).toContain('no-new-privileges:true');
     } finally {
       rmSync(scratch, { recursive: true, force: true });
     }
