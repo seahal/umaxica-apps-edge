@@ -108,7 +108,7 @@ catalog:
   # Start is at Release Candidate, not GA. Pin the minor and read the changelog
   # before bumping — that is one of the four constraints in
   # adr/013-frames-tanstack-start.md, not a preference.
-  '@tanstack/react-router': ^1.170.32
+  '@tanstack/react-router': ^1.170.35
   '@tanstack/react-start': ^1.168.49
   # The DOM-assertion and DOM-implementation halves of the Vitest setup. Every
   # unit's vitest.setup.ts imports `@testing-library/jest-dom`, and every
