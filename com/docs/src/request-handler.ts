@@ -20,6 +20,7 @@ import {
 } from './lib/request-log';
 import {
   responseGenerationTimeoutResponse,
+  responseGenerationBudgetMs,
   withResponseGenerationTimeout,
 } from './lib/response-timeout';
 import { withSecurityHeaders } from './security-headers';
@@ -125,6 +126,7 @@ export async function handleRequest(
           timeoutState.occurred = true;
           return responseGenerationTimeoutResponse();
         },
+        responseGenerationBudgetMs(environment),
       ),
     );
 

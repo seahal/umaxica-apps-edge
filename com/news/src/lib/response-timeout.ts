@@ -1,6 +1,17 @@
 /** Edge application response-generation budget, distinct from upstream I/O. */
 export const EDGE_RESPONSE_TIMEOUT_MS = 3_000;
 
+/**
+ * `local` is `vite dev`, where the first request to a route pays for an
+ * on-demand compile. On a small CI runner that alone exceeds the production
+ * budget, so `pnpm test:api` saw 503s that no deployed Worker would produce.
+ */
+export const LOCAL_RESPONSE_TIMEOUT_MS = 60_000;
+
+export function responseGenerationBudgetMs(environment: string): number {
+  return environment === 'local' ? LOCAL_RESPONSE_TIMEOUT_MS : EDGE_RESPONSE_TIMEOUT_MS;
+}
+
 export function responseGenerationTimeoutResponse(): Response {
   return new Response('Service Unavailable\n', {
     status: 503,
@@ -20,6 +31,7 @@ export function responseGenerationTimeoutResponse(): Response {
 export async function withResponseGenerationTimeout<T>(
   operation: (signal: AbortSignal) => T | Promise<T>,
   onTimeout: () => T,
+  timeoutMs: number = EDGE_RESPONSE_TIMEOUT_MS,
 ): Promise<T> {
   const controller = new AbortController();
   let timedOut = false;
@@ -36,7 +48,7 @@ export async function withResponseGenerationTimeout<T>(
         } catch (error) {
           reject(error);
         }
-      }, EDGE_RESPONSE_TIMEOUT_MS);
+      }, timeoutMs);
 
       void operationPromise.then(
         (value) => {

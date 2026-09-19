@@ -2,11 +2,38 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   EDGE_RESPONSE_TIMEOUT_MS,
+  LOCAL_RESPONSE_TIMEOUT_MS,
+  responseGenerationBudgetMs,
   responseGenerationTimeoutResponse,
   withResponseGenerationTimeout,
 } from '../../src/lib/response-timeout';
 
 describe('response generation timeout', () => {
+  it('gives only the local dev server the longer compile budget', () => {
+    expect(responseGenerationBudgetMs('local')).toBe(LOCAL_RESPONSE_TIMEOUT_MS);
+    for (const environment of ['production', 'development', 'test', 'vpc', 'unknown']) {
+      expect(responseGenerationBudgetMs(environment)).toBe(EDGE_RESPONSE_TIMEOUT_MS);
+    }
+  });
+
+  it('honours an explicit budget', async () => {
+    vi.useFakeTimers();
+    try {
+      const onTimeout = vi.fn(responseGenerationTimeoutResponse);
+      const pending = withResponseGenerationTimeout(
+        () => new Promise<Response>(() => {}),
+        onTimeout,
+        LOCAL_RESPONSE_TIMEOUT_MS,
+      );
+      await vi.advanceTimersByTimeAsync(EDGE_RESPONSE_TIMEOUT_MS);
+      expect(onTimeout).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(LOCAL_RESPONSE_TIMEOUT_MS);
+      expect((await pending).status).toBe(503);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('clears its timer when the operation completes', async () => {
     vi.useFakeTimers();
     try {

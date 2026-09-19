@@ -24,6 +24,7 @@ import {
 } from './lib/request-log';
 import {
   responseGenerationTimeoutResponse,
+  responseGenerationBudgetMs,
   withResponseGenerationTimeout,
 } from './lib/response-timeout';
 import { withSecurityHeaders } from './security-headers';
@@ -288,6 +289,7 @@ export default {
             timeoutState.occurred = true;
             return withSecurityHeaders(responseGenerationTimeoutResponse(), isProduction);
           },
+          responseGenerationBudgetMs(environment),
         ),
       );
 
