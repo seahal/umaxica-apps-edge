@@ -5,15 +5,15 @@ The split is **authority-level, not framework-level**: Rails remains the source
 of truth for policy, mutation, and content JSON authority, and the Edge surfaces
 differ in what they are allowed to do rather than in what they are built with.
 
-> **Framework note.** `adr/004-public-information-surfaces-astro.md` (2026-08-12)
-> rejected an Astro move for the content frames and stays `Rejected` as history.
-> `adr/015-public-content-surfaces-astro.md` (2026-09-02) is the new record that
-> `adr/013` invited: the **twelve** public content surfaces
-> (`{app,com,org}/{docs,help,info,news}`) move to Astro, partially superseding
-> `adr/013` for those units. The three `*/core` units stay on TanStack Start and
-> the five `*/apex` Workers stay on Hono (`adr/011`). Migration is in progress
-> (Phase 1 + 2 done, juxtaposed, not deployed); the Rails-managed-document SSR
-> layer is designed in `adr/015` but pending the Rails public read contract.
+> **Current framework note (2026-09-15).** `adr/004-public-information-surfaces-astro.md`
+> and `adr/015-public-content-surfaces-astro.md` are historical Astro decisions.
+> The active tree and `tools/workers-manifest.json` classify all twelve public
+> cells as TanStack Start/Vite with the Workers VPC binding. The three `*/core`
+> units also stay on TanStack Start and the five `*/apex` Workers stay on Hono
+> (`adr/011`). The current Edge transport, body, timeout, Cookie, logging and
+> offline boundaries are in `adr/019-edge-parallel-contract-boundaries.md`.
+> Rails Preference precedence, authentication-dependent shell wiring and SEO
+> URL policy remain the explicit P3 hold in the implementation plan.
 
 ## Surface Matrix
 
@@ -25,10 +25,10 @@ differ in what they are allowed to do rather than in what they are built with.
 
 ## Framework Ownership
 
-All fifteen frames run **TanStack Start on Vite and Cloudflare Workers**. There
-is no framework boundary between a core and a satellite, and introducing one is a
-decision that needs its own ADR — `adr/004` rejected the last attempt, and
-`adr/013` records why one stack across all fifteen is worth keeping.
+The twelve public content surfaces run **TanStack Start on Vite**. The three
+cores run the same framework, and the five apex workers run **Hono**. The
+current boundary is recorded in ADR 019; the Astro records stay historical and
+`adr/004` stays `Rejected` as history.
 
 What differs between the two archetypes is capability, and it is deliberate:
 
@@ -65,15 +65,31 @@ fails a surface that declares a binding its class is not allowed to hold.
 
 ## Implementation State
 
-All fifteen frames — cores and satellites alike — are classified
-`railsBackedVite` in `tools/workers-manifest.json` and carry the VPC binding.
-On the twelve public surfaces the only thing that binding is used for today is
-`/health`: `src/lib/rails-client.ts` and `src/lib/rails-health.ts` report Rails
-liveness alongside Edge state (ADR 009). **No public surface fetches content from
-Rails yet**, so the narrow contract above is a boundary that has not been tested
-against a real consumer.
+The three cores are classified `railsBackedVite` and the twelve public surfaces
+`railsBackedVpcVite` in `tools/workers-manifest.json`. All fifteen carry the VPC
+binding.
+On the twelve public surfaces the VPC binding is used for `/health` (ADR 016)
+and for **publishing pages**: `/{lang}/entries/` and `/{lang}/entries/{public_id}/`
+are TanStack Start server routes that call the existing `getRailsClient()` on every
+request. Rails remains the publishing authority for persistence, management UI,
+create/update, revisions, publication, archive, and authorization. The public
+cell is anonymous and read-only. Collection pagination is page-based: `/{lang}/entries/?page=N`
+causes Edge to request `GET /api/v0/entries?locale={lang}&page=N`. Edge does not
+calculate SQL OFFSET; Pagy is a Rails implementation detail. Page 1 is
+`/{lang}/entries/`. Identity is `public_id` on both the public URL and the Rails
+management member URL. Language homes `/{lang}/` are server-rendered per request
+and link to `/{lang}/entries/`. `/{lang}/about/` is an Edge-generated page with no
+Rails hop. There is no
+publishing SSG of Entry pages, no browser-side Rails fetch, and no
+application-level publishing cache in this phase (`docs/caching-and-isr.md`
+Phase 2 remains future work).
 
-When content fetching lands, it lands inside that existing client rather than
-beside it, and `docs/caching-and-isr.md` is the open question that has to be
-answered in the same change — there is no caching layer in front of these
-surfaces today.
+Public collection and entry pages always expose a Manage / Edit link to the
+browser-facing Rails Base.Org staff origin (`RAILS_STAFF_BASE_ORIGIN`), for example
+`{origin}/publishing/{surface}/{audience}/entries` and
+`{origin}/publishing/{surface}/{audience}/entries/{public_id}/edit`. The link is
+not gated on Edge authentication. Rails performs sign-in and authorization after
+navigation. That origin is not the Worker-to-Rails VPC transport.
+
+`org/core` `/publishing` is the authenticated operator launcher for the same
+twelve Rails management indexes. It does not implement Publishing mutations.

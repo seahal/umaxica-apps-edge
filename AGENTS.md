@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Edge layer of Umaxica: fifteen TanStack Start frames + five apex Hono Workers, all built with Vite and deployed to Cloudflare Workers. Twenty deployment units, one shared script contract.
+Edge layer of Umaxica: twelve TanStack Start public content surfaces (`{app,com,org}/{docs,help,info,news}`), three TanStack Start cores, and five apex Hono Workers. All built with Vite and deployed to Cloudflare Workers. Twenty deployment units, one shared script contract.
 
 ## Setup & commands
 
@@ -14,7 +14,7 @@ pnpm is the ONLY package manager. Never use npm, npx, yarn, or bun. `pnpm-lock.y
 - Unit tests: `pnpm run test` (Vitest). Coverage is per-unit (`pnpm --dir <unit> run test:cov`); the root invariant suite does not measure it.
 - HTTP tests: `pnpm run test:api` (Hurl)
 - Browser tests: `pnpm run test:e2e` (Playwright; run `pnpm exec playwright install chromium` first — CI deliberately skips e2e, do not "fix" that)
-- Build: `pnpm run build` (Vite for every unit)
+- Build: `pnpm run build` (`vite build` in all twenty units; the fifteen React units add `tanstackStart()` + `viteReact()`, apex is plain Hono)
 - Bundle budget: `pnpm run check:size` (requires `pnpm run build` first; NOT part of `check:static`)
 - Dead code: `pnpm run knip` · Architecture: `pnpm run check:architecture` · Version sync: `pnpm run check:deps` (`fix:deps` is local-only) · Spelling: `pnpm run check:spelling`
 - Per-unit: `pnpm --filter <workspace> run <script>` or `pnpm --dir <unit> run <script>`
@@ -50,14 +50,31 @@ Each deployment unit owns its own `.oxlintrc.json`, `.oxfmtrc.json`, `tsconfig.j
 
 All twenty units implement the same contract, including `dev/apex`; none is exempt.
 
+## Evidence
+
+Completed tests, validations, verifications, audits, security checks and
+performance checks leave a short record in `evidence/` when retaining the result
+is useful. Records describe work that was actually performed — never plans,
+intentions, or unverified claims. A check that could not be completed is
+recorded as such, with the reason and whatever was observed.
+
+- `evidence/` is flat; no subdirectories.
+- Only `.md` files.
+- `YYYY-MM-DD-<topic>.md`, ISO date, lowercase hyphenated topic.
+- No raw logs, screenshots, binaries, archives, dumps, generated reports or
+  other large artifacts. Summarize them, and cite the commands, identifiers,
+  hashes, measurements and excerpts that carry the result.
+- Enforced by `pnpm run test` (`test/evidence-layout.test.ts`).
+
 ## Logging
 
-`no-console` is an **error** in every unit. Never call `console` directly or add a new disable comment. The only two sanctioned emitters (closed, typed surfaces):
+`no-console` is an **error** in every unit. Never call `console` directly or add a new disable comment. The sanctioned emitters are closed, typed surfaces:
 
 - `*/apex/src/structured-logger.ts` — `@hono/structured-logger` middleware, wired in `create-apex-app.ts`
-- `*/core/src/lib/rails-dispatch-log.ts` — the Edge → Workers VPC → Rails hop
+- `*/{core,docs,help,info,news}/src/lib/request-log.ts` — the one completion emitter for each TanStack request boundary. These are local copies so every deployment unit remains standalone.
+- `*/core/src/lib/rails-dispatch-log.ts` — the Edge → Rails hop (public internet, `RAILS_ORIGIN`)
 
-Both emit one JSON line `{ level, msg, data }`, collected by `observability.logs.enabled` in each `wrangler.jsonc`. No external observability vendor; adding one is a decision, not a detail.
+All emit one JSON line `{ level, msg, data }`, collected by `observability.logs.enabled` in each `wrangler.jsonc`. No external observability vendor; adding one is a decision, not a detail.
 
 `RailsDispatchLogEntry` has no free-text field by design — every value is a number or a fixed union, so secrets (cookies, tokens, bodies, user ids, hostnames) cannot leak into a log line. Add new fields as closed unions; never widen one to `string`.
 
@@ -65,7 +82,7 @@ Both emit one JSON line `{ level, msg, data }`, collected by `observability.logs
 
 Browser code touches cookies ONLY via the Cookie Store API (`cookieStore`). No cookie library, no `document.cookie`, no wrapper module before a feature needs one. Server side is unaffected: Hono's `hono/cookie`, the apex `languageDetector`, and Rails cookies all stay as they are.
 
-Boundary consequence (ADR 007): `*/core/src/worker.ts` strips every `Set-Cookie` from application responses — a browser-visible cookie can only be issued by an apex worker or by Rails, never by a frame.
+Boundary consequence (ADR 007): `*/core/src/worker.ts` strips every `Set-Cookie` from application responses. Rails-owned passthrough may preserve a Rails `Set-Cookie`; the apex workers and TanStack frames do not issue, refresh or delete preference cookies.
 
 `docs/development/browser-cookie-access.md` is normative — read it before writing any browser cookie code.
 

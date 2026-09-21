@@ -120,11 +120,14 @@ Required:
   source order. Layouts wrap `{children}` rather than supplying their own
   `<main>`, because every page already renders one and a second would break the
   landmarks.
-- `<nav>` is a **sibling** of `<header>`, never nested inside it. Header and
-  navigation are separate responsibilities: the header carries brand and global
-  actions, the navigation carries movement inside the application. Keeping them
-  apart is what lets a unit later become a desktop sidebar, a tablet rail or a
-  mobile bottom bar without the header participating in that decision.
+- core's main navigation is a **sibling** of `<header>`, never nested inside it.
+  Header and application navigation are separate responsibilities: the header
+  carries brand and global actions, the navigation carries movement inside the
+  application. Keeping them apart is what lets core later become a desktop
+  sidebar, a tablet rail or a mobile bottom bar without the header participating
+  in that decision. Satellite Home / Entries / Search live **inside** `<header>`
+  — they are local links on a content site, not an application chrome that will
+  reflow. Apex has no main navigation.
 - The brand is an `<a href="/">`, never an `<h1>`. The document's single `<h1>`
   belongs to the page, inside `<main>`.
 - ARIA never substitutes for a semantic element. Use `<nav>`, not
@@ -287,8 +290,9 @@ Every entry must be a route the unit actually serves. The cautionary example is
 real: `/rails-health` sat in `*/core`'s navigation and had been dead since ADR 009
 removed the route.
 
-Absent where the unit serves a single surface — inventing destinations to fill a
-navigation produces dead links, which is worse than no navigation.
+Satellite units serve Home, Entries and Search — three real routes — and place
+that navigation inside `<header>`. Apex still has none: inventing destinations
+to fill a navigation produces dead links, which is worse than no navigation.
 
 Visibility state may only apply **below** the breakpoint. Above it the navigation
 is always shown, so no menu state — and no absent JavaScript — can strand a
@@ -384,19 +388,19 @@ cause to touch it.
 
 ### Allowed
 
-| Difference                  | core                                       | satellite                                | apex                                           | Why it is allowed                                                                                                                                              |
-| --------------------------- | ------------------------------------------ | ---------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Main navigation             | yes, 6 routes                              | none                                     | none                                           | Satellites and apex serve a single surface; inventing destinations produces dead links                                                                         |
-| Menu button                 | yes                                        | none                                     | none                                           | A disclosure with nothing to disclose is a dead control                                                                                                        |
-| Where the shell is wired    | `src/routes/_page.tsx`                     | `src/routes/__root.tsx`                  | `src/renderer.tsx`                             | core puts the shell on a pathless layout route, so `/offline` and the failure documents sit outside it and stay chrome-free (§15)                              |
-| CSS delivery                | `src/globals.css` → hashed `/assets/*.css` | `src/style.css` → hashed `/assets/*.css` | `src/style.css` → hashed `/assets/style-*.css` | every unit builds through Vite, so the stylesheet is fingerprinted and served `immutable` by the assets layer (§3a)                                            |
-| Client components           | one (the disclosure)                       | none                                     | n/a                                            | Only state justifies a client component                                                                                                                        |
-| Breakpoint                  | 800px (`wide:`)                            | none                                     | none                                           | Only core has a layout that must reflow; wrapping flex rows need no media query                                                                                |
-| React Aria                  | **`Button`, imported**                     | installed, no importer                   | **not possible**                               | apex carries no React; both agreed libraries peer-depend on it, so apex satisfies §4's behaviour by hand (§3a)                                                 |
-| Tailwind RAC plugin         | installed                                  | none                                     | none                                           | The plugin only earns its place where a React Aria component is actually rendered                                                                              |
-| `aria-current`              | on the matching entry                      | none                                     | none                                           | Only core has a main navigation, so only core has an entry to mark (§12)                                                                                       |
-| `error.tsx`, `/offline`     | outside the shell                          | **inside the shell**                     | n/a                                            | Follows from where the shell is wired: core scopes it to `(page)`, the satellites wire it into the root layout (§15)                                           |
-| Where the shell is asserted | `test/ui-shell-contract.test.tsx`          | `test/ui-shell-contract.test.tsx`        | `api/ui-shell-contract.hurl`                   | A frame's router is something this repo can render in-process; an apex document only exists as a response, and AGENTS.md puts response assertions in Hurl (§1) |
+| Difference                  | core                                                  | satellite                                           | apex                                           | Why it is allowed                                                                                                                                                                                                  |
+| --------------------------- | ----------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Main navigation             | yes, 6 routes, header sibling, `id="main-navigation"` | Home / Entries / Search **inside** `<header>`       | none                                           | Satellite destinations exist. Content-site local nav sits beside the brand. Core reflows to a sidebar, so it stays a sibling. Apex has one surface.                                                                |
+| Menu button                 | yes                                                   | none                                                | none                                           | Satellite nav is not collapsed. A disclosure with nothing to disclose is a dead control                                                                                                                            |
+| Where the shell is wired    | `src/routes/_page.tsx`                                | `src/routes/__root.tsx`                             | `src/renderer.tsx`                             | core puts the shell on a pathless layout route, so `/offline` and the failure documents sit outside it and stay chrome-free (§15)                                                                                  |
+| CSS delivery                | `src/globals.css` → hashed `/assets/*.css`            | `src/style.css` → hashed `/assets/*.css`            | `src/style.css` → hashed `/assets/style-*.css` | every unit builds through Vite, so the stylesheet is fingerprinted and served `immutable` by the assets layer (§3a)                                                                                                |
+| Client components           | one (the disclosure)                                  | none                                                | n/a                                            | Only state justifies a client component                                                                                                                                                                            |
+| Breakpoint                  | 800px (`wide:`)                                       | gutter + hero `<h1>` (`wide:px-8`, `wide:text-5xl`) | markup unused (token present)                  | One breakpoint in the repository. Apex wrapping flex needs none.                                                                                                                                                   |
+| React Aria                  | **`Button`, imported**                                | installed, no importer                              | **not possible**                               | apex carries no React; both agreed libraries peer-depend on it, so apex satisfies §4's behaviour by hand (§3a)                                                                                                     |
+| Tailwind RAC plugin         | installed                                             | none                                                | none                                           | The plugin only earns its place where a React Aria component is actually rendered                                                                                                                                  |
+| `aria-current`              | exact match on the sidebar entry                      | home/search exact; entries prefix                   | none                                           | Both archetypes that have a main navigation mark the current entry (§12)                                                                                                                                           |
+| `error.tsx`, `/offline`     | outside the shell                                     | **inside the shell**                                | n/a                                            | Follows from where the shell is wired: core scopes it to `(page)`, the satellites wire it into the root layout (§15)                                                                                               |
+| Where the shell is asserted | `test/ui-shell-contract.test.tsx`                     | `test/ui-shell-contract.test.tsx`                   | `api/ui-shell-contract.hurl`                   | A frame's router is something this repo can render in-process; an apex document only exists as a response, and AGENTS.md puts response assertions in Hurl (§1). The twelve satellites carry the named Vitest file. |
 
 ### Drift — resolved
 
@@ -409,20 +413,20 @@ a scale step, so `1200px`, `1120px` and `80rem` cannot all survive as
 `max-w-*`. One token set now applies to all twenty shell units, drawn from
 Tailwind's stock scale except where §9 pins a value:
 
-| Concern           | Resolved value                                             |
-| ----------------- | ---------------------------------------------------------- |
-| Container         | `max-w-7xl` (80rem)                                        |
-| Shell row padding | `px-4`, `wide:px-8` where the unit has a breakpoint        |
-| Header separator  | `border-b border-gray-200` — the apex box-shadow is gone   |
-| Footer border-top | `border-t border-gray-200`                                 |
-| Body background   | `bg-gray-50`                                               |
-| Surfaces          | `bg-white` (header, footer, core's navigation)             |
-| Body text         | `text-gray-900`; muted `text-gray-600`                     |
-| Brand             | `text-xl font-bold tracking-wide`, inheriting the body ink |
-| Link colour       | `text-brand` — `--color-brand`, the one pinned value (§9)  |
-| Units             | Tailwind's scale throughout; `min-h-11` is exactly 44px    |
-| `<main>` class    | none — `<main>` is the landmark, utilities do the layout   |
-| About label (ja)  | `概要` on core, `このサイトについて` on satellite and apex |
+| Concern           | Resolved value                                               |
+| ----------------- | ------------------------------------------------------------ |
+| Container         | `max-w-7xl` (80rem)                                          |
+| Shell row padding | `px-4`, `wide:px-8` where the unit has a breakpoint          |
+| Header separator  | `border-b border-gray-200` — the apex box-shadow is gone     |
+| Footer border-top | `border-t border-gray-200`                                   |
+| Body background   | `bg-canvas` (`--ui-canvas`: white 85% + `--ui-tint`)         |
+| Surfaces          | `bg-white` (header, footer, core's navigation)               |
+| Body text         | `text-gray-900`; muted `text-gray-600`                       |
+| Brand             | `text-xl font-bold tracking-wide`, inheriting the body ink   |
+| Link colour       | `text-brand` — `--color-brand` `#2563eb`, shared across TLDs |
+| Units             | Tailwind's scale throughout; `min-h-11` is exactly 44px      |
+| `<main>` class    | none — `<main>` is the landmark, utilities do the layout     |
+| About label (ja)  | `概要` on core, `このサイトについて` on satellite and apex   |
 
 The About label is deliberately **not** resolved here: it is a copy decision, not
 a token, and merging two Japanese phrasings needs someone who owns the wording.
@@ -525,29 +529,34 @@ Two consequences worth keeping:
 ## 9. Shared tokens
 
 These resolve to the same computed value in all three archetypes and must stay
-that way. They are now written the same way too — as Tailwind utilities off one
-scale — which is what removed the `Units` row from §8.
+that way, except `--ui-tint` / `--ui-canvas`, which are the same _role_ in every
+unit and the same _value_ inside one TLD. They are written as Tailwind utilities
+off one scale — which is what removed the `Units` row from §8.
 
-| Token          | Utilities                                                                     | Value                     |
-| -------------- | ----------------------------------------------------------------------------- | ------------------------- |
-| Focus ring     | `:focus-visible` base rule using `var(--color-brand)`                         | `2px` solid, offset `2px` |
-| Minimum target | `min-h-11` on brand, actions, utility links                                   | 44px, exactly             |
-| Header height  | `min-h-14` on the header row                                                  | 56px, exactly             |
-| Width carrier  | `mx-auto w-full max-w-7xl px-4` (`wide:px-8` where the unit has a breakpoint) | 80rem                     |
-| Header row     | `flex flex-wrap items-center justify-between gap-4`                           | gap 16px                  |
-| Footer padding | `py-4`                                                                        | 16px                      |
-| Utility nav    | `flex flex-wrap gap-x-6`; links `text-sm text-brand min-h-11`                 | gap 24px, 0.875rem        |
-| Identity row   | `flex flex-wrap justify-between gap-2 text-sm text-gray-600`                  | gap 8px, 0.875rem         |
-| Link colour    | `text-brand`                                                                  | `#2563eb`, `#93c5fd` dark |
+| Token          | Utilities                                                                     | Value                                                                                                                       |
+| -------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Focus ring     | `:focus-visible` base rule using `var(--color-brand)`                         | `2px` solid, offset `2px`                                                                                                   |
+| Minimum target | `min-h-11` on brand, actions, utility links                                   | 44px, exactly                                                                                                               |
+| Header height  | `min-h-14` on the header row                                                  | 56px, exactly                                                                                                               |
+| Width carrier  | `mx-auto w-full max-w-7xl px-4` (`wide:px-8` where the unit has a breakpoint) | 80rem                                                                                                                       |
+| Header row     | `flex flex-wrap items-center justify-between gap-4`                           | gap 16px                                                                                                                    |
+| Footer padding | `py-4`                                                                        | 16px                                                                                                                        |
+| Utility nav    | `flex flex-wrap gap-x-6`; links `text-sm text-brand min-h-11`                 | gap 24px, 0.875rem                                                                                                          |
+| Identity row   | `flex flex-wrap justify-between gap-2 text-sm text-gray-600`                  | gap 8px, 0.875rem                                                                                                           |
+| Link colour    | `text-brand`                                                                  | `#2563eb`, `#93c5fd` dark (apex)                                                                                            |
+| TLD wash       | `--ui-tint` on `:root`; `--ui-canvas` mix; `bg-canvas` on `<body>`            | app `red-500`, com `indigo-500`, org `green-500`, net `blue-500`, dev `yellow-500`; mix white 85% (apex dark: zinc-950 92%) |
 
-`--color-brand` is the only colour this document pins by literal value, and the
-only one that is not a Tailwind stock colour. It is declared in every unit's
-`@theme`. The focus ring is the one place a base element rule is still correct:
+`--color-brand` is the operational accent this document pins by literal value
+(`#2563eb`), and it is the same on every TLD. TLD identity is `--ui-tint`, a
+stock `-500` used only as a canvas mix — never as link ink, never undiluted.
+`--ui-tint` is not a `@theme` colour, so `text-tint` does not exist. The focus
+ring is the one place a base element rule is still correct:
 prose links inside page copy are not components, and a per-component utility
 would miss them.
 
-It is the one token with two values, and §9a is why. Against the two body
-backgrounds: `#2563eb` is 4.95:1 on `gray-50` and 3.90:1 on `gray-950` — over
+`--color-brand` is the one token with two values (light / apex dark), and §9a is
+why. Against the previous body backgrounds: `#2563eb` is 4.95:1 on `gray-50` and
+3.90:1 on `gray-950` — over
 the 4.5:1 body-text threshold in light and under it in dark — and `#93c5fd` is
 11.17:1 on `gray-950` and 1.73:1 on `gray-50`. Neither value serves both, so
 the token carries one per scheme. It is set by overriding the token itself
@@ -577,10 +586,11 @@ appended rather than assigned, so a directive another layer set survives.
 
 Two limits are deliberate rather than pending:
 
-- **The five apex Workers only.** A frame never sees the cookie: its
-  `src/worker.ts` strips the inbound `Cookie` from every application-owned
-  request (ADR 007). A frame that wants a scheme has `prefers-color-scheme`
-  and Tailwind's stock `dark` variant, and none uses either yet.
+- **The five apex Workers only.** Core strips inbound Cookie on
+  application-owned requests (ADR 007). The twelve public frames do not strip
+  Cookie and do not read a theme cookie: they stay light-only. A frame that
+  wants a scheme later has `prefers-color-scheme` and Tailwind's `dark`
+  variant; none uses either yet.
 - **Nothing sets the cookie.** The header's actions slot is still empty (§4),
   and a control that writes it is a browser-cookie decision bound by
   `docs/development/browser-cookie-access.md`. Reading a cookie something else
@@ -749,9 +759,8 @@ which is what keeps the last row of the table below vacuous.
 ### `aria-current`
 
 `aria-current="page"` on the main-navigation entry matching the current route.
-Only `*/core` has a main navigation, so only `*/core` marks anything; a unit that
-gains one later inherits the rule. `app-chrome.tsx` reads `usePathname()`, which
-is free — it is already the one client component the shell needs.
+`*/core` matches exactly via TanStack `activeOptions`. Satellites mark Home and
+Search exactly and Entries by path prefix. Apex has no main navigation.
 
 **The match is exact.** ARIA defines `page` as "the current page within a set of
 pages", so an ancestor is not it: on `/configuration/account` the
@@ -856,21 +865,22 @@ every unit, page, error document and 429 response.
 A machine-readable or failure document with navigation in it is worse than one
 without.
 
-| Surface                           | What it is                                                                                                                                                                                                   |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/health` (core, satellite)       | **JSON.** Edge state and Rails liveness in one document; `no-store`, `X-Robots-Tag: noindex`; **503 when Rails liveness fails** (ADR 009). Not a page. Do not add chrome, do not change the status contract. |
-| `/health`, `/health.html` (apex)  | **HTML**, but chrome-free: no `<header>`, no navigation, a `<dl>` of Worker status and a bare `<footer>© year BRAND</footer>` that is deliberately _not_ the shell footer.                                   |
-| `/health.json` (apex)             | JSON.                                                                                                                                                                                                        |
-| `/revision`                       | JSON.                                                                                                                                                                                                        |
-| `robots.txt`, `sitemap.xml`       | Generated routes.                                                                                                                                                                                            |
-| apex `/`                          | A region redirect, not a document.                                                                                                                                                                           |
-| 429 responses                     | Hand-written HTML; title contract applies, shell does not.                                                                                                                                                   |
-| 404 and 500 documents, `/offline` | **Archetype-dependent — see below.** Chrome-free on core; inside the shell on the satellites.                                                                                                                |
+| Surface                                           | What it is                                                                                                                                  |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/health` (core, TanStack public, Hono aggregate) | **text/plain**, `Cache-Control: no-store`. Human-readable aggregate of startup/liveness/readiness. Not a page. No JSON, no HTML, no chrome. |
+| `/health/startups`                                | Kubernetes `startupProbe`. `text/plain` `ok`.                                                                                               |
+| `/health/livenesses`                              | Kubernetes `livenessProbe`. Runtime only; downstream outages must not fail it.                                                              |
+| `/health/readinesses`                             | Kubernetes `readinessProbe`. `text/plain`; `503` only when this instance must not receive traffic.                                          |
+| `/health.html`, `/health.json`                    | **Not health documents.** Apex, cores and TanStack public surfaces answer 404 HTML. `Accept: application/json` does not change that.        |
+| `/revision`                                       | **text/plain** compact Worker version id. Not JSON, not HTML.                                                                               |
+| `/api/v0/revision.json`                           | **application/json** `{ id, tag, timestamp }`. Same metadata authority as `/revision`. Not health.                                          |
+| `robots.txt`, `sitemap.xml`                       | Generated routes.                                                                                                                           |
+| apex `/`                                          | A region redirect, not a document.                                                                                                          |
+| 429 responses                                     | Hand-written HTML; title contract applies, shell does not.                                                                                  |
+| 404 and 500 documents, `/offline`                 | **Archetype-dependent — see below.** Chrome-free on core; inside the shell on the satellites.                                               |
 
-Note that `/health` means different things in different archetypes — Edge+Rails
-with a 503 path on core and satellite, Worker-only with a 200 on apex. That is a
-real difference in what the endpoint answers, not a shell question, and it is
-recorded here only so nobody "unifies" the two by accident.
+The four probe URLs are the same on Core, TanStack public surfaces, and Hono. `/health.html` and
+`/health.json` are not served.
 
 ### The failure documents are only chrome-free on core
 
@@ -908,7 +918,7 @@ tokens in §9; the typography rules in §10; one token set across all three
 archetypes (§8); one breakpoint, enforced by the theme (§11); a skip link ahead
 of the header targeting a focusable `<main>` (§12); `aria-current="page"` where
 the unit has a navigation (§12); and a `test/ui-shell-contract.test.tsx` that
-proves it (§1).
+proves it on the fifteen frames (§1), plus `api/ui-shell-contract.hurl` on apex.
 
 Closed since the last revision:
 
@@ -963,11 +973,9 @@ Open:
    that knows the hashed CSS chunk's URL, so there is nothing to link; it stays
    unstyled semantic HTML rather than gaining a hand-maintained inline copy.
    It has no skip link either, for the same reason it has no shell.
-10. The shell test is named `app-shell.test.tsx` in `app/core` and
-    `application-shell.test.tsx` in `com/core` and `org/core`. Nothing depends
-    on the name, but §1 of this document calls the three units one archetype,
-    and two names for one file is the kind of drift that makes a reader check
-    whether the contents differ too. Rename when someone next touches all three.
+10. The three cores still carry leftover `test/app-shell.test.tsx` beside
+    `test/ui-shell-contract.test.tsx`. Nothing depends on the leftover name.
+    Rename or delete when someone next touches all three.
 
 ## 17. Changing this contract
 

@@ -57,8 +57,7 @@ describe('requestThemeAttribute', () => {
     expect(themeFor()).toBeUndefined();
   });
 
-  // The `language` cookie this unit does set sits next to it in the same
-  // header, on either side.
+  // A `language` cookie may sit next to it in the same header, on either side.
   it('finds the cookie among others', () => {
     expect(themeFor('language=ja; theme=dark')).toBe('dark');
     expect(themeFor('theme=dark; language=ja')).toBe('dark');

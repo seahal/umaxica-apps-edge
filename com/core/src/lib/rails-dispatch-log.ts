@@ -1,5 +1,5 @@
 /**
- * Structured logging for the Edge → Workers VPC → Rails hop.
+ * Structured logging for the Edge → Rails hop.
  *
  * Emitted as one JSON line per `console.*` call, which is what
  * `wrangler.jsonc`'s `observability.logs.enabled` already collects into Workers
@@ -14,21 +14,22 @@
  * `RailsDispatchLogEntry` is closed and has no free-text field. Every value is
  * either a number or a member of a fixed union, so there is no channel through
  * which a raw Cookie, an `Authorization` header, a CSRF token, a request or
- * response body, a query string, a user id, an email, an access token, an
- * internal hostname or a VPC service id could reach a log line — not even by
- * mistake at a future call site. In particular the raw pathname is never
- * recorded: `classifyRailsRouteClass()` reduces it to one of eight low
- * cardinality classes first, so a path carrying an identifier cannot leak
- * through the route label.
+ * response body, a query string, a user id, an email, an access token or the
+ * Rails hostname could reach a log line — not even by mistake at a future call
+ * site. In particular the raw pathname is never recorded:
+ * `classifyRailsRouteClass()` reduces it to one of eight low cardinality classes
+ * first, so a path carrying an identifier cannot leak through the route label.
  */
+
+import type { EdgeEnvironment } from './request-log';
 
 /** Distinguishes success, a Rails-authored error, and the three failure modes. */
 export type RailsDispatchOutcome =
   | 'rails_ok'
   | 'rails_http_error'
-  | 'vpc_unreachable'
+  | 'upstream_unreachable'
   | 'timeout'
-  | 'binding_not_configured';
+  | 'origin_not_configured';
 
 export type RailsRouteClass =
   | 'api_v0'
@@ -39,23 +40,6 @@ export type RailsRouteClass =
   | 'jwks'
   | 'csp_report'
   | 'other';
-
-/**
- * The documented Workers VPC failure codes, plus `unknown` for anything else.
- *
- * Closed on purpose: the code is parsed out of a `ProxyError:` response body,
- * and an allowlist is what stops an unexpected body from becoming free text in
- * a log line.
- */
-export type RailsProxyErrorCode =
-  | 'connection_refused'
-  | 'connection_timeout'
-  | 'connection_read_timeout'
-  | 'dns_error'
-  | 'tls_certificate_error'
-  | 'rate_limited'
-  | 'proxy_internal_error'
-  | 'unknown';
 
 export type RailsRequestMethod =
   | 'GET'
@@ -72,10 +56,15 @@ export interface RailsDispatchLogEntry {
   method: RailsRequestMethod;
   outcome: RailsDispatchOutcome;
   duration_ms: number;
+  /** The Edge-generated ID, present for requests through `worker.ts`. */
+  request_id?: string;
+  /** Present for requests through `worker.ts`; direct hop tests may omit it. */
+  service?: 'core';
+  environment?: EdgeEnvironment;
+  /** The final status sent by Edge, including a substituted 503/504. */
+  status?: number;
   /** Only when an HTTP response actually arrived. */
   upstream_status?: number;
-  /** Only when a `ProxyError:` code was parsed. */
-  proxy_error_code?: RailsProxyErrorCode;
 }
 
 /*
@@ -93,6 +82,8 @@ const ROUTE_CLASS_EXACT = new Map<string, RailsRouteClass>([
   ['/sign/out/complete', 'sign_out'],
   ['/.well-known/jwks.json', 'jwks'],
   ['/csp-violation-report', 'csp_report'],
+  ['/api/v0/health.json', 'other'],
+  ['/api/v0/revision.json', 'other'],
 ]);
 
 const ROUTE_CLASS_PREFIXES: ReadonlyArray<readonly [string, RailsRouteClass]> = [
@@ -110,16 +101,6 @@ const KNOWN_METHODS: ReadonlySet<RailsRequestMethod> = new Set([
   'PATCH',
   'DELETE',
   'OPTIONS',
-]);
-
-const KNOWN_PROXY_ERROR_CODES: ReadonlySet<RailsProxyErrorCode> = new Set([
-  'connection_refused',
-  'connection_timeout',
-  'connection_read_timeout',
-  'dns_error',
-  'tls_certificate_error',
-  'rate_limited',
-  'proxy_internal_error',
 ]);
 
 /**
@@ -143,19 +124,10 @@ export function classifyRailsRouteClass(pathname: string): RailsRouteClass {
 const isKnownMethod = (value: string): value is RailsRequestMethod =>
   (KNOWN_METHODS as ReadonlySet<string>).has(value);
 
-const isKnownProxyErrorCode = (value: string): value is RailsProxyErrorCode =>
-  (KNOWN_PROXY_ERROR_CODES as ReadonlySet<string>).has(value);
-
 /** Anything outside the standard set becomes `OTHER` rather than being echoed. */
 export function normalizeRailsMethod(method: string): RailsRequestMethod {
   const upper = method.toUpperCase();
   return isKnownMethod(upper) ? upper : 'OTHER';
-}
-
-/** Anything outside Cloudflare's documented codes becomes `unknown`. */
-export function normalizeProxyErrorCode(code: string): RailsProxyErrorCode {
-  const lower = code.toLowerCase();
-  return isKnownProxyErrorCode(lower) ? lower : 'unknown';
 }
 
 export function logRailsDispatch(entry: RailsDispatchLogEntry): void {
@@ -169,8 +141,11 @@ export function logRailsDispatch(entry: RailsDispatchLogEntry): void {
       route_class: entry.route_class,
       outcome: entry.outcome,
       duration_ms: entry.duration_ms,
+      ...(entry.request_id === undefined ? {} : { request_id: entry.request_id }),
+      ...(entry.service === undefined ? {} : { service: entry.service }),
+      ...(entry.environment === undefined ? {} : { environment: entry.environment }),
+      ...(entry.status === undefined ? {} : { status: entry.status }),
       ...(entry.upstream_status === undefined ? {} : { upstream_status: entry.upstream_status }),
-      ...(entry.proxy_error_code === undefined ? {} : { proxy_error_code: entry.proxy_error_code }),
     },
   });
 

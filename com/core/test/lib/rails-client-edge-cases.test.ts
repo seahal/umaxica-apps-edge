@@ -11,11 +11,41 @@ describe('Rails client edge cases', () => {
       kind: 'invalid-path',
       reason: 'path must not embed a scheme',
     });
-    await expect(client.fetch('/with\u007fcontrol')).resolves.toMatchObject({
+    await expect(client.fetch('/withcontrol')).resolves.toMatchObject({
       kind: 'invalid-path',
       reason: 'path must not contain control characters',
     });
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('aborts a request that has not produced headers after 2000 ms', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetch = vi.fn(
+        (_input: string, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            const signal = init?.signal;
+            if (signal === undefined || signal === null) {
+              reject(new Error('missing timeout signal'));
+              return;
+            }
+            signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+          }),
+      );
+      const client = createRailsClient({ fetch }, 'http://core.example.localhost:3000');
+      const resultPromise = client.fetch('/health');
+      const signal = fetch.mock.calls[0]?.[1]?.signal;
+
+      expect(signal).toBeInstanceOf(AbortSignal);
+      if (!(signal instanceof AbortSignal)) return;
+      await vi.advanceTimersByTimeAsync(1999);
+      expect(signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+
+      await expect(resultPromise).resolves.toEqual({ kind: 'timeout' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('reports non-Error transport failures without losing their message', async () => {
@@ -30,25 +60,7 @@ describe('Rails client edge cases', () => {
     });
   });
 
-  it('preserves an HTTP error when its plain-text body cannot be inspected', async () => {
-    const response = {
-      ok: false,
-      status: 500,
-      headers: new Headers({ 'content-type': 'text/plain' }),
-      clone: () => ({ text: () => Promise.reject(new Error('body unavailable')) }),
-    } as unknown as Response;
-    const client = createRailsClient(
-      { fetch: vi.fn(() => Promise.resolve(response)) },
-      'http://core.example.localhost:3000',
-    );
-
-    await expect(client.fetch('/health')).resolves.toMatchObject({
-      kind: 'http-error',
-      status: 500,
-    });
-  });
-
-  it('does not inspect ordinary non-500 HTTP errors as VPC proxy failures', async () => {
+  it('reports a non-500 HTTP error as http-error', async () => {
     const response = new Response('missing', {
       status: 404,
       headers: { 'content-type': 'text/plain' },
@@ -61,19 +73,6 @@ describe('Rails client edge cases', () => {
       kind: 'http-error',
       status: 404,
     });
-  });
-
-  it('applies transport credentials after stripping caller credentials', async () => {
-    const fetch = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) =>
-      Promise.resolve(new Response('ok')),
-    );
-    const client = createRailsClient({ fetch }, 'http://core.example.localhost:3000', {
-      authorization: 'Bearer transport',
-    });
-
-    await client.fetch('/health', { headers: { authorization: 'Bearer caller' } });
-    const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
-    expect(headers.get('authorization')).toBe('Bearer transport');
   });
 
   it('fails closed when the configured origin is not normalized', async () => {

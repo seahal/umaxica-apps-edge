@@ -1,23 +1,20 @@
 # 公開系 surface のキャッシュ方針
 
-> **2026-09-02 更新.** `adr/015-public-content-surfaces-astro.md` が公開系 12
-> surface を Astro へ移行し、キャッシュ方針の所有者を確定させた:
-> **Phase 1 はキャッシュなし(毎リクエスト Rails)**、correctness 確認後に
-> **Phase 2 で Cloudflare Workers Cache**(Astro の cache abstraction 経由、
-> short TTL + natural expiry、purge を correctness の必須条件にしない)。
-> 下記の TTL 目安(info/news 300s、help/docs 1800s)は Phase 2 の初期値として
-> 引き継ぐ。以下は移行前の記録。
+> **2026-09-15 更新.** `adr/015-public-content-surfaces-astro.md` のAstro移行記述は
+> 歴史として残る。現在の公開系12面はTanStack Start/Viteで、Cache APIの新規Hono
+> HTML層は導入しない。既存の公開Entry detailだけがコード上の短い明示cache policyを
+> 持ち、collection、検索、失敗文書、機械向け応答は保存しない。方針の境界は
+> `adr/019-edge-parallel-contract-boundaries.md` と各unitの `cache-policy.ts` にある。
 
 ## 現状(2026-08-23 更新)
 
-**この文書が記録していた ISR 方針は、実装機構ごと失効した。**
+**この文書が記録していた旧ISR方針は、実装機構ごと失効した。**
 
 元の決定(2026-07-16)は、公開系 surface(`{app,com,org}/{docs,news,help,info}`
 の 12 アプリ)を「完全 SSG ではなくキャッシュされた動的レンダリング(ISR 相当)」
 とし、そのキャッシュ契約を当時のフレームワーク固有のキャッシュ API で表現する、
-というものだった。`adr/013-frames-tanstack-start.md` のスタック変更でその API は
-repository から消え、置き換えも入っていない。したがって ISR 相当のキャッシュは
-現在どこにも存在しない。
+というものだった。現在のTanStack実装には別の明示的なEntry detail policyがあり、
+旧ISRの一般化された契約は存在しない。
 
 代わりに何がそこにあるかを、目標ではなく事実として書く。
 
@@ -36,9 +33,10 @@ repository から消え、置き換えも入っていない。したがって IS
 
 ## 未解決事項
 
-12 の公開系 surface は Rails からコンテンツを取得する実装がまだ入っていない。
-入る時点で、キャッシュ層をどこに置くかを改めて決める必要がある。選択肢は Next の
-ISR ではなくなったので、決め直しであって移植ではない:
+12 の公開系 surface は `/{lang}/entries/` を毎リクエスト Rails SSR する。Entry detail
+だけは `src/lib/cache-policy.ts` の60秒policyを、成功したpublic文書に限って付ける。
+application cache / 新規Hono HTML cache / ISRの一般化は行わない。将来のcache層は
+correctness確認後の別作業であり、選択肢は:
 
 - **HTTP キャッシュ**(`Cache-Control: s-maxage` + Cloudflare の edge cache、
   `Cache-Tag` による purge)。フレームワーク非依存で、今の構成に最も素直に載る。
@@ -57,11 +55,9 @@ ISR ではなくなったので、決め直しであって移植ではない:
 - binding 名は `UMAXICA_APPS_EDGE_CF_WORKERS_VPC` を維持する。
 - binding は capability であり、Rails を fetch しない worker には付与しない。
   5 つの apex Worker は `standalone` のままで、binding を持たない。
-- 15 フレームは既に全て `railsBackedVite` で、binding を持っている。公開系 12
-  surface でそれを使っているのは今のところ `/health` の Rails liveness
-  (`src/lib/rails-health.ts`、ADR 009)だけで、コンテンツ取得はまだ入っていない。
-  入れるときは既存の `src/lib/rails-client.ts` の中に足す — 分類の移動は不要で、
-  `contentSurface` は空のまま(Rails を見ない frame が存在しないため)。
+- 15 フレームは `railsBackedVite` または `railsBackedVpcVite` で、binding を持っている。
+  公開系 12 surface は `/health` とPublishing readで既存のVPC clientを使い、Entry detail
+  の成功文書だけにunit内の60秒cache policyを適用する。失敗文書とcollectionは保存しない。
 - 分類と wrangler 設定の整合は `pnpm run check:workers`(CI の `check-workers`
   ジョブ)が検査する。
 - 将来課題: 現在 development/production が同一 VPC `service_id` + `remote: true`

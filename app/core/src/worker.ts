@@ -1,19 +1,44 @@
+import type { Locale } from '@/i18n/config';
+
 import appHandler from './lib/app-handler';
 import { blockedCoreResponse, classifyCorePath, dispatchToRails } from './lib/core-dispatch';
+import {
+  coreHostRejectedResponse,
+  isAllowedCoreHost,
+  isProductionCoreEnvironment,
+} from './lib/core-host-policy';
+import { EDGE_DISPLAY_LOCALE_HEADER, resolveDisplayLocale } from './lib/display-locale';
 import { sanitizeHealthRequest } from './lib/health-request';
 import { checkRateLimit } from './lib/rate-limit';
+import { limitRequestBody, requestBoundaryResponse } from './lib/request-boundary';
+import {
+  classifyEdgeRoute,
+  createRequestId,
+  logEdgeRequest,
+  normalizeEdgeEnvironment,
+  normalizeEdgeMethod,
+  outcomeForStatus,
+  runWithRequestId,
+  withRequestId,
+  withRequestIdRequest,
+} from './lib/request-log';
+import {
+  responseGenerationTimeoutResponse,
+  responseGenerationBudgetMs,
+  withResponseGenerationTimeout,
+} from './lib/response-timeout';
 import { withSecurityHeaders } from './security-headers';
 
 /**
  * First code the Workers runtime invokes for every request to this frame's Core
- * hostname — before any application code runs. The hostname itself is
- * `PUBLIC_CORE_HOST` in `./lib/core-dispatch`, which is the one line that
- * differs between the three brands; this file is byte-identical across all
- * three, so it names no brand. See `adr/007-shared-fqdn-core-dispatch.md`.
+ * hostname — before any application code runs. The hostname is checked against
+ * the per-unit policy before path ownership is classified. This file is
+ * byte-identical across all three brands, so it names no brand. See
+ * `adr/007-shared-fqdn-core-dispatch.md`.
  *
  * - Rails-owned paths never reach `appHandler.fetch`: dispatched directly to
- *   Rails over the Workers VPC binding, with the browser's Cookie/CSRF/auth
- *   headers preserved verbatim.
+ *   Rails at `RAILS_ORIGIN`, with the browser's Cookie/CSRF/auth headers
+ *   preserved verbatim.
  * - Blocked paths never reach Rails or the application.
  * - Everything else (the default) is application-owned: the inbound `Cookie`
  *   header is stripped before `appHandler.fetch` is ever called, and any
@@ -38,6 +63,52 @@ import { withSecurityHeaders } from './security-headers';
  */
 
 /**
+ * Every machine-facing path this frame serves.
+ *
+ * Drives `sanitizeHealthRequest` only. Deliberately WIDER than
+ * `isUnmeteredProbe` below: dropping non-ASCII client headers before the
+ * application sees them is free and has nothing to do with what the limiter
+ * counts, so the two questions are asked separately even though the older
+ * spelling answered both with one list.
+ */
+function isHealthPath(pathname: string): boolean {
+  return (
+    pathname === '/health' ||
+    pathname === '/health/startups' ||
+    pathname === '/health/livenesses' ||
+    pathname === '/health/readinesses' ||
+    pathname === '/api/v0/health.json'
+  );
+}
+
+/**
+ * The probes the rate limiter must never see, and the reason the set is this
+ * small.
+ *
+ * Each of these three is a constant: no binding read, no Rails hop, nothing that
+ * can fail. A 429 on one of them is indistinguishable from a dead isolate, so an
+ * endpoint an orchestrator trusts to mean "alive" must not be throttleable.
+ *
+ * `/health` and `/health/readinesses` are deliberately absent. Both fetch Rails
+ * at `RAILS_ORIGIN` (`src/routes/health.ts`,
+ * `src/routes/health.readinesses.ts`), so exempting them publishes an
+ * unauthenticated, uncounted path into the Rails origin — one inbound request,
+ * one outbound Rails request, no ceiling. Readiness is the probe whose job is to
+ * answer "do not send me traffic"; being throttled is a correct answer for it,
+ * and is not a correct answer for liveness or startup.
+ *
+ * The same three paths are the exempt set in every apex `create-apex-app.ts`
+ * and every TanStack public surface's `src/request-handler.ts`. One rule, twenty units.
+ */
+function isUnmeteredProbe(pathname: string): boolean {
+  return (
+    pathname === '/health/startups' ||
+    pathname === '/health/livenesses' ||
+    pathname === '/api/v0/health.json'
+  );
+}
+
+/**
  * Paths the rate limiter does not see.
  *
  * Cloudflare matches static assets BEFORE this Worker runs, so in production
@@ -49,9 +120,16 @@ import { withSecurityHeaders } from './security-headers';
  * route: if one is ever added it is a real Worker route, so a page with many
  * images could spend its whole budget on its own thumbnails — exempt it here at
  * the same time.
+ *
+ * `/revision` and `/api/v0/revision.json` are NOT here. They read a binding and
+ * answer immediately, but they are deployment metadata rather than probes:
+ * nothing operational breaks when one of them is throttled, so there is no
+ * reason to hand out an uncounted Worker invocation on a path anyone can call.
  */
 function isRateLimitExempt(pathname: string): boolean {
-  return pathname.startsWith('/assets/') || pathname === '/favicon.ico';
+  return (
+    pathname.startsWith('/assets/') || pathname === '/favicon.ico' || isUnmeteredProbe(pathname)
+  );
 }
 
 /**
@@ -76,51 +154,168 @@ function isAuthPath(pathname: string): boolean {
   );
 }
 
+/**
+ * Removes the application-side Cookie header without cloning the body with
+ * `Request`'s implicit tee. The bounded reader below owns this one stream and
+ * reconstructs a fresh request after it has counted the bytes.
+ */
+function stripApplicationCookie(request: Request, displayLocale: Locale): Request {
+  const headers = new Headers(request.headers);
+  headers.delete('cookie');
+  headers.delete(EDGE_DISPLAY_LOCALE_HEADER);
+  headers.set(EDGE_DISPLAY_LOCALE_HEADER, displayLocale);
+  const body = request.body;
+  const init = {
+    cache: request.cache,
+    credentials: request.credentials,
+    headers,
+    integrity: request.integrity,
+    keepalive: request.keepalive,
+    method: request.method,
+    mode: request.mode,
+    redirect: request.redirect,
+    referrer: request.referrer,
+    referrerPolicy: request.referrerPolicy,
+    signal: request.signal,
+    ...(body === null ? {} : { body, duplex: 'half' as const }),
+  };
+  return new Request(request.url, init);
+}
+
 export default {
   // `_ctx` is unused: the application half is a plain `Request -> Response`
   // function. The parameter stays in the signature because the runtime supplies
   // it and a future `waitUntil` would want it.
   async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext) {
     const isProduction = import.meta.env.PROD;
-    const pathname = new URL(request.url).pathname;
-    const ownership = classifyCorePath(pathname);
+    const url = new URL(request.url);
+    const requestId = createRequestId();
+    const startedAt = Date.now();
+    const route = classifyEdgeRoute(url.pathname);
+    const method = normalizeEdgeMethod(request.method);
+    const environment = normalizeEdgeEnvironment(env.EDGE_ENV);
+    const timeoutState = { occurred: false };
 
-    // Cheapest first: a blocked path costs nothing and is not worth a limiter
-    // call, since it reaches no application code either way.
-    if (ownership === 'blocked') {
-      return withSecurityHeaders(blockedCoreResponse(), isProduction);
+    const finish = (response: Response, outcome = outcomeForStatus(response.status)): Response => {
+      const finalResponse = withRequestId(response, requestId);
+      logEdgeRequest({
+        service: 'core',
+        environment,
+        request_id: requestId,
+        method,
+        route,
+        status: finalResponse.status,
+        duration_ms: Date.now() - startedAt,
+        outcome,
+      });
+      return finalResponse;
+    };
+
+    try {
+      if (
+        !isAllowedCoreHost(url.hostname, {
+          allowLocalhost: !isProductionCoreEnvironment(env),
+        })
+      ) {
+        return finish(withSecurityHeaders(coreHostRejectedResponse(), isProduction), 'rejected');
+      }
+
+      const pathname = url.pathname;
+      const ownership = classifyCorePath(pathname);
+
+      // Cheapest first: a blocked path costs nothing and is not worth a limiter
+      // call, since it reaches no application code either way.
+      if (ownership === 'blocked') {
+        return finish(withSecurityHeaders(blockedCoreResponse(), isProduction), 'rejected');
+      }
+
+      const response = await runWithRequestId(requestId, () =>
+        withResponseGenerationTimeout(
+          async (signal) => {
+            if (!isRateLimitExempt(pathname)) {
+              const rateLimitedResponse = await checkRateLimit(request, env.RATE_LIMITER);
+              if (rateLimitedResponse) {
+                return withSecurityHeaders(rateLimitedResponse, isProduction);
+              }
+            }
+
+            if (isAuthPath(pathname)) {
+              const authLimitedResponse = await checkRateLimit(request, env.AUTH_RATE_LIMITER);
+              if (authLimitedResponse) {
+                return withSecurityHeaders(authLimitedResponse, isProduction);
+              }
+            }
+
+            if (ownership === 'rails') {
+              // Rails headers its own responses; the 503 substituted when the
+              // dispatch never reached Rails is Edge's own document, so
+              // `dispatchToRails` headers that one itself rather than reporting
+              // back which case it took. This branch deliberately skips the
+              // ordinary application body limit so Rails mutations remain a
+              // transparent streamed relay.
+              return dispatchToRails(request, env, isProduction, requestId);
+            }
+
+            const sanitizedRequest = isHealthPath(pathname)
+              ? sanitizeHealthRequest(request)
+              : request;
+            const strippedRequest = stripApplicationCookie(
+              sanitizedRequest,
+              resolveDisplayLocale(sanitizedRequest),
+            );
+            const bounded = await limitRequestBody(strippedRequest, signal);
+            if (bounded.kind !== 'ok') {
+              return withSecurityHeaders(
+                bounded.kind === 'aborted'
+                  ? responseGenerationTimeoutResponse()
+                  : requestBoundaryResponse(bounded.kind),
+                isProduction,
+              );
+            }
+
+            const appResponse = await appHandler.fetch(
+              withRequestIdRequest(bounded.request, requestId),
+            );
+            const responseHeaders = new Headers(appResponse.headers);
+            responseHeaders.delete('set-cookie');
+
+            return new Response(appResponse.body, {
+              status: appResponse.status,
+              statusText: appResponse.statusText,
+              headers: responseHeaders,
+            });
+          },
+          () => {
+            timeoutState.occurred = true;
+            return withSecurityHeaders(responseGenerationTimeoutResponse(), isProduction);
+          },
+          responseGenerationBudgetMs(environment),
+        ),
+      );
+
+      if (ownership === 'rails' && !timeoutState.occurred) {
+        // `dispatchToRails` emits the one completion record for a transparent
+        // Rails relay. The generic Edge record is for application-owned and
+        // Edge-generated responses; emitting both would duplicate one request.
+        return withRequestId(response, requestId);
+      }
+
+      return finish(response, timeoutState.occurred ? 'timeout' : undefined);
+    } catch {
+      return finish(
+        withSecurityHeaders(
+          new Response('Internal Server Error\n', {
+            status: 500,
+            headers: {
+              'Cache-Control': 'no-store',
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Robots-Tag': 'noindex, nofollow',
+            },
+          }),
+          isProduction,
+        ),
+        'failed',
+      );
     }
-
-    if (!isRateLimitExempt(pathname)) {
-      const rateLimitedResponse = await checkRateLimit(request, env.RATE_LIMITER);
-      if (rateLimitedResponse) return withSecurityHeaders(rateLimitedResponse, isProduction);
-    }
-
-    if (isAuthPath(pathname)) {
-      const authLimitedResponse = await checkRateLimit(request, env.AUTH_RATE_LIMITER);
-      if (authLimitedResponse) return withSecurityHeaders(authLimitedResponse, isProduction);
-    }
-
-    if (ownership === 'rails') {
-      // Rails headers its own responses; the 503 substituted when the dispatch
-      // never reached Rails is Edge's own document, so `dispatchToRails` headers
-      // that one itself rather than reporting back which case it took.
-      return dispatchToRails(request, env, isProduction);
-    }
-
-    const sanitizedRequest = pathname === '/health' ? sanitizeHealthRequest(request) : request;
-    const strippedHeaders = new Headers(sanitizedRequest.headers);
-    strippedHeaders.delete('cookie');
-    const strippedRequest = new Request(sanitizedRequest, { headers: strippedHeaders });
-
-    const response = await appHandler.fetch(strippedRequest);
-    const responseHeaders = new Headers(response.headers);
-    responseHeaders.delete('set-cookie');
-
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: responseHeaders,
-    });
   },
 };

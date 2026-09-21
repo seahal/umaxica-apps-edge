@@ -4,7 +4,9 @@ import type { ReactNode } from 'react';
 import { RouteAnnouncer } from '@/components/route-announcer';
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration';
 import { ErrorDocument, NotFoundDocument } from '@/components/status-documents';
-import { defaultLocale } from '@/i18n/config';
+import { getLocale } from '@/paraglide/runtime';
+
+import '../i18n/paraglide-client';
 
 import styleUrl from '../globals.css?url';
 
@@ -46,11 +48,11 @@ export const Route = createRootRoute({
  */
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang={defaultLocale}>
+    <html lang={getLocale()}>
       <head>
         <HeadContent />
       </head>
-      <body className="bg-gray-50 leading-body text-gray-900">
+      <body className="bg-canvas leading-body text-gray-900">
         <ServiceWorkerRegistration />
         {children}
         {/*

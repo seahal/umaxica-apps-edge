@@ -1,17 +1,24 @@
 import { Hono, type Context, type MiddlewareHandler } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { etag } from 'hono/etag';
 import { HTTPException } from 'hono/http-exception';
 import { languageDetector } from 'hono/language';
+import { requestId } from 'hono/request-id';
 import { timeout } from 'hono/timeout';
 
 import { apexCsrf } from './csrf';
-import { renderHealthJson, renderHealthPage } from './health-page';
+import {
+  hostRejectedResponse,
+  isAllowedApexHost,
+  isProductionApexEnvironment,
+} from './host-policy';
 import { locales } from './i18n/config';
 import { checkRateLimit } from './rate-limit';
 import { renderer } from './renderer';
+import { renderAggregateHealth, renderHealthApi, renderProbe } from './runtime-health';
 import { apexSecurityHeaders, type AssetEnv } from './security-headers';
 import type { Meta } from './seo';
-import { errorPage, notFoundPage, offlinePageMarkup } from './status-page';
+import { errorPage, notFoundPage } from './status-page';
 import { apexStructuredLogger, type BaseLogger } from './structured-logger';
 import { requestThemeAttribute } from './theme';
 
@@ -19,6 +26,7 @@ export type ApexEnv = {
   Bindings: AssetEnv;
   Variables: {
     meta?: Meta;
+    requestId: string;
     // Set by `apexStructuredLogger`. Declared here so `c.get('logger')` is
     // typed at every call site instead of being asserted back into shape.
     logger: BaseLogger;
@@ -51,8 +59,14 @@ const bindings = (c: Context<ApexEnv>): AssetEnv | undefined => c.env;
  */
 const NEGOTIATED_ON = 'Cookie, Accept-Language';
 
+/** The application-owned request body limit, measured in bytes. */
+export const EDGE_INPUT_MAX_BYTES = 65_536;
+
+/** The response-generation budget, separate from the upstream I/O budget. */
+export const EDGE_RESPONSE_TIMEOUT_MS = 3_000;
+
 /*
- * HTML only. `/health.json` and `/revision` are negotiated by nothing, and
+ * HTML only. `/revision` is negotiated by nothing, and
  * `/assets/*` is answered by the assets binding before this Worker runs.
  *
  * `no-store` responses — the status, 404 and error documents — are left alone:
@@ -78,32 +92,159 @@ const varyOnNegotiation: MiddlewareHandler = async (c, next) => {
   headers.append('Vary', NEGOTIATED_ON);
 };
 
+/*
+ * The probes the rate limiter must never see, and the reason the set is this
+ * small.
+ *
+ * Each of these three is a constant — no binding read, no downstream hop,
+ * nothing that can fail. A 429 on one of them is indistinguishable from a dead
+ * isolate, so an endpoint an orchestrator trusts to mean "alive" must not be
+ * throttleable.
+ *
+ * `/health` and `/health/readinesses` are deliberately absent. They answer from
+ * this isolate on an apex Worker, but they reach Rails over the Workers VPC
+ * binding on a Core and on a TanStack public surface, and this exemption is written once
+ * for all twenty units rather than per family: a set that means "cheap here,
+ * an uncounted path into Rails there" is not a rule anyone can check. Readiness
+ * is the probe whose job is to answer "do not send me traffic"; being throttled
+ * is a correct answer for it, and is not one for liveness or startup.
+ *
+ * `/revision` and `/api/v0/revision.json` are absent too: deployment metadata,
+ * not probes. Nothing operational breaks when one of them is throttled, so
+ * there is no reason to hand out an uncounted Worker invocation.
+ */
+function isUnmeteredProbe(path: string): boolean {
+  return (
+    path === '/health/startups' || path === '/health/livenesses' || path === '/api/v0/health.json'
+  );
+}
+
+/*
+ * Every machine-facing endpoint, which is a WIDER set than the one above and
+ * answers a different question: which responses must not be language-negotiated.
+ *
+ * `languageDetector` reads a `language` cookie as one input. Its cache is
+ * disabled below, so detection never writes a preference cookie as a side effect.
+ * A monitor polling `/revision` is not a browser expressing a preference, and a
+ * machine document that varies by locale is a document no probe can diff. Both
+ * concerns used to share one path list, which is what let the limiter quietly
+ * inherit the revision endpoints.
+ */
+function isMachineEndpoint(path: string): boolean {
+  return (
+    path === '/health' ||
+    path.startsWith('/health/') ||
+    path === '/api/v0/health.json' ||
+    path === '/revision' ||
+    path === '/api/v0/revision.json'
+  );
+}
+
 type ConfigurePageRoutes = (pageRoutes: Hono<ApexEnv>) => void;
 
-type CreateApexAppOptions = {
-  service: string;
+function unsupportedContentEncodingResponse(): Response {
+  return new Response('Unsupported Media Type\n', {
+    status: 415,
+    headers: {
+      'Cache-Control': 'no-store',
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Robots-Tag': 'noindex, nofollow',
+    },
+  });
+}
+
+function payloadTooLargeResponse(): Response {
+  return new Response('Payload Too Large\n', {
+    status: 413,
+    headers: {
+      'Cache-Control': 'no-store',
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Robots-Tag': 'noindex, nofollow',
+    },
+  });
+}
+
+const rejectUnsupportedContentEncoding: MiddlewareHandler<ApexEnv> = async (c, next) => {
+  const contentEncoding = c.req.header('Content-Encoding');
+  if (contentEncoding !== undefined && contentEncoding.trim().toLowerCase() !== 'identity') {
+    return unsupportedContentEncodingResponse();
+  }
+  return next();
 };
 
-export function createApexApp(
-  configurePageRoutes: ConfigurePageRoutes,
-  options: CreateApexAppOptions,
-) {
+const limitEdgeRequestBody = bodyLimit({
+  maxSize: EDGE_INPUT_MAX_BYTES,
+  onError: () => payloadTooLargeResponse(),
+});
+
+const exposeRequestId: MiddlewareHandler<ApexEnv> = (c, next) => {
+  // Touch the response before a handler can return a bare Response. Hono then
+  // carries this header collection across the response replacement, so every
+  // response and its structured log share the same value.
+  c.res.headers.set('X-Request-Id', c.get('requestId'));
+  return next();
+};
+
+export function createApexApp(configurePageRoutes: ConfigurePageRoutes) {
   const app = new Hono<ApexEnv>();
   const pageRoutes = new Hono<ApexEnv>();
 
+  // `limitLength: 0` forces the official middleware to generate a fresh ID;
+  // an inbound X-Request-ID is never trusted or echoed.
+  app.use('*', requestId({ limitLength: 0 }));
+  app.use('*', exposeRequestId);
   app.use('*', apexSecurityHeaders);
   app.use('*', varyOnNegotiation);
   app.use(etag());
   app.use(apexStructuredLogger);
+  // This timer bounds the application entry after the request ID, response
+  // headers and structured logger are installed. Hono's middleware clears its
+  // timer in `finally`; the late `next()` promise remains observed by Hono's
+  // Promise.race, so a late rejection is not unhandled.
+  app.use(
+    '*',
+    timeout(
+      EDGE_RESPONSE_TIMEOUT_MS,
+      () => new HTTPException(503, { message: 'Service Unavailable' }),
+    ),
+  );
+  app.use('*', async (c, next) => {
+    // The URL's hostname is the request target. Proxy forwarding headers are
+    // client-controlled and cannot select a different public unit.
+    const hostname = new URL(c.req.url).hostname;
+    if (
+      !isAllowedApexHost(hostname, {
+        allowLocalhost: !isProductionApexEnvironment(c.env),
+      })
+    ) {
+      return hostRejectedResponse();
+    }
+    return next();
+  });
   app.use(async (c, next) => {
+    if (isUnmeteredProbe(c.req.path)) return next();
     const blocked = await checkRateLimit(c.req.raw, bindings(c)?.RATE_LIMITER);
     if (blocked) return blocked;
     return next();
   });
   app.use('*', apexCsrf);
+  // CSRF and Host checks stay ahead of body consumption. The official Hono
+  // bodyLimit then handles both Content-Length and chunked streams for every
+  // route owned by this Hono Worker.
+  app.use('*', rejectUnsupportedContentEncoding);
+  app.use('*', limitEdgeRequestBody);
   // Reads the locale set from this unit's own config rather than repeating
-  // it, so the detector and `<html lang>` cannot disagree.
-  app.use(languageDetector({ supportedLanguages: [...locales], fallbackLanguage: 'en' }));
+  // it, so the detector and `<html lang>` cannot disagree. Machine health
+  // must not emit a language cookie as a side effect.
+  const detectLanguage = languageDetector({
+    supportedLanguages: [...locales],
+    fallbackLanguage: 'en',
+    caches: false,
+  });
+  app.use(async (c, next) => {
+    if (isMachineEndpoint(c.req.path)) return next();
+    return detectLanguage(c, next);
+  });
 
   pageRoutes.use(renderer);
   configurePageRoutes(pageRoutes);
@@ -123,37 +264,31 @@ export function createApexApp(
       );
     }
 
-    // oxlint-disable-next-line no-console
-    console.error('Unhandled apex error', {
-      /*
-       * `err.name` is read unguarded. Hono only routes a thrown value to
-       * `onError` when it is an `Error` and re-throws everything else
-       * (`compose.ts`), which is also why the handler is typed `err: Error`, so
-       * the `'UnknownError'` fallback this replaced could never be reached.
-       */
-      error: err.name,
-      method: c.req.method,
-      path: new URL(c.req.url).pathname,
-    });
-
     return errorPage(500, c.get('language'), requestThemeAttribute(c.req.raw));
   });
 
-  app.get('/health', timeout(2000), (c) =>
-    renderHealthPage(c.env, options, requestThemeAttribute(c.req.raw)),
-  );
-  app.get('/health.html', timeout(2000), (c) =>
-    renderHealthPage(c.env, options, requestThemeAttribute(c.req.raw)),
-  );
-  app.get('/health.json', timeout(2000), (c) => renderHealthJson(c.env, options));
-  app.get('/revision', (c) => {
+  app.get('/health/startups', timeout(2000), () => renderProbe('startup'));
+  app.get('/health/livenesses', timeout(2000), () => renderProbe('liveness'));
+  app.get('/health/readinesses', timeout(2000), () => renderProbe('readiness'));
+  app.get('/health', timeout(2000), () => renderAggregateHealth());
+  app.get('/api/v0/health.json', timeout(2000), () => renderHealthApi());
+  const versionMetadata = (c: Context<ApexEnv>) => {
     const { id = null, tag = null, timestamp = null } = bindings(c)?.CF_VERSION_METADATA ?? {};
-    return c.json({ id, tag, timestamp }, 200, {
+    return { id, tag, timestamp };
+  };
+  app.get('/revision', (c) => {
+    const { id } = versionMetadata(c);
+    return c.text(`${id ?? 'unknown'}\n`, 200, {
       'Cache-Control': 'no-store',
       'X-Robots-Tag': 'noindex, nofollow',
     });
   });
-  app.get('/offline', (c) => c.html(offlinePageMarkup(requestThemeAttribute(c.req.raw))));
+  app.get('/api/v0/revision.json', (c) => {
+    return c.json(versionMetadata(c), 200, {
+      'Cache-Control': 'no-store',
+      'X-Robots-Tag': 'noindex, nofollow',
+    });
+  });
   app.route('/', pageRoutes);
   app.notFound((c) => notFoundPage(c.get('language'), requestThemeAttribute(c.req.raw)));
 

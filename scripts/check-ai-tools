@@ -4,7 +4,16 @@ set -euo pipefail
 claude --version
 codex --version
 
+if ! command -v bwrap > /dev/null 2>&1; then
+  echo 'FAIL: bubblewrap (bwrap) is not available on PATH.' >&2
+  exit 1
+fi
+
+printf 'Bubblewrap: %s\n' "$(command -v bwrap)"
+bwrap --version
+codex sandbox /usr/bin/true
+
 codex login status
 
-echo 'PASS: AI CLI versions and non-billable authentication resolution checks completed.'
+echo 'PASS: AI CLI versions, Codex sandbox startup, and non-billable authentication resolution checks completed.'
 echo 'No model request was sent.'

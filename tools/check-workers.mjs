@@ -7,8 +7,27 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
+  AUTH_RATE_LIMITER_BUDGET,
+  ENV_PREFIX,
+  GLOBAL_SURFACES,
+  JUMP,
+  RATE_LIMITER_BUDGET,
+  REGION,
+  RESERVED_USA_CORE_NAMESPACE_IDS,
+  RETIRED_NAMESPACE_IDS,
+  authRateLimiterNamespace,
+  developmentPortFromDevScript,
+  expectedDevelopmentPort,
+  isPositiveIntegerString,
+  parseWorkspace,
+  rateLimiterNamespace,
+  regionForSurface,
+  regionSuffixOf,
+} from './lib/rate-limit-namespaces.mjs';
+import {
   collectVpcBindings as vpcBindings,
   loadManifest,
+  parseJsonc,
   readWranglerConfig,
   repoRoot as root,
 } from './lib/wrangler-config.mjs';
@@ -84,6 +103,28 @@ function checkEnvironments(ws, config, requiredEnvs = ['development', 'test']) {
       // and the binding resolves, so nothing downstream would notice.
       if (typeof limit.simple?.limit !== 'number' || typeof limit.simple?.period !== 'number') {
         fail(ws, `${label} ratelimit ${limit.name} needs numeric simple.limit and simple.period`);
+      }
+      if (limit.name === 'RATE_LIMITER') {
+        if (
+          limit.simple?.limit !== RATE_LIMITER_BUDGET.limit ||
+          limit.simple?.period !== RATE_LIMITER_BUDGET.period
+        ) {
+          fail(
+            ws,
+            `${label} RATE_LIMITER must stay ${RATE_LIMITER_BUDGET.limit}/${RATE_LIMITER_BUDGET.period} — namespace isolation is not budget tuning`,
+          );
+        }
+      }
+      if (limit.name === 'AUTH_RATE_LIMITER') {
+        if (
+          limit.simple?.limit !== AUTH_RATE_LIMITER_BUDGET.limit ||
+          limit.simple?.period !== AUTH_RATE_LIMITER_BUDGET.period
+        ) {
+          fail(
+            ws,
+            `${label} AUTH_RATE_LIMITER must stay ${AUTH_RATE_LIMITER_BUDGET.limit}/${AUTH_RATE_LIMITER_BUDGET.period}`,
+          );
+        }
       }
     }
   };
@@ -358,7 +399,9 @@ function checkViteWorker(ws, config) {
 // which copies `public/` into `dist/client` and hands that directory to
 // `assets.directory` in the OUTPUT wrangler.json — so `public/` is the source of
 // truth for the deployed asset surface in every unit, and a file missing from git
-// is a file missing from the deploy.
+// is a file missing from the deploy. The required asset set still differs by
+// worker class: TanStack frames publish the offline Service Worker, while Hono
+// apex workers deliberately removed that feature.
 const trackedFiles = (() => {
   let cache = null;
   return () => {
@@ -377,6 +420,12 @@ const trackedFiles = (() => {
 // on by test/standard-url-contract.test.ts and by each unit's standard-contract
 // e2e spec, both of which read the working tree and so cannot see this gap.
 const REQUIRED_PUBLIC_ASSETS = ['_headers', 'service-worker.js'];
+const STANDALONE_REQUIRED_PUBLIC_ASSETS = ['_headers'];
+const STANDALONE_FORBIDDEN_PUBLIC_ASSETS = [
+  'service-worker.js',
+  'service-worker-register.js',
+  'manifest.webmanifest',
+];
 
 // The one asset that is generated rather than committed: Tailwind's output.
 //
@@ -426,16 +475,22 @@ function checkGeneratedAsset(ws, relative, tracked) {
   }
 }
 
-function checkPublicAssets(ws) {
+function checkPublicAssets(ws, { required = REQUIRED_PUBLIC_ASSETS, forbidden = [] } = {}) {
   const publicDir = join(root, ws, 'public');
   if (!existsSync(publicDir)) {
     fail(ws, "public/ is missing — it is this worker's deployed static asset surface");
     return;
   }
 
-  for (const asset of REQUIRED_PUBLIC_ASSETS) {
+  for (const asset of required) {
     if (!existsSync(join(publicDir, asset))) {
       fail(ws, `public/${asset} is missing`);
+    }
+  }
+
+  for (const asset of forbidden) {
+    if (existsSync(join(publicDir, asset))) {
+      fail(ws, `public/${asset} is forbidden for this worker class`);
     }
   }
 
@@ -472,8 +527,28 @@ for (const ws of manifest.railsBacked) {
 for (const ws of manifest.railsBackedVite ?? []) {
   const config = loadWrangler(ws);
   if (!config) continue;
-  // `local` is the extra tier: vite dev runs the Worker in workerd, so the
-  // everyday loop needs an environment that declares no VPC Service.
+  // `local` is the extra tier: vite dev runs the Worker in workerd, and it is
+  // the tier whose `RAILS_ORIGIN` points at the development container's Rails.
+  checkEnvironments(ws, config, ['local', 'development', 'test']);
+  checkViteWorker(ws, config);
+  checkPublicAssets(ws);
+
+  // The Cores reach Rails over the public internet at `RAILS_ORIGIN`, not over
+  // Workers VPC — adr/018-core-rails-direct-internet.md.
+  if (vpcBindings(config).length > 0) {
+    fail(
+      ws,
+      'railsBackedVite workers must not declare vpc_services — they reach Rails at RAILS_ORIGIN',
+    );
+  }
+}
+
+// The twelve public content cells: the same Vite + TanStack Start Worker shape as
+// the Cores (checkViteWorker), but Rails is reached over the Workers VPC binding,
+// so they carry the VPC policy and a `vpc` tier. adr/019.
+for (const ws of manifest.railsBackedVpcVite ?? []) {
+  const config = loadWrangler(ws);
+  if (!config) continue;
   checkEnvironments(ws, config, ['local', 'development', 'vpc', 'test']);
   checkViteWorker(ws, config);
   checkPublicAssets(ws);
@@ -489,6 +564,7 @@ for (const ws of manifest.railsBackedVite ?? []) {
 for (const ws of [
   ...manifest.railsBacked,
   ...(manifest.railsBackedVite ?? []),
+  ...(manifest.railsBackedVpcVite ?? []),
   ...manifest.contentSurface,
 ]) {
   const pkgPath = join(root, ws, 'package.json');
@@ -535,7 +611,10 @@ for (const ws of manifest.standalone) {
   const config = loadWrangler(ws);
   if (!config) continue;
   checkEnvironments(ws, config);
-  checkPublicAssets(ws);
+  checkPublicAssets(ws, {
+    required: STANDALONE_REQUIRED_PUBLIC_ASSETS,
+    forbidden: STANDALONE_FORBIDDEN_PUBLIC_ASSETS,
+  });
   if (vpcBindings(config).length > 0) {
     fail(ws, 'standalone workers must not declare vpc_services');
   }
@@ -588,56 +667,178 @@ for (const ws of manifest.standalone) {
 }
 
 // ---------------------------------------------------------------------------
-// Rate limit namespaces, ACROSS units
+// Rate limit namespaces — adr/022-rate-limit-namespace-allocation.md
 // ---------------------------------------------------------------------------
 //
 // A rate limit counter is keyed on (namespace_id, key) and is scoped to the
-// Cloudflare ACCOUNT, not to the Worker: "Two rate limiting bindings that share
-// the same namespace_id — even across different Workers on the same account —
-// share the same rate limit counters for a given key."
+// Cloudflare ACCOUNT, not to the Worker. ADR 022 therefore gives each active
+// FQDN its own general RATE_LIMITER namespace: `<env-prefix><dev-port><region>`,
+// with region `00` for global surfaces and `81` for the Japan Core. Suffix `01`
+// (USA) is reserved and must not appear until that Core exists. Sharing a
+// RATE_LIMITER namespace across deployment units is prohibited.
 //
-// This repository shares one namespace per brand per tier on purpose. The key is
-// the client IP, so a merged budget bounds one client's own total across the
-// brand; giving each unit its own namespace would instead hand every client a
-// fresh budget per subdomain, which is a bypass no limit value can close.
-//
-// What that buys has a price, and this is it: bindings sharing a namespace_id
-// must agree on the budget. Cloudflare does not define the behaviour when two
-// disagree, and the strictest binding would fire against the COMBINED count —
-// so a unit that quietly lowered its own limit would start rejecting traffic at
-// a threshold set by its siblings' load. Nothing at runtime would report that;
-// the binding resolves and the 429s look ordinary. Config is the only place it
-// can be caught.
+// Jump lives in umaxica-apps-edge-jump. Its production id 520900 is seeded into
+// the uniqueness map so this repository cannot copy it. AUTH_RATE_LIMITER stays
+// on the historical X10N series and is not derived from the FQDN formula.
+function developmentPort(ws, brand, surface) {
+  let pkg;
+  try {
+    pkg = JSON.parse(readFileSync(join(root, ws, 'package.json'), 'utf8'));
+  } catch {
+    fail(ws, 'package.json is unreadable, so the rate-limit namespace cannot be checked');
+    return null;
+  }
+  const port = developmentPortFromDevScript(pkg.scripts?.dev);
+  if (!port) {
+    fail(
+      ws,
+      'scripts.dev must declare --port NNNN — rate-limit namespaces are allocated from the development port',
+    );
+    return null;
+  }
+  const expectedPort = expectedDevelopmentPort(brand, surface);
+  if (expectedPort && port !== expectedPort) {
+    fail(
+      ws,
+      `scripts.dev --port ${port} must be ${expectedPort} (${brand}/${surface}) — namespace ids are derived from that port`,
+    );
+  }
+  return port;
+}
+
+function seedAccountWideNamespaces(byNamespace) {
+  byNamespace.set(
+    JUMP.productionNamespaceId,
+    `${JUMP.repo} production ${JUMP.binding} (${JUMP.port}${JUMP.region})`,
+  );
+  for (const id of RETIRED_NAMESPACE_IDS) {
+    byNamespace.set(id, `retired historical namespace_id ${id}`);
+  }
+  for (const id of RESERVED_USA_CORE_NAMESPACE_IDS) {
+    byNamespace.set(id, `reserved inactive USA core ${id}`);
+  }
+
+  const sibling = join(root, '..', JUMP.repo, 'wrangler.jsonc');
+  if (!existsSync(sibling)) return;
+  let config;
+  try {
+    config = parseJsonc(readFileSync(sibling, 'utf8'));
+  } catch (error) {
+    fail(JUMP.repo, `sibling wrangler.jsonc failed to parse: ${error.message}`);
+    return;
+  }
+  const declared = (config.ratelimits ?? []).find((limit) => limit.name === JUMP.binding);
+  if (!declared) {
+    fail(JUMP.repo, `sibling wrangler.jsonc declares no ${JUMP.binding}`);
+    return;
+  }
+  const id = String(declared.namespace_id ?? '');
+  if (id !== JUMP.productionNamespaceId) {
+    fail(
+      JUMP.repo,
+      `sibling ${JUMP.binding} namespace_id ${id} must be ${JUMP.productionNamespaceId}`,
+    );
+  }
+  if (declared.simple?.limit !== JUMP.limit || declared.simple?.period !== JUMP.period) {
+    fail(JUMP.repo, `sibling ${JUMP.binding} must stay ${JUMP.limit}/${JUMP.period}`);
+  }
+}
+
+function checkRateLimitAllocation(ws, config, byNamespace) {
+  const { brand, surface } = parseWorkspace(ws);
+  const expectedRegion = regionForSurface(surface);
+  if (!expectedRegion) {
+    fail(ws, `surface "${surface}" has no rate-limit region in adr/022`);
+    return;
+  }
+  const port = developmentPort(ws, brand, surface);
+  if (!port) return;
+
+  const checkLimit = (envName, limit) => {
+    const id = String(limit.namespace_id ?? '');
+    const where = `${envName} ${limit.name}`;
+
+    if (!isPositiveIntegerString(id)) {
+      fail(
+        ws,
+        `${where} namespace_id ${JSON.stringify(limit.namespace_id)} must be a numeric positive integer string`,
+      );
+      return;
+    }
+    if (RETIRED_NAMESPACE_IDS.has(id)) {
+      fail(ws, `${where} claims retired historical namespace_id ${id}`);
+    }
+    if (RESERVED_USA_CORE_NAMESPACE_IDS.has(id)) {
+      fail(ws, `${where} claims reserved inactive USA core namespace_id ${id}`);
+    }
+    if (ENV_PREFIX[envName] === undefined) {
+      fail(
+        ws,
+        `${where} sits in unknown environment ${envName} — adr/022 names production, development, test, vpc, local`,
+      );
+      return;
+    }
+
+    let expected;
+    if (limit.name === 'AUTH_RATE_LIMITER') {
+      if (surface !== 'core') {
+        fail(ws, `${where} is only valid on core`);
+        return;
+      }
+      expected = authRateLimiterNamespace({ env: envName, brand });
+    } else if (limit.name === 'RATE_LIMITER') {
+      const suffix = regionSuffixOf(id);
+      if (suffix === REGION.USA) {
+        fail(ws, `${where} uses reserved USA suffix 01 — no USA RATE_LIMITER is configured`);
+      }
+      if (surface === 'core' && suffix === REGION.GLOBAL) {
+        fail(ws, `${where} uses global suffix 00 — core must not`);
+      }
+      if (GLOBAL_SURFACES.has(surface) && suffix !== REGION.GLOBAL) {
+        fail(ws, `${where} is a global surface and must use suffix 00, found ${suffix}`);
+      }
+      if (surface === 'core' && suffix !== REGION.JAPAN) {
+        fail(ws, `${where} is core and currently must use Japan suffix 81, found ${suffix}`);
+      }
+      expected = rateLimiterNamespace({ env: envName, port, region: expectedRegion });
+    } else {
+      fail(ws, `${where} is not a known rate-limit binding`);
+      return;
+    }
+    if (id !== expected) {
+      fail(ws, `${where} namespace_id ${id} must be ${expected}`);
+    }
+
+    const seen = byNamespace.get(id);
+    if (seen) {
+      fail(
+        ws,
+        `${where} namespace_id ${id} is already used by ${seen} — each FQDN and environment has its own counter`,
+      );
+      return;
+    }
+    byNamespace.set(id, `${ws} ${where}`);
+  };
+
+  for (const limit of config.ratelimits ?? []) checkLimit('production', limit);
+  for (const [envName, env] of Object.entries(config.env ?? {})) {
+    for (const limit of env.ratelimits ?? []) checkLimit(envName, limit);
+  }
+}
+
 {
   const byNamespace = new Map();
+  seedAccountWideNamespaces(byNamespace);
   for (const ws of [
     ...manifest.railsBacked,
     ...(manifest.railsBackedVite ?? []),
+    ...(manifest.railsBackedVpcVite ?? []),
     ...manifest.contentSurface,
     ...manifest.standalone,
   ]) {
     const config = loadWrangler(ws);
     if (!config) continue;
-    const tiers = [
-      ['production', config.ratelimits],
-      ...Object.entries(config.env ?? {}).map(([name, env]) => [name, env.ratelimits]),
-    ];
-    for (const [tier, ratelimits] of tiers) {
-      for (const limit of ratelimits ?? []) {
-        const budget = `${limit.simple?.limit}/${limit.simple?.period}s`;
-        const seen = byNamespace.get(limit.namespace_id);
-        if (!seen) {
-          byNamespace.set(limit.namespace_id, { budget, where: `${ws} ${tier} (${limit.name})` });
-          continue;
-        }
-        if (seen.budget !== budget) {
-          fail(
-            ws,
-            `${tier} ratelimit ${limit.name} declares ${budget} on namespace_id ${limit.namespace_id}, but ${seen.where} declares ${seen.budget} — bindings sharing a namespace share the counter and must share the budget`,
-          );
-        }
-      }
-    }
+    checkRateLimitAllocation(ws, config, byNamespace);
   }
 }
 
@@ -649,6 +850,7 @@ if (failures.length > 0) {
 const checked =
   manifest.railsBacked.length +
   (manifest.railsBackedVite ?? []).length +
+  (manifest.railsBackedVpcVite ?? []).length +
   manifest.contentSurface.length +
   manifest.standalone.length;
 process.stdout.write(`check-workers: OK (${checked} workers validated)\n`);

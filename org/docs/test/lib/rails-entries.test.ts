@@ -1,0 +1,301 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import type { RailsClient, RailsClientResult } from '../../src/lib/rails-client';
+import { RAILS_JSON_MAX_BYTES, createRailsEntriesClient } from '../../src/lib/rails-entries';
+
+const entry = {
+  public_id: 'entry-1',
+  namespace: 'info',
+  surface: 'app',
+  slug: 'welcome',
+  locale: 'ja',
+  title: 'Welcome',
+  summary: null,
+  body: { text: 'Body' },
+  published_at: '2026-09-03T00:00:00Z',
+  taxonomy: {},
+};
+
+const firstPage = {
+  data: [entry],
+  page: { current: 1, previous: null, next: 2, last: 3 },
+};
+
+function client(...results: RailsClientResult[]) {
+  const fetch = vi.fn(() =>
+    Promise.resolve(results.shift() ?? { kind: 'invalid-path', reason: 'test result missing' }),
+  );
+  return { entries: createRailsEntriesClient({ fetch } as RailsClient), fetch };
+}
+
+describe('Rails entries client', () => {
+  it('uses fixed, encoded entry and collection API paths with only an Accept header', async () => {
+    const { entries, fetch } = client(
+      { kind: 'ok', status: 200, response: Response.json(entry) },
+      {
+        kind: 'ok',
+        status: 200,
+        response: Response.json({
+          ...firstPage,
+          ignored_by_client: true,
+        }),
+      },
+    );
+
+    await expect(
+      entries.fetchEntry({ publicId: 'id/-safe space?', locale: 'ja' }),
+    ).resolves.toMatchObject({
+      kind: 'ok',
+    });
+    await expect(entries.fetchEntriesPage({ locale: 'ja', page: 2 })).resolves.toMatchObject({
+      kind: 'ok',
+    });
+
+    expect(fetch).toHaveBeenNthCalledWith(1, '/api/v0/entries/id%2F-safe%20space%3F?locale=ja', {
+      headers: { Accept: 'application/json' },
+    });
+    expect(fetch).toHaveBeenNthCalledWith(2, '/api/v0/entries?locale=ja&page=2', {
+      headers: { Accept: 'application/json' },
+    });
+  });
+
+  it('omits page when requesting the first collection page', async () => {
+    const { entries, fetch } = client({
+      kind: 'ok',
+      status: 200,
+      response: Response.json(firstPage),
+    });
+
+    await expect(entries.fetchEntriesPage({ locale: 'ja' })).resolves.toMatchObject({ kind: 'ok' });
+    expect(fetch).toHaveBeenCalledWith('/api/v0/entries?locale=ja', {
+      headers: { Accept: 'application/json' },
+    });
+    expect(JSON.stringify(fetch.mock.calls)).not.toContain('cursor');
+    expect(JSON.stringify(fetch.mock.calls)).not.toContain('offset');
+  });
+
+  it('parses valid entries and tolerates additive response fields', async () => {
+    const { entries } = client({
+      kind: 'ok',
+      status: 200,
+      response: Response.json({ ...entry, additive: { field: true } }),
+    });
+
+    await expect(entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' })).resolves.toMatchObject({
+      kind: 'ok',
+      value: entry,
+    });
+  });
+
+  it.each([[500, 'upstream-error']] as const)(
+    'classifies Rails HTTP %i as %s',
+    async (status, kind) => {
+      const { entries } = client({
+        kind: 'http-error',
+        status,
+        response: new Response(null, { status }),
+      });
+
+      await expect(
+        entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+      ).resolves.toMatchObject({
+        kind,
+      });
+    },
+  );
+
+  it('treats an Entry 404 as confirmed absence but a collection 404 as upstream failure', async () => {
+    const entryClient = client({
+      kind: 'http-error',
+      status: 404,
+      response: new Response(null, { status: 404 }),
+    });
+    await expect(
+      entryClient.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({ kind: 'not-found', upstreamStatus: 404 });
+
+    const collectionClient = client({
+      kind: 'http-error',
+      status: 404,
+      response: new Response(null, { status: 404 }),
+    });
+    await expect(collectionClient.entries.fetchEntriesPage({ locale: 'ja' })).resolves.toEqual({
+      kind: 'upstream-error',
+      upstreamStatus: 404,
+    });
+  });
+
+  it('classifies transport failures and timeout without exposing the transport error', async () => {
+    const unreachable = client({ kind: 'unreachable', errorMessage: 'private upstream details' });
+    await expect(
+      unreachable.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toEqual({
+      kind: 'unreachable',
+    });
+
+    const timeout = client({ kind: 'timeout' } as unknown as RailsClientResult);
+    await expect(
+      timeout.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toEqual({
+      kind: 'timeout',
+    });
+  });
+
+  it('rejects malformed JSON and malformed entry fields', async () => {
+    const malformedJson = client({ kind: 'ok', status: 200, response: new Response('{') });
+    await expect(
+      malformedJson.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({
+      kind: 'invalid-contract',
+    });
+
+    const wrongField = client({
+      kind: 'ok',
+      status: 200,
+      response: Response.json({ ...entry, title: 42 }),
+    });
+    await expect(
+      wrongField.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({
+      kind: 'invalid-contract',
+    });
+  });
+
+  it('requires JSON media type and identity content encoding', async () => {
+    const wrongMediaType = client({
+      kind: 'ok',
+      status: 200,
+      response: new Response(JSON.stringify(entry), {
+        headers: { 'content-type': 'text/plain' },
+      }),
+    });
+    await expect(
+      wrongMediaType.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({ kind: 'invalid-contract' });
+
+    const encoded = client({
+      kind: 'ok',
+      status: 200,
+      response: new Response(JSON.stringify(entry), {
+        headers: { 'content-type': 'application/json', 'content-encoding': 'gzip' },
+      }),
+    });
+    await expect(
+      encoded.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({ kind: 'invalid-contract' });
+  });
+
+  it('rejects a cursor-era collection envelope', async () => {
+    const { entries, fetch } = client({
+      kind: 'ok',
+      status: 200,
+      response: Response.json({
+        data: [entry],
+        page: { next_cursor: 'next/2', has_more: true },
+      }),
+    });
+
+    await expect(entries.fetchEntriesPage({ locale: 'ja' })).resolves.toMatchObject({
+      kind: 'invalid-contract',
+    });
+    expect(JSON.stringify(fetch.mock.calls)).not.toContain('cursor');
+  });
+
+  it('rejects malformed collection envelopes and entries inside a page', async () => {
+    for (const value of [
+      null,
+      { data: {}, page: firstPage.page },
+      { data: [], page: [] },
+      { ...firstPage, data: [null] },
+      { ...firstPage, data: [{ ...entry, public_id: '' }] },
+    ]) {
+      const { entries } = client({
+        kind: 'ok',
+        status: 200,
+        response: Response.json(value),
+      });
+      await expect(entries.fetchEntriesPage({ locale: 'ja' })).resolves.toMatchObject({
+        kind: 'invalid-contract',
+      });
+    }
+  });
+
+  it('bounds declared and streamed JSON bodies while tolerating an invalid length header', async () => {
+    const declaredTooLarge = client({
+      kind: 'ok',
+      status: 200,
+      response: new Response('{}', {
+        headers: {
+          'content-type': 'application/json',
+          'content-length': String(RAILS_JSON_MAX_BYTES + 1),
+        },
+      }),
+    });
+    await expect(
+      declaredTooLarge.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({ kind: 'invalid-contract' });
+
+    const invalidLength = client({
+      kind: 'ok',
+      status: 200,
+      response: new Response(JSON.stringify(entry), {
+        headers: { 'content-type': 'application/json', 'content-length': 'unknown' },
+      }),
+    });
+    await expect(
+      invalidLength.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({ kind: 'ok' });
+
+    const streamedTooLarge = client({
+      kind: 'ok',
+      status: 200,
+      response: new Response('x'.repeat(RAILS_JSON_MAX_BYTES + 1), {
+        headers: { 'content-type': 'application/json' },
+      }),
+    });
+    await expect(
+      streamedTooLarge.entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' }),
+    ).resolves.toMatchObject({ kind: 'invalid-contract' });
+  });
+
+  it('maps a timeout during body reading after headers to timeout', async () => {
+    const controller = new AbortController();
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        pull() {
+          return new Promise<void>(() => {
+            // Keep the body pending until the request signal aborts it.
+          });
+        },
+      }),
+      { headers: { 'content-type': 'application/json' } },
+    );
+    const { entries } = client({ kind: 'ok', status: 200, response, signal: controller.signal });
+    const resultPromise = entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' });
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    controller.abort(new DOMException('timed out', 'TimeoutError'));
+
+    await expect(resultPromise).resolves.toEqual({ kind: 'timeout' });
+  });
+
+  it('maps an invalid-path client result to upstream-error without its reason', async () => {
+    const { entries } = client({ kind: 'invalid-path', reason: 'path must not be empty' });
+
+    const result = await entries.fetchEntry({ publicId: 'entry-1', locale: 'ja' });
+
+    expect(result).toEqual({ kind: 'upstream-error' });
+    expect(JSON.stringify(result)).not.toContain('path must not be empty');
+  });
+
+  it('does not offer arbitrary paths or origins, and rejects a non-positive page before calling Rails', async () => {
+    const { entries, fetch } = client({ kind: 'ok', status: 200, response: Response.json(entry) });
+
+    await expect(entries.fetchEntriesPage({ locale: 'ja', page: 0 })).resolves.toEqual({
+      kind: 'invalid-contract',
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});

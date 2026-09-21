@@ -91,15 +91,19 @@ Worth knowing before you report, because these are deliberate:
   `X-Content-Type-Options: nosniff`, and a deny-all `Permissions-Policy`. See
   `app/apex/public/_headers`.
 - **Cookie boundary.** `*/core/src/worker.ts` strips every `Set-Cookie` from
-  frame responses; only an apex Worker or Rails can issue a browser-visible
-  cookie. See `adr/007-shared-fqdn-core-dispatch.md`. Browser code reads
-  cookies only through the Cookie Store API
+  frame responses; Rails is the only preference-cookie writer. Rails-owned
+  passthrough preserves Rails cookies, while apex and TanStack code only reads
+  permitted display values. See `adr/007-shared-fqdn-core-dispatch.md`.
+  Browser code reads cookies only through the Cookie Store API
   (`docs/development/browser-cookie-access.md`).
-- **Logging.** Two sanctioned emitters exist, `*/apex/src/structured-logger.ts`
-  and `*/core/src/lib/rails-dispatch-log.ts`, and `no-console` is an error
-  everywhere else. `RailsDispatchLogEntry` has no free-text field by design —
-  every value is a number or a fixed union — so a secret cannot reach a log
-  line.
+- **Logging.** The sanctioned emitters are `*/apex/src/structured-logger.ts`,
+  the local `*/{core,docs,help,info,news}/src/lib/request-log.ts` copies for
+  TanStack request completion, and `*/core/src/lib/rails-dispatch-log.ts` for
+  the Rails hop. `no-console` is an error everywhere else. All emit the closed
+  `{ level, msg, data }` envelope; request completion carries only the generated
+  request ID, fixed service/environment/method/route, final status, duration
+  and rough outcome. No emitter accepts free text, credentials, query, body or
+  exception details.
 - **Secrets.** No credential lives in the repository or the container image.
   See `docs/development/credential-and-secret-management.md` and
   `docs/development/container-security-policy.md`.
