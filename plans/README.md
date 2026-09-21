@@ -28,23 +28,24 @@ finished. Nothing here is a specification.
 
 The list `/adr/` owns; reproduced here only because plan notes cross-reference it.
 
-| ADR                                                                   | Status                                  | Title                                                  |
-| --------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------ |
-| [001](../adr/001-rails-health-check.md)                               | Superseded by 005                       | Rails backend health check integration                 |
-| [002](../adr/002-dev-apex-vercel.md)                                  | Completed; `dev/apex` revived 2026-08   | Create `dev/apex` — Hono on Vercel                     |
-| [003](../adr/003-apex-direct-composition.md)                          | Completed                               | Migrate apex workspaces to direct Hono composition     |
-| [004](../adr/004-public-information-surfaces-astro.md)                | **Rejected 2026-08-12**                 | Public information surfaces use Astro                  |
-| [005](../adr/005-rails-edge-workers-vpc-connection.md)                | Completed; amended by 006, 009          | Rails ↔ Edge over a Cloudflare Workers VPC binding     |
-| [006](../adr/006-development-workers-vpc-transport.md)                | Implemented; amended by 008             | A development transport over the Workers VPC binding   |
-| [007](../adr/007-shared-fqdn-core-dispatch.md)                        | Implemented; amended by 009, 010        | Shared-FQDN Core dispatch (`worker.ts` as first touch) |
-| [008](../adr/008-edge-development-tunnel-exposure.md)                 | Complete                                | Edge development surfaces via the Rails-owned Tunnel   |
-| [009](../adr/009-rails-health-entrypoint-and-dispatch-operability.md) | Implemented                             | One health entry point, and an operable Rails dispatch |
-| [010](../adr/010-first-touch-rate-limiting.md)                        | Implemented                             | Rate limiting happens once, at first touch             |
-| [015](../adr/015-public-content-surfaces-astro.md)                    | Historical; superseded for active cells | Earlier Astro public-surface decision                  |
-| [016](../adr/016-rails-machine-health-api.md)                         | Implemented                             | Rails machine health API                               |
-| [017](../adr/017-edge-self-health-api.md)                             | Implemented                             | Edge self-health API                                   |
-| [018](../adr/018-core-rails-direct-internet.md)                       | Accepted; Core implementation staged    | Core direct Internet transport                         |
-| [019](../adr/019-edge-parallel-contract-boundaries.md)                | Accepted; parallel slices implemented   | Edge boundaries beside the Rails rewrite               |
+| ADR                                                                   | Status                                           | Title                                                  |
+| --------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------ |
+| [001](../adr/001-rails-health-check.md)                               | Superseded by 005                                | Rails backend health check integration                 |
+| [002](../adr/002-dev-apex-vercel.md)                                  | Completed; `dev/apex` revived 2026-08            | Create `dev/apex` — Hono on Vercel                     |
+| [003](../adr/003-apex-direct-composition.md)                          | Completed                                        | Migrate apex workspaces to direct Hono composition     |
+| [004](../adr/004-public-information-surfaces-astro.md)                | **Rejected 2026-08-12**                          | Public information surfaces use Astro                  |
+| [005](../adr/005-rails-edge-workers-vpc-connection.md)                | Completed; amended by 006, 009                   | Rails ↔ Edge over a Cloudflare Workers VPC binding     |
+| [006](../adr/006-development-workers-vpc-transport.md)                | Implemented; amended by 008                      | A development transport over the Workers VPC binding   |
+| [007](../adr/007-shared-fqdn-core-dispatch.md)                        | Implemented; amended by 009, 010                 | Shared-FQDN Core dispatch (`worker.ts` as first touch) |
+| [008](../adr/008-edge-development-tunnel-exposure.md)                 | Complete                                         | Edge development surfaces via the Rails-owned Tunnel   |
+| [009](../adr/009-rails-health-entrypoint-and-dispatch-operability.md) | Implemented                                      | One health entry point, and an operable Rails dispatch |
+| [010](../adr/010-first-touch-rate-limiting.md)                        | Implemented; namespace sharing superseded by 022 | Rate limiting happens once, at first touch             |
+| [015](../adr/015-public-content-surfaces-astro.md)                    | Historical; superseded for active cells          | Earlier Astro public-surface decision                  |
+| [016](../adr/016-rails-machine-health-api.md)                         | Implemented                                      | Rails machine health API                               |
+| [017](../adr/017-edge-self-health-api.md)                             | Implemented                                      | Edge self-health API                                   |
+| [018](../adr/018-core-rails-direct-internet.md)                       | Accepted; Core implementation staged             | Core direct Internet transport                         |
+| [019](../adr/019-edge-parallel-contract-boundaries.md)                | Accepted; parallel slices implemented            | Edge boundaries beside the Rails rewrite               |
+| [022](../adr/022-rate-limit-namespace-allocation.md)                  | Implemented                                      | Per-FQDN rate-limit namespaces with a region suffix    |
 
 The older Astro document-CMS notes are retained as historical plans:
 [`astro-content-surfaces-remaining.md`](./astro-content-surfaces-remaining.md).

@@ -52,7 +52,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       <head>
         <HeadContent />
       </head>
-      <body className="bg-gray-50 leading-body text-gray-900">
+      <body className="bg-canvas leading-body text-gray-900">
         <ServiceWorkerRegistration />
         {children}
         {/*

@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { siteCopy } from '../src/lib/site-copy';
+
 /*
  * The user's path through a real browser: the shell, its landmarks, keyboard
  * access and the search form. Status codes and Content-Type belong in
@@ -23,9 +25,18 @@ test('home renders inside the shell, with locale-preserving navigation', async (
   await expect(nav.getByRole('link', { name: '検索' })).toHaveAttribute('href', '/ja/search/');
   await expect(nav.getByRole('link', { name: 'ホーム' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('banner').getByRole('link', { name: 'UMAXICA' })).toBeVisible();
+  await expect(page.getByRole('banner').getByText(siteCopy('ja').product)).toBeVisible();
   await expect(
     page.getByRole('navigation', { name: 'ユーティリティナビゲーション' }),
   ).toBeVisible();
+});
+
+test('the lockup stays together on a 320px viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.goto('/ja/');
+  const banner = page.getByRole('banner');
+  await expect(banner.getByRole('link', { name: 'UMAXICA' })).toBeVisible();
+  await expect(banner.getByText(siteCopy('ja').product)).toBeVisible();
 });
 
 test('english home keeps english navigation', async ({ page }) => {

@@ -51,30 +51,30 @@ function EntryPage() {
   const t = UI[lang];
   const { entry, editHref } = view;
   return (
-    <main
-      className="mx-auto grid w-full max-w-4xl flex-1 content-start gap-6 px-6 py-12"
-      id="main-content"
-      tabIndex={-1}
-    >
-      <article className="grid gap-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <h1 className="text-3xl leading-heading font-semibold">{entry.title}</h1>
-          <a className="text-brand underline" href={editHref}>
-            {t.edit}
-          </a>
+    <main className="flex-1 py-12" id="main-content" tabIndex={-1}>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 wide:px-8">
+        <div className="flex max-w-prose flex-col gap-6">
+          <article className="grid gap-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-4">
+              <h1 className="text-3xl leading-heading font-semibold">{entry.title}</h1>
+              <a className="text-brand underline" href={editHref}>
+                {t.edit}
+              </a>
+            </div>
+            <p className="text-sm text-gray-600">
+              {t.publishedAt}: <time dateTime={entry.publishedAt}>{entry.publishedAt}</time>
+            </p>
+            {entry.summary !== null && entry.summary !== '' && (
+              <p className="text-lg text-gray-700">{entry.summary}</p>
+            )}
+            {entry.bodyText === null ? (
+              <p className="text-gray-600">{t.entryBodyStructured}</p>
+            ) : (
+              <p className="whitespace-pre-wrap">{entry.bodyText}</p>
+            )}
+          </article>
         </div>
-        <p className="text-sm text-gray-600">
-          {t.publishedAt}: <time dateTime={entry.publishedAt}>{entry.publishedAt}</time>
-        </p>
-        {entry.summary !== null && entry.summary !== '' && (
-          <p className="text-lg text-gray-700">{entry.summary}</p>
-        )}
-        {entry.bodyText === null ? (
-          <p className="text-gray-600">{t.entryBodyStructured}</p>
-        ) : (
-          <p className="whitespace-pre-wrap">{entry.bodyText}</p>
-        )}
-      </article>
+      </div>
     </main>
   );
 }

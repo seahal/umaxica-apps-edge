@@ -14,10 +14,9 @@
  * `docs/development/browser-cookie-access.md`. Honouring a cookie something
  * else sets costs one header read; the OS preference works today either way.
  *
- * Only the apex Workers can do this at all. Each frame's `src/worker.ts`
- * strips the inbound `Cookie` from every application-owned request (ADR 007),
- * so a frame never sees this cookie and cannot render the attribute
- * server-side.
+ * Only the apex Workers do this. Core strips inbound Cookie on
+ * application-owned requests (ADR 007). The twelve public frames do not strip
+ * Cookie, but they also do not read a theme cookie: they stay light-only.
  */
 
 /**

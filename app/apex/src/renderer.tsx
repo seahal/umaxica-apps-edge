@@ -36,7 +36,7 @@ export const renderer = jsxRenderer<ApexEnv>(({ children }, c) => {
         <SeoHead c={c} brand={brand} />
         <link rel="stylesheet" href={styleUrl} />
       </head>
-      <body class="flex min-h-screen flex-col bg-gray-50 leading-body text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+      <body class="flex min-h-screen flex-col bg-canvas leading-body text-gray-900 dark:text-gray-100">
         <AppShell brandName={brandName} year={year} language={language}>
           {children}
         </AppShell>

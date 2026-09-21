@@ -85,15 +85,41 @@ describe('twelve-cell publishing matrix', () => {
     );
   });
 
+  const TINT_BY_AUDIENCE = {
+    app: 'var(--color-red-500)',
+    com: 'var(--color-indigo-500)',
+    org: 'var(--color-green-500)',
+  } as const;
+
+  const TINT_LINE = /^(\s*--ui-tint:\s*)var\(--color-(?:red|indigo|green)-500\);$/u;
+
+  function normalizeShared(relativePath: string, content: string): string {
+    if (relativePath !== 'src/style.css') return content;
+    return content
+      .split('\n')
+      .map((line) =>
+        TINT_LINE.test(line) ? line.replace(TINT_LINE, '$1var(--color-TINT-500);') : line,
+      )
+      .join('\n');
+  }
+
   it('keeps every other shared file byte-identical across the twelve', () => {
     const reference = sharedFiles('app/docs');
     expect(reference.length).toBeGreaterThan(50);
     for (const { unit } of CELLS) {
       expect(sharedFiles(unit), `${unit} file set`).toEqual(reference);
       for (const file of reference) {
-        expect(read(`${unit}/${file}`), `${unit}/${file}`).toBe(read(`app/docs/${file}`));
+        expect(normalizeShared(file, read(`${unit}/${file}`)), `${unit}/${file}`).toBe(
+          normalizeShared(file, read(`app/docs/${file}`)),
+        );
       }
     }
+  });
+
+  it.each(CELLS)('$unit pins --ui-tint to its audience', ({ audience, unit }) => {
+    const css = read(`${unit}/src/style.css`);
+    const match = css.match(/^\s*--ui-tint:\s*(var\(--color-(?:red|indigo|green)-500\);)$/mu);
+    expect(match?.[1]).toBe(`${TINT_BY_AUDIENCE[audience]};`);
   });
 
   it.each(CELLS)('$unit serves the whole public route contract', ({ unit }) => {

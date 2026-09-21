@@ -108,6 +108,15 @@
   --leading-heading: 1.3;
 }
 
+:root {
+  --ui-tint: var(--color-green-500);
+  --ui-canvas: color-mix(in oklab, var(--color-white) 85%, var(--ui-tint));
+}
+
+@theme inline {
+  --color-canvas: var(--ui-canvas);
+}
+
 @layer base {
   /*
    * `color-scheme` is what makes the UA's own surfaces — form controls, the
@@ -143,6 +152,7 @@
   :root {
     @variant dark {
       --color-brand: #93c5fd;
+      --ui-canvas: color-mix(in oklab, var(--color-zinc-950) 92%, var(--ui-tint));
     }
   }
 

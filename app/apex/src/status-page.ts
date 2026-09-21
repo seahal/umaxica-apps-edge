@@ -26,7 +26,7 @@ import { themeAttributeMarkup, type ThemeAttribute } from './theme';
  */
 const STATUS_STYLESHEET = `<link rel="stylesheet" href="${styleUrl}">`;
 const STATUS_BODY =
-  'grid min-h-screen place-content-center gap-3 bg-gray-50 p-6 text-center text-gray-900 leading-body dark:bg-gray-950 dark:text-gray-100';
+  'grid min-h-screen place-content-center gap-3 bg-canvas p-6 text-center text-gray-900 leading-body dark:text-gray-100';
 const STATUS_HEADING = 'text-2xl font-semibold leading-heading';
 
 export function statusPage(

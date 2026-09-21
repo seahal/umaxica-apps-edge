@@ -70,7 +70,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       <head>
         <HeadContent />
       </head>
-      <body className="flex min-h-screen flex-col bg-gray-50 leading-body text-gray-900">
+      <body className="flex min-h-screen flex-col bg-canvas leading-body text-gray-900">
         <ServiceWorkerRegistration />
         <SkipLink label={UI[locale].skipToMain} />
         <SiteHeader locale={locale} pathname={pathname} />
