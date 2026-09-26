@@ -53,7 +53,7 @@ catalog:
   # Its peer range pins wrangler at ^4.127.0, which is what moved the wrangler
   # entry below off ^4.126.0.
   '@cloudflare/vite-plugin': ^1.54.1
-  '@cloudflare/workers-types': ^5.20260827.1
+  '@cloudflare/workers-types': ^5.20260919.1
   # Inter, self-hosted. The CSP is `font-src 'self' data:`, so a CDN is not an
   # option: this package ships the woff2 files and the `@font-face` rules, which
   # Vite fingerprints into the client build like any other asset. All fifteen
