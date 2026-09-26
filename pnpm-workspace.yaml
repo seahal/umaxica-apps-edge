@@ -131,7 +131,7 @@ catalog:
   # it reads (.cspell/project-words.txt) is repository-wide: a unit resolving a
   # different major could disagree about what the config file even means.
   # Astro (unscoped). See '@astrojs/cloudflare' above for the pilot rationale.
-  astro: ^7.2.9
+  astro: ^7.3.3
   cspell: ^10.1.1
   dependency-cruiser: ^18.2.0
   happy-dom: ^20.11.15
