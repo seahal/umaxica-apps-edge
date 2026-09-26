@@ -118,7 +118,7 @@ catalog:
   '@testing-library/react': ^16.3.3
   '@types/node': ^26.4.0
   '@types/react': ^19.2.18
-  '@types/react-dom': ^19.2.5
+  '@types/react-dom': ^19.3.0
   # React Fast Refresh and the JSX transform for the Vite-built units. The five
   # apex Workers do not install it — they render with hono/jsx and have no React
   # at all (docs/design/ui-shell-contract.md §3a).
@@ -148,7 +148,7 @@ catalog:
   oxlint-tsgolint: ^7.0.2001
   react: ^19.2.8
   react-aria-components: ^1.20.0
-  react-dom: ^19.2.8
+  react-dom: ^19.3.0
   # The frontend performance budget runner. See '@size-limit/file' above for why
   # the two move together and why no preset is used.
   size-limit: ^13.0.3
