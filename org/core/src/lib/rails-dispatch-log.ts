@@ -23,13 +23,23 @@
 
 import type { EdgeEnvironment } from './request-log';
 
-/** Distinguishes success, a Rails-authored error, and the three failure modes. */
+/**
+ * Distinguishes success, a Rails-authored error, the three transport failure
+ * modes, and the two refusals Edge answers itself.
+ *
+ * The last two never reached Rails: `request_too_large` is a body over the 8 MiB
+ * ceiling (`rails-body-limit.ts`), `request_invalid_length` a `Content-Length`
+ * Edge would not believe. They are recorded as their own outcomes rather than
+ * folded into `rails_http_error`, which would attribute an Edge refusal to Rails.
+ */
 export type RailsDispatchOutcome =
   | 'rails_ok'
   | 'rails_http_error'
   | 'upstream_unreachable'
   | 'timeout'
-  | 'origin_not_configured';
+  | 'origin_not_configured'
+  | 'request_too_large'
+  | 'request_invalid_length';
 
 export type RailsRouteClass =
   | 'api_v0'
@@ -79,7 +89,9 @@ export interface RailsDispatchLogEntry {
  */
 const ROUTE_CLASS_EXACT = new Map<string, RailsRouteClass>([
   ['/sign/out', 'sign_out'],
+  ['/sign/out/', 'sign_out'],
   ['/sign/out/complete', 'sign_out'],
+  ['/sign/out/complete/', 'sign_out'],
   ['/.well-known/jwks.json', 'jwks'],
   ['/csp-violation-report', 'csp_report'],
   ['/api/v0/health.json', 'other'],

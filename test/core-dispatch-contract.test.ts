@@ -76,9 +76,31 @@ const OWNERSHIP: ReadonlyArray<{ path: string; owner: Ownership; why?: string }>
 
   // --- Rails-owned, exact matched ------------------------------------------
   { path: '/sign/out', owner: 'rails' },
+  {
+    path: '/sign/out/',
+    owner: 'rails',
+    why: 'the trailing-slash logout URL must clear the Rails session, not render a page',
+  },
   { path: '/sign/out/complete', owner: 'rails' },
+  { path: '/sign/out/complete/', owner: 'rails', why: 'as above' },
   { path: '/.well-known/jwks.json', owner: 'rails' },
   { path: '/csp-violation-report', owner: 'rails' },
+
+  // --- The logout allow-list is four literals, never a prefix --------------
+  {
+    path: '/sign/outside',
+    owner: 'next',
+    why: 'a prefix ownership rule would hand this to Rails; the table is exact matches',
+  },
+  { path: '/sign/out/other', owner: 'next', why: 'as above' },
+  { path: '/sign/out/complete/extra', owner: 'next', why: 'as above' },
+  { path: '/sign/in', owner: 'next' },
+  {
+    path: '/.well-known/jwks.json/',
+    owner: 'next',
+    why: 'the canonical URI keeps one spelling; no trailing-slash alias was added',
+  },
+  { path: '/csp-violation-report/', owner: 'next', why: 'as above' },
 
   // --- Intentional Edge overrides of paths Rails also serves ---------------
   {
@@ -141,6 +163,8 @@ describe('route ownership contract', () => {
     // The reason these rows exist. A future reader must not be able to mistake
     // one for a path nobody thought about.
     const overrides = [
+      '/sign/out/',
+      '/sign/outside',
       '/health',
       '/health/startups',
       '/health/liveness.json',

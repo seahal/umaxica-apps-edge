@@ -49,9 +49,20 @@ describe(`${FRAME} classifyCorePath`, () => {
     ['/edge/v0/widgets', 'rails'],
     ['/oidc/callback', 'rails'],
     ['/oidc', 'rails'],
-    // Rails-owned, exact matched.
+    // Rails-owned, exact matched. Logout is listed in both spellings; anything
+    // else under /sign/ is not Rails' and must not become Rails' by prefix.
     ['/sign/out', 'rails'],
+    ['/sign/out/', 'rails'],
     ['/sign/out/complete', 'rails'],
+    ['/sign/out/complete/', 'rails'],
+    ['/sign/outside', 'next'],
+    ['/sign/out/other', 'next'],
+    ['/sign/out/complete/extra', 'next'],
+    ['/sign/out//', 'next'],
+    ['/sign/in', 'next'],
+    // The canonical URIs keep their single spelling: no trailing-slash alias.
+    ['/.well-known/jwks.json/', 'next'],
+    ['/csp-violation-report/', 'next'],
     ['/.well-known/jwks.json', 'rails'],
     ['/csp-violation-report', 'rails'],
     // Intentional Edge overrides of paths Rails also serves.
@@ -123,6 +134,94 @@ describe(`${FRAME} dispatchToRails request construction`, () => {
     expect(url.search).toBe('?limit=10&cursor=abc');
   });
 
+  it('canonicalizes a hostile pile of client identity headers to one validated address', async () => {
+    // The adversarial case: every alias a proxy or a Rails middleware might
+    // honour, all present, all disagreeing. Exactly one of them is Cloudflare's.
+    const fetch = railsReturns(new Response('ok'));
+    const incoming = new Request(`${ORIGIN}/api/v0/x`, {
+      headers: {
+        'cf-connecting-ip': '203.0.113.10',
+        'cf-connecting-ipv6': '2001:db8::bad',
+        'cf-pseudo-ipv4': '192.0.2.1',
+        'client-ip': '13.14.15.16',
+        forwarded: 'for=1.2.3.4;host=evil.example;proto=http',
+        'true-client-ip': '9.10.11.12',
+        'x-client-ip': '17.18.19.20',
+        'x-forwarded-for': '1.2.3.4',
+        'x-real-ip': '5.6.7.8',
+      },
+    });
+
+    await dispatch(incoming, fetch);
+
+    const request = fetch.mock.calls[0]?.[0] as Request;
+    expect(request.headers.get('x-forwarded-for')).toBe('203.0.113.10');
+    for (const spoofed of [
+      'cf-connecting-ip',
+      'cf-connecting-ipv6',
+      'cf-pseudo-ipv4',
+      'client-ip',
+      'forwarded',
+      'true-client-ip',
+      'x-client-ip',
+      'x-real-ip',
+    ]) {
+      expect(request.headers.get(spoofed), `${spoofed} reached Rails`).toBeNull();
+    }
+  });
+
+  it.each([
+    ['IPv4', '203.0.113.10', '203.0.113.10'],
+    ['IPv6', '2001:db8::1', '2001:db8::1'],
+    ['an IPv4-mapped IPv6', '::ffff:203.0.113.10', '::ffff:203.0.113.10'],
+    ['a malformed address', '203.0.113.999', null],
+    ['a comma separated list', '203.0.113.10, 198.51.100.7', null],
+    ['an empty value', '', null],
+    ['an arbitrary string', 'unknown', null],
+  ])('forwards %s as %s', async (_label, header, expected) => {
+    const fetch = railsReturns(new Response('ok'));
+    await dispatch(
+      new Request(`${ORIGIN}/api/v0/x`, { headers: { 'cf-connecting-ip': header } }),
+      fetch,
+    );
+
+    const request = fetch.mock.calls[0]?.[0] as Request;
+    expect(request.headers.get('x-forwarded-for')).toBe(expected);
+  });
+
+  it('asserts no client identity when CF-Connecting-IP is absent, and invents none', async () => {
+    // The existing ingress contract tolerates a missing CF-Connecting-IP — the
+    // rate limiter buckets it per path rather than rejecting it — so this is not
+    // a rejection. It is a refusal to CLAIM an identity: Rails gets no proxy
+    // header at all and falls back to the peer address, rather than being handed
+    // a guessed one it cannot distinguish from a real one.
+    const fetch = railsReturns(new Response('ok'));
+    await dispatch(
+      new Request(`${ORIGIN}/api/v0/x`, { headers: { 'x-forwarded-for': '1.2.3.4' } }),
+      fetch,
+    );
+
+    const request = fetch.mock.calls[0]?.[0] as Request;
+    expect(request.headers.get('x-forwarded-for')).toBeNull();
+    expect(request.headers.get('x-real-ip')).toBeNull();
+  });
+
+  it('replaces rather than appends to an inbound X-Forwarded-For chain', async () => {
+    const fetch = railsReturns(new Response('ok'));
+    await dispatch(
+      new Request(`${ORIGIN}/api/v0/x`, {
+        headers: {
+          'cf-connecting-ip': '203.0.113.10',
+          'x-forwarded-for': '1.2.3.4, 5.6.7.8',
+        },
+      }),
+      fetch,
+    );
+
+    const request = fetch.mock.calls[0]?.[0] as Request;
+    expect(request.headers.get('x-forwarded-for')).toBe('203.0.113.10');
+  });
+
   it('removes attacker-controlled proxy identity headers while preserving application headers', async () => {
     const fetch = railsReturns(new Response('ok'));
     const incoming = new Request(`${ORIGIN}/api/v0/x`, {
@@ -189,6 +288,126 @@ describe(`${FRAME} dispatchToRails request construction`, () => {
     // Readable at the far end, which is what "not buffered here" has to mean.
     await expect(request.json()).resolves.toEqual({ name: 'thing' });
     expect(response.status).toBe(201);
+  });
+});
+
+describe(`${FRAME} dispatchToRails body ceiling`, () => {
+  const MAX = 8 * 1024 * 1024;
+
+  const post = (headers: Record<string, string>, body: BodyInit | null) =>
+    new Request(`${ORIGIN}/api/v0/things`, {
+      method: 'POST',
+      headers,
+      body,
+      duplex: 'half',
+    } as RequestInit);
+
+  /** `size` bytes in 64 KiB chunks — never allocated whole, on either side. */
+  const chunked = (size: number) => {
+    const chunk = new Uint8Array(65_536);
+    let sent = 0;
+    return new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent >= size) {
+          controller.close();
+          return;
+        }
+        const next = Math.min(chunk.byteLength, size - sent);
+        sent += next;
+        controller.enqueue(chunk.subarray(0, next));
+      },
+    });
+  };
+
+  it('answers 413 for a declared Content-Length over 8 MiB, without calling Rails', async () => {
+    const fetch = vi.fn();
+    const response = await dispatch(post({ 'content-length': String(MAX + 1) }, 'x'), fetch);
+
+    expect(response.status).toBe(413);
+    expect(response.headers.get('content-type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    await expect(response.text()).resolves.toBe('Payload Too Large\n');
+    // The point of reading the declared length first: nothing was uploaded and
+    // no Rails invocation was spent.
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([String(MAX - 1), String(MAX)])(
+    'dispatches a declared Content-Length of %s to Rails',
+    async (length) => {
+      const fetch = railsReturns(new Response('ok'));
+      const response = await dispatch(post({ 'content-length': length }, 'x'), fetch);
+
+      expect(response.status).toBe(200);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([
+    ['a negative value', '-1'],
+    ['a non-numeric value', 'eight'],
+    ['a float', '1024.5'],
+  ])('answers 400 for %s rather than proxying it unrestricted', async (_label, length) => {
+    const fetch = vi.fn();
+    const response = await dispatch(post({ 'content-length': length }, 'x'), fetch);
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe('Bad Request\n');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('answers 413 for an undeclared streaming body that crosses the ceiling', async () => {
+    // Rails is reached — the relay is streamed, so the ceiling is only known
+    // once the bytes flow — but it can never complete the request: the body it
+    // is reading is errored, and Edge answers 413 regardless of its reply.
+    const fetch = vi.fn().mockImplementation(async (railsRequest: Request) => {
+      await expect(railsRequest.arrayBuffer()).rejects.toBeInstanceOf(Error);
+      return new Response('rails never saw a whole request', { status: 200 });
+    });
+
+    const response = await dispatch(post({}, chunked(MAX + 65_536)), fetch);
+
+    expect(response.status).toBe(413);
+    await expect(response.text()).resolves.toBe('Payload Too Large\n');
+  });
+
+  it('answers 413 when a body lies about its declared length', async () => {
+    const fetch = vi.fn().mockImplementation(async (railsRequest: Request) => {
+      await expect(railsRequest.arrayBuffer()).rejects.toBeInstanceOf(Error);
+      return new Response('partial', { status: 201 });
+    });
+
+    const response = await dispatch(post({ 'content-length': '10' }, chunked(MAX + 65_536)), fetch);
+
+    expect(response.status).toBe(413);
+  });
+
+  it('refuses an oversized body even when RAILS_ORIGIN is not configured', async () => {
+    // The ceiling must not be conditional on deployment state: an unconfigured
+    // tier answering 503 here would mean "8 MiB" holds only where Rails is wired.
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+
+    const response = await dispatchToRails(
+      post({ 'content-length': String(MAX + 1) }, 'x'),
+      {},
+      true,
+    );
+
+    expect(response.status).toBe(413);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('relays a body at exactly the ceiling in full', async () => {
+    const fetch = vi.fn().mockImplementation(async (railsRequest: Request) => {
+      const received = await railsRequest.arrayBuffer();
+      return new Response(String(received.byteLength), { status: 200 });
+    });
+
+    const response = await dispatch(post({}, chunked(MAX)), fetch);
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toBe(String(MAX));
   });
 });
 

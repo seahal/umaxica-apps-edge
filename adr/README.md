@@ -26,3 +26,4 @@ Current boundary records:
 - [ADR 019](019-edge-parallel-contract-boundaries.md) — Edge boundaries that can ship beside the Rails rewrite
 - [ADR 020](020-wrangler-device-login.md) — Wrangler device login
 - [ADR 021](021-hsts-preload.md) — HSTS with preload
+- [ADR 023](023-rails-proxy-trust-boundary.md) — Edge → Rails proxy trust boundary

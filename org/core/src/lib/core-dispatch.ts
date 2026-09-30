@@ -1,5 +1,5 @@
 /**
- * Shared-FQDN Core dispatch for `jp.umaxica.app`.
+ * Shared-FQDN Core dispatch for `jp.umaxica.org`.
  *
  * This is the browser-facing counterpart to `rails-client.ts` /
  * `rails-health.ts`, which stay untouched server-to-server health-check
@@ -13,6 +13,8 @@
  * runtime invokes for every request — before any application code runs.
  */
 import { withSecurityHeaders } from '../security-headers';
+import { canonicalizeClientIdentity, readClientIp } from './client-ip';
+import { prepareRailsBody } from './rails-body-limit';
 import {
   classifyRailsRouteClass,
   logRailsDispatch,
@@ -58,10 +60,28 @@ export type PathOwnership = 'rails' | 'blocked' | 'next';
 // Prefix match unless noted otherwise.
 const RAILS_OWNED_PREFIXES = ['/api/v0/', '/web/v0/', '/edge/v0/', '/oidc/'];
 
-// Exact match only.
+/*
+ * Exact match only — an allow-list, never a prefix.
+ *
+ * The logout pair is listed in both its bare and its trailing-slash spelling
+ * because a browser reaches either one and both must log the user out. Before
+ * this, `/sign/out/` fell through to the APPLICATION, which renders a page and
+ * cannot clear a Rails session: a user who opened the trailing-slash URL was
+ * shown something plausible while their session cookie survived.
+ *
+ * Deliberately NOT `startsWith('/sign/out')`. That would hand Rails
+ * `/sign/outside`, and every future `/sign/out/<anything>` Rails does not serve,
+ * turning an ownership table into a wildcard. Four literals is the whole fix.
+ *
+ * The other two entries keep their single canonical spelling: no trailing-slash
+ * alias is added for `/.well-known/jwks.json` or `/csp-violation-report`,
+ * because neither is a URL a human types or a browser rewrites.
+ */
 const RAILS_OWNED_EXACT = new Set([
   '/sign/out',
+  '/sign/out/',
   '/sign/out/complete',
+  '/sign/out/complete/',
   '/.well-known/jwks.json',
   '/csp-violation-report',
 ]);
@@ -188,6 +208,36 @@ function isTimeoutError(error: unknown): boolean {
 }
 
 /**
+ * Why a Rails-owned request was refused before it reached Rails. Both are the
+ * request's own fault, so both answer 4xx rather than the 5xx family above.
+ */
+type RailsBodyRefusal = 'too-large' | 'invalid-length';
+
+/**
+ * Edge's own document for a body Edge would not relay.
+ *
+ * `413` for a body over `MAX_RAILS_REQUEST_BODY`, `400` for a `Content-Length`
+ * Edge could not believe. Neither echoes the declared length back, and neither
+ * names Rails: the request never reached it.
+ */
+function railsBodyRefusedResponse(reason: RailsBodyRefusal, isProduction: boolean): Response {
+  const [status, body] =
+    reason === 'too-large' ? [413, 'Payload Too Large\n'] : [400, 'Bad Request\n'];
+
+  return withSecurityHeaders(
+    new Response(body, {
+      status,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Robots-Tag': 'noindex, nofollow',
+      },
+    }),
+    isProduction,
+  );
+}
+
+/**
  * Builds the outbound Rails request for a browser-facing, Rails-owned path.
  *
  * Preserves method, path, query, body (streamed, not buffered), and every
@@ -196,32 +246,40 @@ function isTimeoutError(error: unknown): boolean {
  *
  * The request is built against `RAILS_ORIGIN`, so `Host` is the Rails host.
  * `host` is a forbidden header name under the Fetch standard, so the URL is the
- * only thing that can set it. Client-supplied proxy identity headers
- * (`Forwarded`, `X-Forwarded-*`, `X-Real-IP`) are dropped rather than relayed:
- * they are whatever the browser chose to send.
+ * only thing that can set it.
+ *
+ * Client identity is CANONICALIZED rather than filtered: every caller-supplied
+ * proxy header is removed and a single `X-Forwarded-For` is regenerated from the
+ * validated `CF-Connecting-IP`. See `./client-ip.ts` for why a deny list is the
+ * wrong shape for this. The remaining `x-forwarded-*` sweep covers `-host` and
+ * `-proto`, which are caller-controlled routing hints rather than identity.
  */
 function buildRailsRequest(
   request: Request,
   incomingUrl: URL,
   origin: string,
   requestId: string | undefined,
+  preparedBody: ReadableStream<Uint8Array> | null,
 ): Request {
+  const clientIp = readClientIp(request);
+
   const target = new URL(incomingUrl.pathname + incomingUrl.search, origin);
   const headers = new Headers(request.headers);
   for (const name of [...headers.keys()]) {
-    if (name === 'forwarded' || name === 'x-real-ip' || name.startsWith('x-forwarded-')) {
+    if (name.startsWith('x-forwarded-')) {
       headers.delete(name);
     }
   }
+  canonicalizeClientIdentity(headers, clientIp);
   headers.delete('x-request-id');
   if (requestId !== undefined) headers.set('x-request-id', requestId);
 
-  const hasBody = request.method !== 'GET' && request.method !== 'HEAD' && request.body !== null;
+  const hasBody = request.method !== 'GET' && request.method !== 'HEAD' && preparedBody !== null;
 
   return new Request(target, {
     method: request.method,
     headers,
-    body: request.body,
+    body: hasBody ? preparedBody : null,
     redirect: 'manual',
     // Carried on the Request rather than passed as a second argument to
     // `fetch()`: an init object makes the runtime rebuild the Request, and
@@ -241,6 +299,8 @@ function buildRailsRequest(
  * `Set-Cookie`, body, content-type, cache headers), including a 404, a 405 or a
  * 500 of its own making.
  *
+ * A request body over the `rails-body-limit.ts` ceiling answers 413, before Rails can
+ * complete it; a `Content-Length` Edge cannot believe answers 400.
  * A missing origin or unreachable upstream answers 503; a timeout answers 504.
  * The cases are distinguished in the response and the log. There is exactly
  * one `fetch()` call and no retry loop, for mutations as much as for reads — a
@@ -270,6 +330,27 @@ export async function dispatchToRails(
       ? {}
       : { request_id: requestId, service: 'core' as const, environment, status };
 
+  /*
+   * The body ceiling is answered BEFORE the origin is read, deliberately.
+   *
+   * A body Edge will not relay is refused whatever the tier is configured to do
+   * with it: an unconfigured `RAILS_ORIGIN` must not turn a 413 into a 503 and
+   * so make the ceiling conditional on deployment state. It is also the cheaper
+   * check, and the only one that can stop an upload.
+   */
+  const prepared = prepareRailsBody(request);
+  if (prepared.kind !== 'ok') {
+    const status = prepared.kind === 'too-large' ? 413 : 400;
+    logRailsDispatch({
+      route_class: routeClass,
+      method,
+      outcome: prepared.kind === 'too-large' ? 'request_too_large' : 'request_invalid_length',
+      duration_ms: Date.now() - startedAt,
+      ...logContext(status),
+    });
+    return railsBodyRefusedResponse(prepared.kind, isProduction);
+  }
+
   const railsOrigin =
     typeof env === 'object' && env !== null && 'RAILS_ORIGIN' in env
       ? Reflect.get(env, 'RAILS_ORIGIN')
@@ -286,12 +367,31 @@ export async function dispatchToRails(
     return railsUnavailableResponse('not-configured', isProduction);
   }
 
-  const railsRequest = buildRailsRequest(request, incomingUrl, origin, requestId);
+  const railsRequest = buildRailsRequest(request, incomingUrl, origin, requestId, prepared.body);
+  const bodyState = prepared.state;
+
+  const refuseIfOversized = (): Response => {
+    logRailsDispatch({
+      route_class: routeClass,
+      method,
+      outcome: 'request_too_large',
+      duration_ms: Date.now() - startedAt,
+      ...logContext(413),
+    });
+    return railsBodyRefusedResponse('too-large', isProduction);
+  };
 
   let response: Response;
   try {
     response = await fetch(railsRequest);
   } catch (error) {
+    // The relay stream errors when the ceiling is crossed, and `fetch` rejects
+    // with whatever the runtime wraps that in. The flag, not the error identity,
+    // is what distinguishes an oversized upload from a dead upstream — workerd
+    // and undici do not wrap it the same way.
+    if (bodyState.exceeded) {
+      return refuseIfOversized();
+    }
     logRailsDispatch({
       route_class: routeClass,
       method,
@@ -300,6 +400,14 @@ export async function dispatchToRails(
       ...logContext(isTimeoutError(error) ? 504 : 503),
     });
     return railsUnavailableResponse(isTimeoutError(error) ? 'timeout' : 'upstream', isProduction);
+  }
+
+  if (bodyState.exceeded) {
+    // Rails answered, but it cannot have answered the request the client sent:
+    // the body it received was errored partway through. An oversized request
+    // must never be completed as a normal one, whatever the upstream replied.
+    void response.body?.cancel().catch(() => undefined);
+    return refuseIfOversized();
   }
 
   logRailsDispatch({

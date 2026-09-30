@@ -150,7 +150,9 @@ function isAuthPath(pathname: string): boolean {
     pathname.startsWith('/oidc/') ||
     pathname === '/oidc' ||
     pathname === '/sign/out' ||
-    pathname === '/sign/out/complete'
+    pathname === '/sign/out/' ||
+    pathname === '/sign/out/complete' ||
+    pathname === '/sign/out/complete/'
   );
 }
 
@@ -252,7 +254,9 @@ export default {
               // `dispatchToRails` headers that one itself rather than reporting
               // back which case it took. This branch deliberately skips the
               // ordinary application body limit so Rails mutations remain a
-              // transparent streamed relay.
+              // transparent streamed relay — it is not unbounded: the Rails
+              // relay applies its own 8 MiB ceiling in `rails-body-limit.ts`,
+              // by counting bytes in flight rather than by buffering them.
               return dispatchToRails(request, env, isProduction, requestId);
             }
 

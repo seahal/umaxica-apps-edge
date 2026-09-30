@@ -150,7 +150,9 @@ export function classifyEdgeRoute(pathname: string): EdgeRequestRoute {
     case '/csp-violation-report':
       return 'csp_report';
     case '/sign/out':
+    case '/sign/out/':
     case '/sign/out/complete':
+    case '/sign/out/complete/':
       return 'sign_out';
   }
 
