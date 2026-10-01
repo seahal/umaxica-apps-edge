@@ -12,7 +12,10 @@
 //                     can never be VPC evidence. `next` is the mode's CLI name
 //                     and nothing more.
 //   preview           local workerd, `--env development`. No binding either.
-//   preview:vpc       local workerd, `--env vpc`. The real remote binding.
+//   preview:vpc       each cell's `dev:vpc` (`vite dev` on the `vpc` tier),
+//                     in workerd. The real remote binding. The mode keeps its
+//                     old name; the unit script `preview:vpc` was replaced by
+//                     `dev:vpc` in the TanStack Start migration.
 //   vpc (this tool)   the binding alone, with no application code in the way.
 //
 // `/health`'s Rails half in the dev server can prove only the explicitly enabled
@@ -57,8 +60,8 @@ const ALL_MODES = ['config', 'vpc', 'next', 'preview', 'preview:vpc'];
 
 const LOG_DIR = join(repoRoot, 'tmp/connectivity-check');
 const PROBE_PORT = Number(process.env.VPC_PROBE_PORT ?? 8799);
-// wrangler's default port, kept as the base because `preview:vpc` runs on it
-// unmodified; every parallel `preview` gets an explicit `--port` above it.
+// Base port for the parallel `preview` batches; each gets an explicit `--port`
+// above it. `preview:vpc` instead listens on the port its `dev:vpc` script names.
 const PREVIEW_PORT = 8787;
 
 // ---------------------------------------------------------------------------
@@ -1390,7 +1393,7 @@ async function runNextBatch(report, surfaces) {
 // ---------------------------------------------------------------------------
 
 async function modePreview(report, surfaces, { withVpc }) {
-  const script = withVpc ? 'preview:vpc' : 'preview';
+  const script = withVpc ? 'dev:vpc' : 'preview';
   const gate = withVpc ? 'Preview → Rails VPC' : 'workerd preview';
 
   if (withVpc) {
@@ -1403,7 +1406,7 @@ async function modePreview(report, surfaces, { withVpc }) {
     }
   }
 
-  // `preview:vpc` is strictly sequential on the default port. ADR 006 is explicit
+  // `preview:vpc` is strictly sequential. ADR 006 is explicit
   // that fifteen concurrent remote-proxy sessions against Cloudflare is exactly
   // what not to do, so this is a deliberate cost, not an oversight.
   //
@@ -1419,7 +1422,9 @@ async function modePreview(report, surfaces, { withVpc }) {
           script,
           gate,
           withVpc,
-          port: withVpc ? PREVIEW_PORT : PREVIEW_PORT + 1 + index,
+          // `dev:vpc` hardcodes `--port` to the unit's dev port (the same
+          // number `loadSurfaces` reads from `dev`), so that is where it listens.
+          port: withVpc ? surface.port : PREVIEW_PORT + 1 + index,
           // wrangler's inspector defaults to 9229 for every instance, so varying
           // only --port still collides the moment two run at once: the second
           // dies with `Address already in use (127.0.0.1:9229)`.
@@ -1468,7 +1473,12 @@ async function runPreviewSurface(report, surface, { script, gate, withVpc, port,
         return;
       }
 
-      report.record('bundler build', surface.key, PASS, 'built and started on workerd');
+      report.record(
+        'bundler build',
+        surface.key,
+        withVpc ? SKIP : PASS,
+        withVpc ? '`vite dev` serves unbundled; no build' : 'built and started on workerd',
+      );
 
       const { readiness, status } = await checkHttpSurface(
         report,
@@ -1539,8 +1549,9 @@ async function modeHost(report, surfaces) {
 
   report.note(
     SKIP,
-    `preview/preview:vpc bind loopback inside the container, so ${PREVIEW_PORT} is not reachable from the host ` +
-      'unless wrangler is given --ip 0.0.0.0. That is expected, not a failure.',
+    `preview binds loopback inside the container, so ${PREVIEW_PORT} is not reachable from the host ` +
+      'unless wrangler is given --ip 0.0.0.0. That is expected, not a failure. ' +
+      '`dev:vpc` binds --host on the forwarded dev port.',
   );
 }
 
@@ -1559,9 +1570,7 @@ export function buildLinkIndex(surfaces = loadSurfaces()) {
     ].map((u) => ({ ...u, href: `http://localhost:${surface.port}${u.path}` })),
     // Same port on purpose: it is already forwarded by the devcontainer, so the
     // VPC-connected app appears at the URL the developer already has open.
-    vpcCommand:
-      `CLOUDFLARE_API_TOKEN= pnpm --filter ${surface.pkgName} run preview:vpc ` +
-      `-- --ip 0.0.0.0 --port ${surface.port}`,
+    vpcCommand: `CLOUDFLARE_API_TOKEN= pnpm --filter ${surface.pkgName} run dev:vpc`,
   }));
 }
 

@@ -33,9 +33,11 @@ The first pass started three cells that did not come up. None of these were VPC 
 
 After the fixes, the re-run passed for all three.
 
-## Not checked / found
+## `pnpm run check:preview:vpc`
 
-- `pnpm run check:preview:vpc` fails before it reaches the network:
-  `ERR_PNPM_RECURSIVE_RUN_NO_SCRIPT`. It invokes a `preview:vpc` script that no unit
-  has had since the TanStack Start migration (5a016e10); `dev:vpc` replaced it.
-  The checker was not changed.
+At first the checker failed before reaching the network
+(`ERR_PNPM_RECURSIVE_RUN_NO_SCRIPT`). It invoked a unit `preview:vpc` script that
+was replaced by `dev:vpc` in the TanStack Start migration (5a016e10). The mode now
+runs `dev:vpc` on each cell's own dev port, sequentially. Re-run result: exit 0. All 12
+cells show `ok` for `/health`, `/` and Preview → Rails VPC. The build gate is `skip`
+(`vite dev` does not bundle). No workerd process was left afterwards.

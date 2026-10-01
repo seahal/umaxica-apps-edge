@@ -245,7 +245,7 @@ const VPC_POLICY = [
     serviceId: (m) => m.vpcProductionServiceId,
   },
   {
-    // `pnpm preview:vpc` — local workerd against the real development Service.
+    // `pnpm dev:vpc` — local workerd against the real development Service.
     label: 'env.vpc',
     read: (config) => config.env?.vpc?.vpc_services,
     required: true,
