@@ -44,3 +44,20 @@ module scope (`react(purity)`); a spelling-flagged mermaid node id renamed in
   classifier (it changes live production counters). Needs an explicit owner decision.
 - No Cloudflare account state was read or changed. The apex hostnames are **not**
   confirmed freed. See ADR 024 "External state".
+
+## External Cloudflare observation (read-only, 2026-10-01)
+
+The operator reports the Tunnel Public Hostnames now route
+`umaxica.{app,com,org}` to `http://xper.{app,com,org}.localhost:3000`. That was not
+verified from this session: `wrangler whoami` says it is not authenticated, so no
+account object was read.
+
+Unauthenticated HTTPS probe, `curl -sI https://umaxica.<tld>/` and `/health.json`:
+all three return `HTTP/2 502`, `server: cloudflare`, body `error code: 502`
+(cf-ray `a43acdcae917f526-NRT`, `a43acdcbed81db13-NRT`, `a43acdccf99bd4a2-NRT`).
+DNS resolves to Cloudflare anycast (`2606:4700:…`).
+
+Reading: no response came from the retired Hono apex (it would answer 301 or 200
+with `service=`). No Access login 302 was returned. This matches a Tunnel route to
+an origin that is not running. An HTTP probe cannot prove that no Worker Custom
+Domain/Route or Access application object exists in the account.
