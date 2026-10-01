@@ -61,3 +61,22 @@ Reading: no response came from the retired Hono apex (it would answer 301 or 200
 with `service=`). No Access login 302 was returned. This matches a Tunnel route to
 an origin that is not running. An HTTP probe cannot prove that no Worker Custom
 Domain/Route or Access application object exists in the account.
+
+## Cloudflare account read (2026-10-01, after `wrangler login --device`)
+
+Account `UMAXICA` (c90999d8…). These were read-only API GETs with the wrangler OAuth token:
+
+- `GET /accounts/{id}/workers/scripts`: success, 19 scripts. Apex scripts present:
+  `umaxica-apps-edge-dev-apex` and `umaxica-apps-edge-net-apex` only. No
+  `umaxica-apps-edge-{app,com,org}-apex*` script exists, so there is nothing to clean up.
+- `GET /accounts/{id}/workers/domains`: success, 1 custom domain in the account. None is
+  `umaxica.{app,com,org}` and none targets an app/com/org apex service.
+- `GET /zones/{zone}/workers/routes` for the umaxica.app, umaxica.com and umaxica.org zones:
+  success, 0 routes each.
+- `GET /accounts/{id}/access/apps`: success, 0 applications (total_count 0). The
+  token's listed scopes do not include an explicit Access scope. The empty list is
+  consistent with the unauthenticated probe (no Access 302 on any apex).
+
+Verdict: no Worker hostname binding and no Access application owns
+`umaxica.{app,com,org}`. The Tunnel Public Hostnames route them to the Experience
+origin (`xper.<tld>.localhost:3000`), as reported by the operator.

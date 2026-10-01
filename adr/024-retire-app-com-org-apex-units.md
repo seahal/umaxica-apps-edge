@@ -1,6 +1,6 @@
 # ADR 024: Retire the app/com/org apex deployment units
 
-## Status: Accepted 2026-10-01 — code cutover done; external Cloudflare cutover pending
+## Status: Accepted 2026-10-01 — code and Cloudflare cutover done
 
 ## Context
 
@@ -74,5 +74,13 @@ external Cloudflare cutover pending".
 
 ## Outcome
 
-Code cutover implemented 2026-10-01. External Cloudflare cutover not performed by
-this change. See `evidence/2026-10-01-app-com-org-apex-retirement.md`.
+Code cutover implemented 2026-10-01. External cutover verified the same day:
+
+- the Tunnel Public Hostnames route the three apexes to the Experience origin
+  (operator-reported);
+- the account has no `umaxica-apps-edge-{app,com,org}-apex` Worker script;
+- no Custom Domain or zone route binds the apexes;
+- no Access application covers them.
+
+See `evidence/2026-10-01-app-com-org-apex-retirement.md`. The leftover service
+worker (above) remains a Phase 1 requirement.
