@@ -48,14 +48,11 @@ are unchanged.
 
 ## Service worker
 
-The retired apexes registered a service worker with scope `/`. A browser that
-installed it keeps it after the origin stops serving it, and that scope will
-cover the future Experience origin, including `/api/v0/experience`. Deleting the
-source here stops new installs. It does not unregister existing ones. The first
-Experience deployment on each apex must handle the leftover worker, for example
-by serving a replacement `sw.js` that unregisters itself, or by sending
-`Clear-Site-Data: "storage"` from a navigation response. That is a Phase 1
-requirement.
+The retired apexes contained a service worker with scope `/`. Per the operator,
+those apexes were never deployed to real users, so no browser holds that worker
+and Experience needs no unregister step. If that turns out to be wrong, the fix is
+for Experience to serve a self-unregistering `sw.js` or send
+`Clear-Site-Data: "storage"`.
 
 ## External state — not changed by this record
 
@@ -82,5 +79,4 @@ Code cutover implemented 2026-10-01. External cutover verified the same day:
 - no Custom Domain or zone route binds the apexes;
 - no Access application covers them.
 
-See `evidence/2026-10-01-app-com-org-apex-retirement.md`. The leftover service
-worker (above) remains a Phase 1 requirement.
+See `evidence/2026-10-01-app-com-org-apex-retirement.md`.
