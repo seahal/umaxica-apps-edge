@@ -13,7 +13,7 @@ what all of them are supposed to do and why.
 
 "Each unit's own test" is not one file name. The fifteen TanStack Start frames
 assert this contract in `test/ui-shell-contract.test.tsx`, by driving a real
-router and asserting on the document it emits; the five apex Workers assert it in
+router and asserting on the document it emits; the two apex Workers (`dev/apex`, `net/apex`) assert it in
 `api/ui-shell-contract.hurl`, by XPath over a real response. Both make the same assertions — landmarks, document
 order, accessible names, which destinations are reachable, and no CSS class in
 sight — and neither is the archetype cutting a corner.
@@ -371,7 +371,7 @@ origin literals that do exist in-repo are:
 | --------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | core, satellite | `src/lib/canonical.ts` `CANONICAL_ORIGIN`, used by the sitemap and robots routes | `https://jp.umaxica.app`, `https://docs-jp.umaxica.app` |
 | core also       | `src/lib/core-dispatch.ts` `PUBLIC_CORE_HOST`                                    | `jp.umaxica.app`                                        |
-| apex            | `src/page-content.tsx` `ABOUT_CANONICAL_URL`; `src/root-redirect.ts` `SITE_URL`  | `https://umaxica.app`                                   |
+| apex            | `src/page-content.tsx` `ABOUT_CANONICAL_URL`                                     | `https://umaxica.net/about`                             |
 
 Never derive the origin from a folder name. There is no origin resolver — the
 literal is simply repeated two or three times per unit, which is itself a drift

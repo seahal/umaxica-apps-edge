@@ -1,5 +1,11 @@
 # Cloudflare Tunnel development exposure
 
+> **2026-10-01 — app/com/org apex retired.** `app/apex`, `com/apex` and `org/apex` are no longer
+> deployment units ([ADR 024](../../adr/024-retire-app-com-org-apex-units.md)). Rows and run logs
+> below that mention them, or `umaxica.{app,com,org}` → `core:5401/5101/5301`, are historical
+> measurements. Edge no longer owns those apex hostnames; the remaining Edge apexes are `net/apex`
+> and `dev/apex`.
+
 ## Purpose
 
 Make the local Edge development environment — the Hono apex workers and the content frames
@@ -186,10 +192,7 @@ script. Path is the whole host in every case.
 
 | Application | Runtime  | External FQDN         | Local origin       | Port | Path | Status                     |
 | ----------- | -------- | --------------------- | ------------------ | ---- | ---- | -------------------------- |
-| `app/apex`  | Hono     | `umaxica.app`         | `http://core:5401` | 5401 | `/`  | replaces production Worker |
-| `com/apex`  | Hono     | `umaxica.com`         | `http://core:5101` | 5101 | `/`  | replaces production Worker |
 | `net/apex`  | Hono     | `umaxica.net`         | `http://core:5201` | 5201 | `/`  | replaces production Worker |
-| `org/apex`  | Hono     | `umaxica.org`         | `http://core:5301` | 5301 | `/`  | replaces production Worker |
 | `app/info`  | TanStack | `info.umaxica.app`    | `http://core:5403` | 5403 | `/`  | new hostname               |
 | `com/info`  | TanStack | `info.umaxica.com`    | `http://core:5103` | 5103 | `/`  | new hostname               |
 | `org/info`  | TanStack | `info.umaxica.org`    | `http://core:5303` | 5303 | `/`  | new hostname               |

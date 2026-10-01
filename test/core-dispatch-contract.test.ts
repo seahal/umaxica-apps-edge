@@ -331,7 +331,7 @@ describe("Edge's own health does not depend on Rails being up", () => {
     // Already asserted in test/rails-connection-invariants.test.ts; restated here
     // only as the boundary of the merge. The apexes own the root domain and a
     // Rails outage must not reach them.
-    for (const workspace of ['app/apex', 'com/apex', 'net/apex', 'org/apex']) {
+    for (const workspace of ['net/apex']) {
       expect(read(`${workspace}/wrangler.jsonc`)).not.toContain('UMAXICA_APPS_EDGE_CF_WORKERS_VPC');
     }
   });

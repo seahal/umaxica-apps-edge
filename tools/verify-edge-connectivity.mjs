@@ -141,8 +141,9 @@ export function loadSurfaces(manifest = loadManifest()) {
 }
 
 /**
- * The sixteen surfaces published through the Rails-shared Cloudflare Tunnel:
- * the four Hono apex workers plus the twelve non-core content frames.
+ * The thirteen surfaces published through the Rails-shared Cloudflare Tunnel:
+ * the `net/apex` Hono worker plus the twelve non-core content frames. The
+ * app/com/org apex workers were retired by ADR 024 and are not surfaces.
  *
  * The `core` frames are excluded deliberately, not incidentally. `jp.umaxica.{app,com,org}`
  * is a shared FQDN where Rails owns some paths and the frame the rest, so it needs
@@ -2178,11 +2179,11 @@ export async function main(argv = process.argv.slice(2)) {
   }
 
   const manifest = loadManifest();
-  // `tunnel` measures a different surface set: the four apex workers plus the
+  // `tunnel` measures a different surface set: the standalone apex workers plus the
   // twelve non-core frames, with `*/core` excluded. Every other mode is about the
   // fifteen Rails-backed frames.
   //
-  // `tunnel:apex` narrows that to the four Hono apexes. They are worth their own
+  // `tunnel:apex` narrows that to the Hono apexes. They are worth their own
   // mode because they are the only surfaces whose brand is verifiable from the
   // response, which makes them the right place to prove the ingress and the
   // Access policy before the twelve look-alike content frames follow.

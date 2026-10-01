@@ -1,5 +1,7 @@
 # ADR 022: Rate-limit namespaces are per FQDN, with a region suffix
 
+> Superseded for app/com/org apex only by [ADR 024](024-retire-app-com-org-apex-units.md). The record below is unchanged history.
+
 ## Status
 
 Accepted and implemented — 2026-09-21.

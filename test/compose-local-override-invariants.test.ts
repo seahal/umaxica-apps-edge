@@ -106,7 +106,7 @@ describe('optional local Compose override', () => {
     const core = /^ {2}core:\n((?: {4}.*\n|\n)*)/mu.exec(composeDevcontainer)?.[1] ?? '';
     expect(core).not.toBe('');
     expect(core).toContain('label=disable');
-    // The twenty dev servers are the same image on the same bind, so they need the
+    // The seventeen dev servers are the same image on the same bind, so they need the
     // same opt-out; they share it through the `*unit` anchor.
     expect(composeBase).toContain('label=disable');
     expect(directives(composeBase)).not.toMatch(/:\s*[zZ]\b/u);

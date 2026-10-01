@@ -1,6 +1,6 @@
 # Security Policy
 
-This is the edge layer of Umaxica: a public, Apache-2.0 monorepo of twenty
+This is the edge layer of Umaxica: a public, Apache-2.0 monorepo of seventeen
 Cloudflare Workers. The Rails application behind it lives in a different
 repository and is not covered by this policy.
 
@@ -20,7 +20,7 @@ there.
 
 A report is easiest to act on when it names:
 
-- the deployment unit (`app/core`, `com/apex`, …) or the hostname involved,
+- the deployment unit (`app/core`, `net/apex`, …) or the hostname involved,
 - the commit SHA you tested, or `main`,
 - what you did, what happened, and what an attacker gets out of it,
 - whether you have disclosed it anywhere else, or intend to.
@@ -50,7 +50,7 @@ ships. `develop` is the working branch and carries no security guarantee.
 
 ## Scope
 
-In scope: the twenty deployment units listed in `pnpm-workspace.yaml` (see the
+In scope: the seventeen deployment units listed in `pnpm-workspace.yaml` (see the
 workspace table in `README.md`) and their production hostnames under
 `umaxica.com`, `umaxica.app`, `umaxica.org`, `umaxica.net`, and `umaxica.dev`.
 
@@ -89,7 +89,7 @@ Worth knowing before you report, because these are deliberate:
   `default-src 'self'` CSP (`object-src 'none'`, `frame-ancestors 'none'`),
   HSTS with `preload`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`,
   `X-Content-Type-Options: nosniff`, and a deny-all `Permissions-Policy`. See
-  `app/apex/public/_headers`.
+  `net/apex/public/_headers`.
 - **Cookie boundary.** `*/core/src/worker.ts` strips every `Set-Cookie` from
   frame responses; Rails is the only preference-cookie writer. Rails-owned
   passthrough preserves Rails cookies, while apex and TanStack code only reads

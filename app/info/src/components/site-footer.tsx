@@ -12,6 +12,10 @@ import { aboutPath } from '../lib/publishing-routes';
  * is no privacy or terms route in this repository, so neither is linked — a
  * plausible dead link is worse than a missing one.
  */
+// Read once per isolate, not per render: react(purity) forbids impure calls in
+// render, and the copyright year does not need request-time precision.
+const COPYRIGHT_YEAR = new Date().getUTCFullYear();
+
 export function SiteFooter({ locale }: Readonly<{ locale: Locale }>) {
   const t = UI[locale];
   const homeUrl = `${CANONICAL_ORIGIN}/`;
@@ -30,7 +34,7 @@ export function SiteFooter({ locale }: Readonly<{ locale: Locale }>) {
         </a>
       </nav>
       <p className="mx-auto flex w-full max-w-7xl flex-wrap justify-between gap-2 px-4 text-sm text-gray-600 wide:px-8">
-        <span>© {new Date().getUTCFullYear()} UMAXICA</span>
+        <span>© {COPYRIGHT_YEAR} UMAXICA</span>
         <a className="text-brand" href={homeUrl}>
           {homeUrl}
         </a>

@@ -1,5 +1,7 @@
 # UMAXICA Edge HTML 面の視覚アイデンティティ行列
 
+> **2026-10-01:** `app/apex`・`com/apex`・`org/apex` は [ADR 024](../../adr/024-retire-app-com-org-apex-units.md) で退役した。本書の apex 記述は `net/apex`・`dev/apex` のみを指す。
+
 | 項目           | 値                                                         |
 | -------------- | ---------------------------------------------------------- |
 | 文書           | 提案書（視覚デザインのみ。CSS / マークアップは実装しない） |
@@ -78,11 +80,11 @@
 | core × 3       | `{app,com,org}/core/src/globals.css`                | 85 行付近。dark オーバーライド無し |
 | apex × 5       | `{app,com,org,net,dev}/apex/src/style.css`          | 100 行付近。dark 時のみ `#93c5fd`  |
 
-`diff -q` で `app/docs/src/style.css` と `com` / `org` の同名ファイル、`app/core/src/globals.css` と `com` / `org`、`app/apex/src/style.css` と他 4 apex は **差が無い**。TLD 差は次のリテラルに閉じている。
+`diff -q` で `app/docs/src/style.css` と `com` / `org` の同名ファイル、`app/core/src/globals.css` と `com` / `org`、`net/apex/src/style.css` と `dev/apex` は **差が無い**。TLD 差は次のリテラルに閉じている。
 
 - satellite: [`src/lib/publishing-cell.ts`](app/docs/src/lib/publishing-cell.ts) の `PUBLISHING_AUDIENCE`、`BRAND_TITLE`（例 `UMAXICA (APP)`）、`CANONICAL_ORIGINS`
 - core: [`src/lib/title.ts`](app/core/src/lib/title.ts) の `BRAND_TITLE`、[`src/components/site-footer.tsx`](app/core/src/components/site-footer.tsx) の `CANONICAL_HOME_URL`
-- apex: [`src/brand.ts`](app/apex/src/brand.ts) の `BRAND_TLD`、[`src/shell.tsx`](app/apex/src/shell.tsx) の `CANONICAL_HOME_URL`、[`src/page-content.tsx`](app/apex/src/page-content.tsx) の origin 文
+- apex: [`src/brand.ts`](net/apex/src/brand.ts) の `BRAND_TLD`、[`src/shell.tsx`](net/apex/src/shell.tsx) の `CANONICAL_HOME_URL`、[`src/page-content.tsx`](net/apex/src/page-content.tsx) の origin 文
 
 契約 §1 の「アーキタイプ内は TLD リテラル以外 byte-identical」は、視覚ソースについては成立している。それが問題である。
 
@@ -94,7 +96,7 @@
 | ------------ | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | core         | `text-2xl leading-heading font-semibold tracking-tight`（[`page-heading.tsx`](app/core/src/components/page-heading.tsx)） | サイドバー `<nav id="main-navigation">`（[`app-chrome.tsx`](app/core/src/components/app-chrome.tsx)） | 3 unit 同一                                                                                   |
 | satellite    | `text-4xl … wide:text-5xl`（[`page-hero.tsx`](app/docs/src/components/page-hero.tsx)）                                    | ヘッダー内 Home / Entries / Search                                                                    | 12 unit、`page-hero.tsx` / `site-header.tsx` / `entry-collection.tsx` は相互に byte-identical |
-| apex         | `text-3xl`（[`page-content.tsx`](app/apex/src/page-content.tsx) `PageTitle`）                                             | 無し（ディレクトリ行のみ）                                                                            | 5 unit。`net` / `dev` だけ `/` にディレクトリ本文                                             |
+| apex         | `text-3xl`（[`page-content.tsx`](net/apex/src/page-content.tsx) `PageTitle`）                                             | 無し（ディレクトリ行のみ）                                                                            | 2 unit（`net` / `dev`）。`/` にディレクトリ本文                                               |
 
 satellite のリンクは一覧・詳細・ヒーロー CTA で `underline`、フッター utility は `text-brand` で下線無し。Docs / Help / Info / News の視覚差は **ゼロ**。差は `siteCopy` の文字列だけ（例 ja: `UMAXICA ドキュメント` / `UMAXICA ヘルプ` / `UMAXICA インフォメーション`、product は `Docs` / `Help` / `Info` / `News`）。
 
@@ -140,11 +142,11 @@ satellite のリンクは一覧・詳細・ヒーロー CTA で `underline`、�
 
 **確認: 大筋正しい。契約 §9a の「frame は Cookie を剥がす」は satellite には当てはまらない。**
 
-- apex: [`src/theme.ts`](app/apex/src/theme.ts) が `theme` cookie を読み、[`src/style.css`](app/apex/src/style.css) が `@custom-variant dark` を `data-theme` ∪ `prefers-color-scheme` で定義。`--color-brand` を dark で `#93c5fd` に差し替える。`color-scheme: light dark`。本文は `dark:bg-gray-950`。
+- apex: [`src/theme.ts`](net/apex/src/theme.ts) が `theme` cookie を読み、[`src/style.css`](net/apex/src/style.css) が `@custom-variant dark` を `data-theme` ∪ `prefers-color-scheme` で定義。`--color-brand` を dark で `#93c5fd` に差し替える。`color-scheme: light dark`。本文は `dark:bg-gray-950`。
 - 15 frame: `dark:` ユーティリティは **0 件**。`<html>` に `data-theme` 無し。[`app/core/src/routes/__root.tsx`](app/core/src/routes/__root.tsx) / [`app/docs/src/routes/__root.tsx`](app/docs/src/routes/__root.tsx) は `bg-gray-50 text-gray-900` のみ。
 - Cookie 剥離は **core の application-owned パスだけ**。[`{app,com,org}/core/src/worker.ts`](app/core/src/worker.ts) `stripApplicationCookie`。ADR 007 の対象は共有 FQDN の Core。satellite の [`request-handler.ts`](app/docs/src/request-handler.ts) は Cookie を剥がさない。[`docs/development/browser-cookie-access.md`](docs/development/browser-cookie-access.md) も Core に限定して書いている。
 - どの unit も theme cookie を **書いていない**。apex の cookie 分岐は今日、実効的に OS 追従だけ。
-- apex [`src/theme.ts`](app/apex/src/theme.ts) も契約 §9a と同じ一般化（「each frame’s `src/worker.ts` strips Cookie」）をコメントしている。コードは core だけ。キャンバス PR（apex を触るとき）でコメントを直す。
+- apex [`src/theme.ts`](net/apex/src/theme.ts) も契約 §9a と同じ一般化（「each frame’s `src/worker.ts` strips Cookie」）をコメントしている。コードは core だけ。キャンバス PR（apex を触るとき）でコメントを直す。
 
 契約 §9a の「A frame never sees the cookie: its `src/worker.ts` strips…」は core を 15 frame に一般化しすぎている。**いま既に真な訂正**として PR 1 で契約だけ直す（実装は変わらない）。
 
@@ -160,7 +162,7 @@ satellite のリンクは一覧・詳細・ヒーロー CTA で `underline`、�
 ### 補足（検証時に見つかった関連事実）
 
 - ロゴ SVG は in-tree に無い。ブランドはテキスト `UMAXICA`。新造しない。
-- apex は webfont 無し（システム日本語スタック）。frame は `@fontsource-variable/inter` + 日本語システムフォールバック。CSP は frame が `font-src 'self' data:`（[`security-headers.ts`](app/docs/src/security-headers.ts)）、apex も `fontSrc: ["'self'", 'data:']`（[`apex/src/security-headers.ts`](app/apex/src/security-headers.ts)）。CDN フォントは不可。
+- apex は webfont 無し（システム日本語スタック）。frame は `@fontsource-variable/inter` + 日本語システムフォールバック。CSP は frame が `font-src 'self' data:`（[`security-headers.ts`](app/docs/src/security-headers.ts)）、apex も `fontSrc: ["'self'", 'data:']`（[`apex/src/security-headers.ts`](net/apex/src/security-headers.ts)）。CDN フォントは不可。
 - apex の `@media` は `prefers-color-scheme` のみ。`wide:` は `@theme` にあるが markup では未使用。第二 breakpoint は追加しない。
 - `net` / `dev` は apex のみ。`/` がディレクトリ文書（`app` / `com` / `org` の `/` は 301）。行列の空欄はプレースホルダページで埋めない。
 
@@ -321,7 +323,7 @@ flowchart TB
   subgraph chrome ["Chrome（幅キャリア max-w-7xl px-4 wide:px-8）"]
     SKIP["SkipLink"]
     HDR["header: brand + optional mark + optional in-header nav"]
-    NAVC["core only: sibling nav sidebar"]
+    SIDENAV["core only: sibling nav sidebar"]
     FTR["footer: utility nav + identity"]
   end
   subgraph body ["main#main-content"]
@@ -329,9 +331,9 @@ flowchart TB
     LIST["publishing list/detail/search on same carrier"]
   end
   SKIP --> HDR
-  HDR --> NAVC
+  HDR --> SIDENAV
   HDR --> HERO
-  NAVC --> HERO
+  SIDENAV --> HERO
   HERO --> LIST
   LIST --> FTR
 ```
@@ -500,7 +502,7 @@ utility `text-sm text-brand min-h-11`、identity `text-sm text-gray-600`。幅�
 
 ### Apex directory
 
-[`DomainList`](app/apex/src/page-content.tsx) の行ホバー `hover:bg-white dark:hover:bg-gray-900`、ホスト `font-mono text-brand` は維持。`net` / `dev` の `/` と `/about` の役割分担は触らない。
+[`DomainList`](net/apex/src/page-content.tsx) の行ホバー `hover:bg-white dark:hover:bg-gray-900`、ホスト `font-mono text-brand` は維持。`net` / `dev` の `/` と `/about` の役割分担は触らない。
 
 ### Failure documents
 
@@ -647,7 +649,7 @@ apex `api/ui-shell-contract.hurl` は「header 内にメインナビが無い」
 
 既存:
 
-- apex: `@hono/structured-logger`（[`structured-logger.ts`](app/apex/src/structured-logger.ts)）
+- apex: `@hono/structured-logger`（[`structured-logger.ts`](net/apex/src/structured-logger.ts)）
 - frame: [`request-log.ts`](app/docs/src/lib/request-log.ts) / core の同名
 - core → Rails: [`rails-dispatch-log.ts`](app/core/src/lib/rails-dispatch-log.ts)（閉じた union。path/cookie/body 無し）
 

@@ -32,7 +32,7 @@ function trackedUnder(prefix: string): string[] {
 
 /**
  * Every compose file this repository tracks. `compose.yaml` carries the shared
- * services and, behind the `app` profile, the twenty dev servers;
+ * services and, behind the `app` profile, the seventeen dev servers;
  * `.devcontainer/compose.yaml` carries `core`, the workspace container, which
  * lives there so a bare `podman compose up` does not start it. Between them they
  * hold the SELinux relabel opt-out and the forwarded `GH_TOKEN`.

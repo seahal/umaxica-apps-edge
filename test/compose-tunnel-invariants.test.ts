@@ -105,7 +105,7 @@ describe('Edge-owned tunnel connector', () => {
 
   it('defines one hardened connector without a cross-project network', () => {
     // `core` is the only service in the Dev Container's file, and the connector is
-    // the only service in `compose.yaml` without a profile -- the twenty dev
+    // the only service in `compose.yaml` without a profile -- the seventeen dev
     // servers all sit behind `profiles: [app]`, so a bare `podman compose up`
     // starts the connector and nothing else.
     const namesIn = (text: string): string[] => {

@@ -16,7 +16,7 @@ const code = (relativePath: string) =>
     .replace(/\/\*[\s\S]*?\*\//gu, '')
     .replace(/\/\/.*$/gmu, '');
 
-const APEX = ['app/apex', 'com/apex', 'org/apex', 'net/apex', 'dev/apex'] as const;
+const APEX = ['net/apex', 'dev/apex'] as const;
 const CORES = ['app/core', 'com/core', 'org/core'] as const;
 const SATELLITES = (['app', 'com', 'org'] as const).flatMap((brand) =>
   (['docs', 'help', 'info', 'news'] as const).map((frame) => `${brand}/${frame}`),
@@ -63,7 +63,7 @@ describe('Edge self-health API layout', () => {
     expect(source).toContain('jsonpath "$.revision" not exists');
   });
 
-  it('keeps Hurl contracts byte-identical across all twenty units', () => {
+  it('keeps Hurl contracts byte-identical across all seventeen units', () => {
     const digests = new Set(
       [...APEX, ...CORES, ...SATELLITES].map((workspace) =>
         read(`${workspace}/api/health-api.hurl`),

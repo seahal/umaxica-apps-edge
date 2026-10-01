@@ -121,7 +121,6 @@ app/core USA = 540501
 ## Production RATE_LIMITER allocation
 
 ```text
-com/apex  = 510100
 com/info  = 510300
 com/core  = 510581
 com/docs  = 510600
@@ -131,14 +130,12 @@ com/help  = 510800
 net/apex  = 520100
 net/jump  = 520900
 
-org/apex  = 530100
 org/info  = 530300
 org/core  = 530581
 org/docs  = 530600
 org/news  = 530700
 org/help  = 530800
 
-app/apex  = 540100
 app/info  = 540300
 app/core  = 540581
 app/docs  = 540600
@@ -147,6 +144,12 @@ app/help  = 540800
 
 dev/apex  = 550100
 ```
+
+`510100`, `530100` and `540100` belonged to `com/apex`, `org/apex` and
+`app/apex`, retired by
+[`adr/024-retire-app-com-org-apex-units.md`](../../adr/024-retire-app-com-org-apex-units.md).
+They are retired, not free: do not reassign them, so a counter that may still
+exist in the account is never shared with a new surface.
 
 Budgets are unchanged by this allocation:
 

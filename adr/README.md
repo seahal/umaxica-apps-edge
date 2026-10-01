@@ -27,3 +27,4 @@ Current boundary records:
 - [ADR 020](020-wrangler-device-login.md) — Wrangler device login
 - [ADR 021](021-hsts-preload.md) — HSTS with preload
 - [ADR 023](023-rails-proxy-trust-boundary.md) — Edge → Rails proxy trust boundary
+- [ADR 024](024-retire-app-com-org-apex-units.md) — app/com/org apex deployment units retired; apex ownership vacated for Experience

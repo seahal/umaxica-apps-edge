@@ -407,14 +407,14 @@ describe('rate limited 429 documents', () => {
   });
 
   /*
-   * The five apex Workers. Their 429 was a bare `Response('Too Many Requests')`
+   * The two remaining apex Workers (app/com/org retired by ADR 024). Their 429 was a bare `Response('Too Many Requests')`
    * — untitled, no `Content-Type`, no `Cache-Control` — while every frame beside
    * them answered a titled document. This guard is what stops that from
    * reappearing: it drives the real function, so a 429 that stopped going
    * through `statusPage` would fail here even if the markup still existed
    * somewhere in the unit.
    */
-  const apexUnits = ['app', 'com', 'dev', 'net', 'org'] as const;
+  const apexUnits = ['dev', 'net'] as const;
 
   it('covers every apex worker', () => {
     expect(

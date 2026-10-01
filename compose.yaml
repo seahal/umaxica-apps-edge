@@ -13,9 +13,9 @@
 #
 #   podman compose up                  the shared services only. Run the dev
 #                                      servers from wherever you like.
-#   podman compose --profile app up    the above plus the twenty dev servers,
+#   podman compose --profile app up    the above plus the seventeen dev servers,
 #                                      one container each. No editor.
-#   Open in Dev Container              the above minus the twenty, plus `core`
+#   Open in Dev Container              the above minus the seventeen, plus `core`
 #                                      from `.devcontainer/compose.yaml` -- a
 #                                      workspace container to attach to, from
 #                                      which you start dev servers by hand.
@@ -34,20 +34,20 @@
 # An override must repeat it.
 name: umaxica-apps-edge
 
-# The twenty dev servers, one Compose service per workspace unit, WITHOUT the
+# The seventeen dev servers, one Compose service per workspace unit, WITHOUT the
 # Dev Container.
 #
 # `core` (.devcontainer/compose.yaml) and these are the same image and the same
 # workspace bind; they differ only in what PID 1 does. `core` sleeps and waits
-# for an editor to attach, and you start `pnpm --dir com/apex run dev` inside it
+# for an editor to attach, and you start `pnpm --dir net/apex run dev` inside it
 # by hand. Each service below instead IS one of those dev servers, so
 #
-#     podman compose --profile app up com-apex
+#     podman compose --profile app up net-apex
 #
 # is a complete, editor-free way to work on one unit -- and `--profile app up`
-# with no service named starts all twenty.
+# with no service named starts all seventeen.
 #
-# One service per unit rather than one service running all twenty: the units
+# One service per unit rather than one service running all seventeen: the units
 # deploy independently, and a `vite dev` that has crashed should be visible and
 # restartable as itself rather than buried in a combined log. The port each one
 # publishes is the port its own `dev` script already binds; `--host` in those
@@ -71,7 +71,7 @@ x-unit: &unit
       CONTAINER_GROUP: edge
   # Dependencies are installed first because, unlike the Dev Container, nothing
   # here runs `postCreateCommand`. `node-volume` is shared with `core`, so
-  # whichever entry point runs first populates it for the others; the twenty
+  # whichever entry point runs first populates it for the others; the seventeen
   # services then find it already installed and `--frozen-lockfile` is a no-op.
   command:
     - 'sh'
@@ -101,9 +101,9 @@ x-unit: &unit
   # `edge-tunnel` is the cross-repository network Global's `cloudflare-tunnel-edge`
   # connector joins to reach a dev server here. `core` claims the alias
   # `edge.localhost` on it, which is what a Global ingress rule addresses while the
-  # Dev Container is what is running. These twenty carry no alias -- twenty
+  # Dev Container is what is running. These seventeen carry no alias -- seventeen
   # containers cannot share one name -- so against `--profile app` a Global ingress
-  # rule names the unit's own service instead, e.g. `http://com-apex:5101`.
+  # rule names the unit's own service instead, e.g. `http://net-apex:5201`.
   networks:
     default: {}
     edge-tunnel: {}
@@ -130,11 +130,6 @@ x-unit: &unit
       volume:
         nocopy: true
 services:
-  com-apex:
-    <<: *unit
-    working_dir: '/home/edge/workspace/com/apex'
-    ports:
-      - '127.0.0.1:5101:5101'
   com-info:
     <<: *unit
     working_dir: '/home/edge/workspace/com/info'
@@ -165,11 +160,6 @@ services:
     working_dir: '/home/edge/workspace/net/apex'
     ports:
       - '127.0.0.1:5201:5201'
-  org-apex:
-    <<: *unit
-    working_dir: '/home/edge/workspace/org/apex'
-    ports:
-      - '127.0.0.1:5301:5301'
   org-info:
     <<: *unit
     working_dir: '/home/edge/workspace/org/info'
@@ -195,11 +185,6 @@ services:
     working_dir: '/home/edge/workspace/org/help'
     ports:
       - '127.0.0.1:5308:5308'
-  app-apex:
-    <<: *unit
-    working_dir: '/home/edge/workspace/app/apex'
-    ports:
-      - '127.0.0.1:5401:5401'
   app-info:
     <<: *unit
     working_dir: '/home/edge/workspace/app/info'

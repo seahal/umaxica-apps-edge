@@ -1,5 +1,7 @@
 # ADR 008: Edge development surfaces are published through the Rails-owned Tunnel
 
+> Superseded for app/com/org apex only by [ADR 024](024-retire-app-com-org-apex-units.md). The record below is unchanged history.
+
 ## Status: Superseded by ADR 014
 
 ADR 014 replaces the Rails-owned shared connector and Podman network with an Edge-owned Tunnel.

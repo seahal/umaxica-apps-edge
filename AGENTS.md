@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Edge layer of Umaxica: twelve TanStack Start public content surfaces (`{app,com,org}/{docs,help,info,news}`), three TanStack Start cores, and five apex Hono Workers. All built with Vite and deployed to Cloudflare Workers. Twenty deployment units, one shared script contract.
+Edge layer of Umaxica: twelve TanStack Start public content surfaces (`{app,com,org}/{docs,help,info,news}`), three TanStack Start cores, and two apex Hono Workers (`dev/apex`, `net/apex`; app/com/org apex retired by ADR 024). All built with Vite and deployed to Cloudflare Workers. Seventeen deployment units, one shared script contract.
 
 ## Setup & commands
 
@@ -14,7 +14,7 @@ pnpm is the ONLY package manager. Never use npm, npx, yarn, or bun. `pnpm-lock.y
 - Unit tests: `pnpm run test` (Vitest). Coverage is per-unit (`pnpm --dir <unit> run test:cov`); the root invariant suite does not measure it.
 - HTTP tests: `pnpm run test:api` (Hurl)
 - Browser tests: `pnpm run test:e2e` (Playwright; run `pnpm exec playwright install chromium` first — CI deliberately skips e2e, do not "fix" that)
-- Build: `pnpm run build` (`vite build` in all twenty units; the fifteen React units add `tanstackStart()` + `viteReact()`, apex is plain Hono)
+- Build: `pnpm run build` (`vite build` in all seventeen units; the fifteen React units add `tanstackStart()` + `viteReact()`, apex is plain Hono)
 - Bundle budget: `pnpm run check:size` (requires `pnpm run build` first; NOT part of `check:static`)
 - Dead code: `pnpm run knip` · Architecture: `pnpm run check:architecture` · Version sync: `pnpm run check:deps` (`fix:deps` is local-only) · Spelling: `pnpm run check:spelling`
 - Per-unit: `pnpm --filter <workspace> run <script>` or `pnpm --dir <unit> run <script>`
@@ -48,7 +48,7 @@ Each deployment unit owns its own `.oxlintrc.json`, `.oxfmtrc.json`, `tsconfig.j
 
 `test:api` self-hosts: each unit's `api/run.mjs` spawns `pnpm run dev`, runs Hurl, stops it; it reuses an already-listening server. `EDGE_API_BASE` targets a deployment instead. See each unit's `api/README.md`.
 
-All twenty units implement the same contract, including `dev/apex`; none is exempt.
+All seventeen units implement the same contract, including `dev/apex`; none is exempt.
 
 ## Evidence
 

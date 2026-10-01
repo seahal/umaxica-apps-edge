@@ -33,20 +33,17 @@ import { loadManifest, parseJsonc, repoRoot } from '../tools/lib/wrangler-config
 const opsDoc = 'docs/operations/rate-limit-namespace-allocation.md';
 
 const PRODUCTION_RATE_LIMITERS = {
-  'com/apex': '510100',
   'com/info': '510300',
   'com/core': '510581',
   'com/docs': '510600',
   'com/news': '510700',
   'com/help': '510800',
   'net/apex': '520100',
-  'org/apex': '530100',
   'org/info': '530300',
   'org/core': '530581',
   'org/docs': '530600',
   'org/news': '530700',
   'org/help': '530800',
-  'app/apex': '540100',
   'app/info': '540300',
   'app/core': '540581',
   'app/docs': '540600',

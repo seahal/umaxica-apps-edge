@@ -6,10 +6,11 @@
 #
 # This unit is a NET-series apex: it owns a domain and answers its own root
 # with a page. It is not a redirector. `umaxica.dev` has no per-region hosts
-# and no `src/root-redirect.ts`, so unlike the COM-series apexes there is no
-# `?ri=` allowlist and no request-supplied value that can reach a `Location`
-# header at all. That absence is the point of this comment — a future `?ri=`
-# on this unit needs the app/apex file's open-redirect checks brought with it.
+# and no `src/root-redirect.ts`, so there is no `?ri=` allowlist and no
+# request-supplied value that can reach a `Location` header at all. That absence
+# is the point of this comment. The `?ri=` region redirect lived only in the
+# app/com/org apex Workers, retired by ADR 024 together with their open-redirect
+# checks; a future `?ri=` here needs those checks written again, not restored.
 
 # The homepage. 200 and a document, NOT a redirect: `/` used to 301 to
 # `/about`, which left the domain with no canonical page of its own.

@@ -104,7 +104,7 @@ jobs:
   #
   # The job name carries platform and unit (knip:cloudflare:app-core,
   # knip:cloudflare:dev-apex) so a red check names the failing deployment directly.
-  # fail-fast is off so one unit's failure does not mask the other twenty.
+  # fail-fast is off so one unit's failure does not mask the other sixteen.
   #
   # Every unit runs on every push: no path filter. Deliberate — a change to the
   # lockfile, pnpm-workspace.yaml, or the root package.json can flip any unit
@@ -118,20 +118,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { platform: cloudflare, unit: app-apex, dir: app/apex }
           - { platform: cloudflare, unit: app-core, dir: app/core }
           - { platform: cloudflare, unit: app-docs, dir: app/docs }
           - { platform: cloudflare, unit: app-help, dir: app/help }
           - { platform: cloudflare, unit: app-info, dir: app/info }
           - { platform: cloudflare, unit: app-news, dir: app/news }
-          - { platform: cloudflare, unit: com-apex, dir: com/apex }
           - { platform: cloudflare, unit: com-core, dir: com/core }
           - { platform: cloudflare, unit: com-docs, dir: com/docs }
           - { platform: cloudflare, unit: com-help, dir: com/help }
           - { platform: cloudflare, unit: com-info, dir: com/info }
           - { platform: cloudflare, unit: com-news, dir: com/news }
           - { platform: cloudflare, unit: net-apex, dir: net/apex }
-          - { platform: cloudflare, unit: org-apex, dir: org/apex }
           - { platform: cloudflare, unit: org-core, dir: org/core }
           - { platform: cloudflare, unit: org-docs, dir: org/docs }
           - { platform: cloudflare, unit: org-help, dir: org/help }
@@ -207,13 +204,11 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - app/apex
           - app/core
           - app/docs
           - app/help
           - app/info
           - app/news
-          - com/apex
           - com/core
           - com/docs
           - com/help
@@ -221,7 +216,6 @@ jobs:
           - com/news
           - dev/apex
           - net/apex
-          - org/apex
           - org/core
           - org/docs
           - org/help
@@ -259,13 +253,11 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - app/apex
           - app/core
           - app/docs
           - app/help
           - app/info
           - app/news
-          - com/apex
           - com/core
           - com/docs
           - com/help
@@ -273,7 +265,6 @@ jobs:
           - com/news
           - dev/apex
           - net/apex
-          - org/apex
           - org/core
           - org/docs
           - org/help
@@ -316,13 +307,11 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - app/apex
           - app/core
           - app/docs
           - app/news
           - app/help
           - app/info
-          - com/apex
           - com/core
           - com/docs
           - com/news
@@ -330,7 +319,6 @@ jobs:
           - com/info
           - dev/apex
           - net/apex
-          - org/apex
           - org/core
           - org/docs
           - org/news
@@ -370,13 +358,11 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - app/apex
           - app/core
           - app/docs
           - app/news
           - app/help
           - app/info
-          - com/apex
           - com/core
           - com/docs
           - com/news
@@ -384,7 +370,6 @@ jobs:
           - com/info
           - dev/apex
           - net/apex
-          - org/apex
           - org/core
           - org/docs
           - org/news

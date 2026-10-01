@@ -37,7 +37,7 @@ const read = (relativePath: string) => readFileSync(join(repoRoot, relativePath)
 
 const BRANDS = ['app', 'com', 'org'] as const;
 const FRAMES = ['core', 'docs', 'news', 'help', 'info'] as const;
-const APEX_WORKSPACES = ['app/apex', 'com/apex', 'net/apex', 'org/apex'] as const;
+const APEX_WORKSPACES = ['net/apex'] as const;
 
 const VPC_BINDING = 'UMAXICA_APPS_EDGE_CF_WORKERS_VPC';
 

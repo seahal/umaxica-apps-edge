@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 
 const repoRoot = join(import.meta.dirname, '..');
 
-const APEX_UNITS = ['app/apex', 'com/apex', 'org/apex', 'net/apex', 'dev/apex'] as const;
+const APEX_UNITS = ['net/apex', 'dev/apex'] as const;
 
 const CONTENT_FRAMES = [
   'app/docs',

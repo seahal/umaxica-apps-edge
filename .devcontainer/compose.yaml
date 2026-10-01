@@ -18,8 +18,8 @@
 name: umaxica-apps-edge
 
 services:
-  # The workspace container. Every dev server the twenty units define is started
-  # BY HAND inside it, which is why it publishes all twenty ports and parks PID 1
+  # The workspace container. Every dev server the seventeen units define is started
+  # BY HAND inside it, which is why it publishes all seventeen ports and parks PID 1
   # on `sleep infinity`.
   core:
     build:
@@ -62,20 +62,17 @@ services:
         volume:
           nocopy: true
     ports:
-      - '127.0.0.1:5101:5101' # com/apex
       - '127.0.0.1:5103:5103' # com/info
       - '127.0.0.1:5105:5105' # com/core
       - '127.0.0.1:5106:5106' # com/docs
       - '127.0.0.1:5107:5107' # com/news
       - '127.0.0.1:5108:5108' # com/help
       - '127.0.0.1:5201:5201' # net/apex
-      - '127.0.0.1:5301:5301' # org/apex
       - '127.0.0.1:5303:5303' # org/info
       - '127.0.0.1:5305:5305' # org/core
       - '127.0.0.1:5306:5306' # org/docs
       - '127.0.0.1:5307:5307' # org/news
       - '127.0.0.1:5308:5308' # org/help
-      - '127.0.0.1:5401:5401' # app/apex
       - '127.0.0.1:5403:5403' # app/info
       - '127.0.0.1:5405:5405' # app/core
       - '127.0.0.1:5406:5406' # app/docs
@@ -133,7 +130,7 @@ services:
     # the failure the Global repository recorded in
     # `notes/implementation/2026-08-11-cloudflare-tunnel-edge-network-join.md`.
     #
-    # One alias covers every unit because this container serves all twenty on
+    # One alias covers every unit because this container serves all seventeen on
     # their own ports. Rails needs one alias per surface only because it
     # distinguishes them by Host on a single port.
     networks:
