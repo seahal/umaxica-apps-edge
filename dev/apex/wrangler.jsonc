@@ -83,7 +83,7 @@
       "ratelimits": [
         {
           "name": "RATE_LIMITER",
-          "namespace_id": "2005",
+          "namespace_id": "2550100",
           "simple": {
             "limit": 2000,
             "period": 60
@@ -106,7 +106,7 @@
       "ratelimits": [
         {
           "name": "RATE_LIMITER",
-          "namespace_id": "3005",
+          "namespace_id": "3550100",
           "simple": {
             "limit": 2000,
             "period": 60
@@ -135,7 +135,7 @@
   "ratelimits": [
     {
       "name": "RATE_LIMITER",
-      "namespace_id": "1005",
+      "namespace_id": "550100",
       "simple": {
         "limit": 2000,
         "period": 60

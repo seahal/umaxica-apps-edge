@@ -87,7 +87,7 @@
       "ratelimits": [
         {
           "name": "RATE_LIMITER",
-          "namespace_id": "5001",
+          "namespace_id": "5540581",
           "simple": {
             "limit": 2000,
             "period": 60
@@ -129,7 +129,7 @@
       "ratelimits": [
         {
           "name": "RATE_LIMITER",
-          "namespace_id": "2001",
+          "namespace_id": "2540581",
           "simple": {
             "limit": 2000,
             "period": 60
@@ -173,7 +173,7 @@
       "ratelimits": [
         {
           "name": "RATE_LIMITER",
-          "namespace_id": "3001",
+          "namespace_id": "3540581",
           "simple": {
             "limit": 2000,
             "period": 60
@@ -205,7 +205,7 @@
   "ratelimits": [
     {
       "name": "RATE_LIMITER",
-      "namespace_id": "1001",
+      "namespace_id": "540581",
       "simple": {
         "limit": 2000,
         "period": 60
