@@ -13,6 +13,19 @@ owned by this repository (see below). Every
 deployment unit builds with Vite, runs on workerd, and implements one shared
 script contract; nothing here deploys anywhere but Cloudflare Workers.
 
+## EDGE Family
+
+Sibling repositories split out of this one:
+
+- [umaxica-apps-jump](https://github.com/seahal/umaxica-apps-jump) — controls
+  the Umaxica TLD apexes, keeping open-redirect defense in its own deployment.
+- [umaxica-apps-edge-core](https://github.com/seahal/umaxica-apps-edge-core) —
+  future home of the TanStack Start cores once they outgrow this repository;
+  created but not yet populated.
+- [umaxica-apps-edge-away](https://github.com/seahal/umaxica-apps-edge-away) —
+  planned standalone system for the outbound cushion (interstitial) pages that
+  jump does not implement yet; no core yet.
+
 ## Prerequisites
 
 - Node.js 24.20.0 — Active LTS "Krypton" (declared in

@@ -52,7 +52,7 @@
     "dependency-cruiser": "catalog:",
     "hono": "catalog:",
     "knip": "catalog:",
-    "lefthook": "^2.1.14",
+    "lefthook": "^2.1.17",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
