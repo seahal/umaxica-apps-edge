@@ -22,7 +22,7 @@ describe('standard metadata', () => {
 
   it('keeps robots and sitemap on the canonical host, with ja/en alternates', async () => {
     const robots = await handlers.robots();
-    expect(robots.headers.get('content-type')).toContain('text/plain');
+    expect(robots.headers.get('content-type')).toBe('text/plain; charset=utf-8');
     const robotsBody = await robots.text();
     expect(robotsBody).toContain('User-Agent: *');
     expect(robotsBody).toContain('Allow: /');

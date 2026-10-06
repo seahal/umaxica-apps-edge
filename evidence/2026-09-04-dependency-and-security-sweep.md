@@ -176,7 +176,7 @@ files to hold that level (statements/functions/lines were already pinned at
   `check:static` chain, likewise never reached locally before:
   - `lint:types` — `app/docs/src/pages/cms-bootstrap-probe.json.ts`:
     `typescript(no-unsafe-type-assertion)` on `binding as { fetch: typeof
-fetch }`. Replaced the cast with a `hasFetchBinding` type predicate so the
+    fetch }`. Replaced the cast with a `hasFetchBinding` type predicate so the
     compiler confirms the shape instead of asserting it.
   - `typecheck` — `e2e/revision.spec.ts` (all 20 units): `exactOptionalPropertyTypes`
     rejected passing `headers: undefined` explicitly to Playwright's request

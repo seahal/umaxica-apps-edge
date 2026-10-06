@@ -94,7 +94,7 @@ bindings and no VPC binding.
 ## 2. Cloudflare specification relied upon
 
 - **VPC Services** — schema is `{ binding, service_id, remote }`; a service is `{type: http, http_port,
-https_port, host: { hostname, resolver_network: { tunnel_id, resolver_ips } } }`. "`remote: true` … allows
+  https_port, host: { hostname, resolver_network: { tunnel_id, resolver_ips } } }`. "`remote: true` … allows
   access to the VPC Service during local development."
   <https://developers.cloudflare.com/workers-vpc/configuration/vpc-services/>
 - **Workers VPC overview** — "Connect a Cloudflare Tunnel to your infrastructure, register each target as a VPC

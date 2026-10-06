@@ -8,9 +8,15 @@
  * always sent, and every failure document is `no-store` so an outage is never
  * remembered.
  *
- * The cache key is the request URL, so it already separates what must never be
- * shared: the host (one cell per hostname), the locale (first path segment) and
- * the `public_id` (last path segment). Nothing here varies on a header.
+ * These are HTTP cache directives for browsers and shared HTTP caches, whose key
+ * is the full request URL: the host (one cell per hostname), the locale (first
+ * path segment) and the `public_id` (last path segment). Nothing here varies on
+ * a header.
+ *
+ * Workers Cache is a different store with a different key — path, entrypoint,
+ * `ctx.props` and Worker version, NOT the hostname — and it is intentionally
+ * disabled in `wrangler.jsonc` (`cache.enabled: false`). Nothing in this file
+ * is a statement about it; see docs/caching-and-isr.md before re-enabling.
  *
  * Change the TTL here and nowhere else.
  */

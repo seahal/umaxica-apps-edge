@@ -52,7 +52,7 @@ permitted the fallback that caused it.
 - `scripts/dev-start --tunnel` exits 1 with
   `ERROR: --tunnel requires EDGE_CLOUDFLARED_TOKEN in .env.`
 - `pnpm vitest run test/compose-tunnel-invariants.test.ts
-test/development-container-security.test.ts test/evidence-layout.test.ts`
+  test/development-container-security.test.ts test/evidence-layout.test.ts`
   — 3 files, 32 tests, 0 failures.
 
 The suites read `compose.override.yaml.example`, which the working tree deletes

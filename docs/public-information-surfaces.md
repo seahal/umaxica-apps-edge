@@ -26,7 +26,7 @@ differ in what they are allowed to do rather than in what they are built with.
 ## Framework Ownership
 
 The twelve public content surfaces run **TanStack Start on Vite**. The three
-cores run the same framework, and the five apex workers run **Hono**. The
+cores run the same framework, and the two apex workers run **Hono**. The
 current boundary is recorded in ADR 019; the Astro records stay historical and
 `adr/004` stays `Rejected` as history.
 

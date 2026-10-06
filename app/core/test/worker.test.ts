@@ -248,6 +248,23 @@ describe('app/core worker.ts dispatch', () => {
     expect(appFetch).not.toHaveBeenCalled();
   });
 
+  // The 429 has no locale precedence of its own: the worker hands the limiter the
+  // Core's existing display-locale contract — `lx`, then the `language` cookie,
+  // then the default — as a thunk the limiter only runs for a refused request.
+  it.each([
+    ['https://jp.umaxica.app/?lx=en', {}, 'en'],
+    ['https://jp.umaxica.app/', { cookie: 'language=en' }, 'en'],
+    ['https://jp.umaxica.app/?lx=ja', { cookie: 'language=en' }, 'ja'],
+    ['https://jp.umaxica.app/', {}, 'ja'],
+  ] as const)('resolves the 429 locale for %s %o as %s', async (url, headers, expected) => {
+    checkRateLimit.mockResolvedValue(new Response('Too Many Requests', { status: 429 }));
+
+    await worker.fetch(new Request(url, { headers }), makeEnv(), ctx);
+
+    const locale = checkRateLimit.mock.calls[0]?.[2] as (() => string) | undefined;
+    expect(locale?.()).toBe(expected);
+  });
+
   it('does not send a rate-limited application-owned request to the application', async () => {
     // Checked before the application half is invoked at all.
     checkRateLimit.mockResolvedValue(new Response('Too Many Requests', { status: 429 }));
@@ -374,7 +391,7 @@ describe('app/core worker.ts dispatch', () => {
 
   /*
    * The authentication paths are counted against a second, much smaller budget
-   * IN ADDITION to the general one — ASVS V2.2.1. Sharing one limiter made an
+   * IN ADDITION to the general one — ASVS 5.0 V6.3.1. Sharing one limiter made an
    * OIDC endpoint exactly as cheap to hammer as a static page.
    */
   describe('authentication-path rate limiting', () => {

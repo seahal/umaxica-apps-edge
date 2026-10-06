@@ -21,11 +21,33 @@ export interface RateLimiter {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
-const RATE_LIMITED_DOCUMENT =
-  '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">' +
-  `<title>${brandTitle('リクエストを処理できませんでした')}</title></head>` +
-  '<body><main><h1>リクエストを処理できませんでした</h1><p>HTTP 429</p>' +
-  '<a href="/">トップへ戻る</a></main></body></html>';
+/*
+ * The two languages this unit speaks. Declared here as a literal union rather
+ * than imported from `src/i18n.ts`, which pulls in the generated message
+ * catalog: this file has to stay importable on its own.
+ */
+export type RateLimitLocale = 'ja' | 'en';
+
+/*
+ * The wording is the status-page vocabulary every family uses for a refused
+ * request, in the locale the caller resolved. This module does not decide the
+ * locale — `src/request-handler.ts` does, from the URL contract that already
+ * exists (`/{lang}/…`) — so rate limiting has no locale precedence of its own.
+ */
+const RATE_LIMITED_COPY: Record<RateLimitLocale, { heading: string; home: string }> = {
+  ja: { heading: 'リクエストを処理できませんでした', home: 'トップへ戻る' },
+  en: { heading: 'The request could not be processed', home: 'Back to top' },
+};
+
+function rateLimitedDocument(locale: RateLimitLocale): string {
+  const { heading, home } = RATE_LIMITED_COPY[locale];
+  return (
+    `<!DOCTYPE html><html lang="${locale}"><head><meta charset="utf-8">` +
+    `<title>${brandTitle(heading)}</title></head>` +
+    `<body><main><h1>${heading}</h1><p>HTTP 429</p>` +
+    `<a href="/${locale}/">${home}</a></main></body></html>`
+  );
+}
 
 /*
  * A bare document. `src/request-handler.ts` stamps the security headers on it, in
@@ -34,8 +56,8 @@ const RATE_LIMITED_DOCUMENT =
  * one page on this origin served without a CSP, an `X-Frame-Options` or a
  * `nosniff`.
  */
-export function rateLimitedResponse(): Response {
-  return new Response(RATE_LIMITED_DOCUMENT, {
+export function rateLimitedResponse(locale: RateLimitLocale = 'ja'): Response {
+  return new Response(rateLimitedDocument(locale), {
     status: 429,
     headers: { 'Cache-Control': 'no-store', 'Content-Type': 'text/html; charset=UTF-8' },
   });
@@ -64,13 +86,17 @@ function rateLimitKey(request: Request): string {
 /**
  * Returns the 429 document when the limiter refuses, and `null` when the request
  * may proceed — including when no limiter is bound at all.
+ *
+ * `locale` is a thunk so the caller's resolution runs only for a request that
+ * was actually refused, and never before the limiter has answered.
  */
 export async function checkRateLimit(
   request: Request,
   rateLimiter: RateLimiter | undefined,
+  locale: () => RateLimitLocale = () => 'ja',
 ): Promise<Response | null> {
   if (!rateLimiter) return null;
 
   const { success } = await rateLimiter.limit({ key: rateLimitKey(request) });
-  return success ? null : rateLimitedResponse();
+  return success ? null : rateLimitedResponse(locale());
 }

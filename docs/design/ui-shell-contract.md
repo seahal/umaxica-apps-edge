@@ -36,7 +36,7 @@ real response needs none of that. **Do not "restore" the missing file.**
 
 ## 1. Scope
 
-Normative for the 20 deployment units that serve HTML — every directory with a
+Normative for the 17 deployment units that serve HTML — every directory with a
 `wrangler.jsonc` except `tools/vpc-probe`, which is a `probe.mjs` Worker with no
 HTML surface.
 
@@ -152,12 +152,12 @@ Two libraries are fixed by decision, so that the archetypes cannot each answer
 the same question differently. Neither is a licence to add more: a third library
 is a decision, not a detail.
 
-| Concern                                                                 | Library                                                | Where it is installed            |
-| ----------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------- |
-| Visual styling — every colour, space, size and responsive rule          | **Tailwind CSS v4**, catalog `^4.3.3`                  | All twenty units that serve HTML |
-| Interactive shell controls — disclosure, menu, dialog, focus management | **`react-aria-components`** (Adobe), catalog `^1.20.0` | All fifteen frames               |
+| Concern                                                                 | Library                                                | Where it is installed               |
+| ----------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------- |
+| Visual styling — every colour, space, size and responsive rule          | **Tailwind CSS v4**, catalog `^4.3.3`                  | All seventeen units that serve HTML |
+| Interactive shell controls — disclosure, menu, dialog, focus management | **`react-aria-components`** (Adobe), catalog `^1.20.0` | All fifteen frames                  |
 
-**`react-aria-components` does not go into apex.** The five apex units run Hono
+**`react-aria-components` does not go into apex.** The two apex units run Hono
 JSX and carry no React at all (`hono` and `@hono/structured-logger` are their
 only dependencies), while the library peer-depends on `react` and `react-dom`.
 Adding React to a Hono Worker would be a runtime change, not a library addition,
@@ -177,7 +177,7 @@ owns:
 - its own stylesheet carrying its own `@theme` block; and
 - its own `@tailwindcss/vite` entry in its own `vite.config.ts`.
 
-All twenty units build through Vite, so all twenty run `@tailwindcss/vite`. There
+All seventeen units build through Vite, so all seventeen run `@tailwindcss/vite`. There
 is no `postcss.config.mjs` anywhere and `@tailwindcss/postcss` is not installed:
 there is no PostCSS pipeline anywhere for it to sit in. This
 was not always true of apex either — `wrangler deploy` bundles the entrypoint and
@@ -340,7 +340,7 @@ to routes that exist:
 
 | Item        | Where it points | Status                                                                                   |
 | ----------- | --------------- | ---------------------------------------------------------------------------------------- |
-| About       | `/about`        | present on all 20 units                                                                  |
+| About       | `/about`        | present on all 17 units                                                                  |
 | Preferences | —               | **route removed** — every `test/ui-shell-contract.test.tsx` now asserts it is not linked |
 | Privacy     | —               | **no route, no reusable text** → not linked                                              |
 | Terms       | —               | **no route, no reusable text** → not linked                                              |
@@ -439,7 +439,7 @@ the same name, or it is not a token.
 ### 8a. Inside `<main>`: the page body
 
 Everything above this line is chrome. This section is what goes under it, and it
-is here for the same reason the token set is: twenty units that each answer the
+is here for the same reason the token set is: seventeen units that each answer the
 question separately drift.
 
 Three rules hold across all three archetypes. They are not a style preference —
@@ -493,7 +493,7 @@ fill plus weight is two cues rather than colour alone (§12).
 
 #### apex only
 
-The five apex Workers are the only units whose page body is written in this
+The two apex Workers are the only units whose page body is written in this
 repository rather than in a frame's route, and the five of them serve one
 composition — the same on `/about` everywhere, and on `/` where `net` and `dev`
 have one.
@@ -586,7 +586,7 @@ appended rather than assigned, so a directive another layer set survives.
 
 Two limits are deliberate rather than pending:
 
-- **The five apex Workers only.** Core strips inbound Cookie on
+- **The two apex Workers only.** Core strips inbound Cookie on
   application-owned requests (ADR 007). The twelve public frames do not strip
   Cookie and do not read a theme cookie: they stay light-only. A frame that
   wants a scheme later has `prefers-color-scheme` and Tailwind's `dark`
@@ -910,7 +910,7 @@ either archetype's status surfaces has to ask which one it is editing.
 
 ## 16. Conformance and open gaps
 
-Conforming today, all 20 units: landmark set and order; brand as link, not
+Conforming today, all 17 units: landmark set and order; brand as link, not
 heading; single `<h1>` in `<main>`; header actions slot; navigation as a sibling
 of the header; two-layer footer with a named utility nav and a rendered canonical
 URL; no dead links; the title contract; chrome-free status surfaces; the shared

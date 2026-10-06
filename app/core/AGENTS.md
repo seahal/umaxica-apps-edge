@@ -1,7 +1,7 @@
 # This unit is TanStack Start on Vite
 
 `app/core` builds with Vite and `@cloudflare/vite-plugin` and runs on workerd, like
-every one of the twenty deployment units in this repository. Every frame runs the
+every one of the seventeen deployment units in this repository. Every frame runs the
 same stack, so a pattern copied from a sibling frame is current.
 
 What a sibling can differ in is **archetype**. This unit is a Core: its shell

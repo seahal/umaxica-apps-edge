@@ -25,25 +25,38 @@
   // invocations.
   "assets": { "html_handling": "none", "not_found_handling": "none" },
   "observability": {
-    "enabled": false,
+    "enabled": true,
     "head_sampling_rate": 1,
+    // Query strings carry `lx`, `lang`, search terms and OIDC parameters; none of
+    // them belongs in a log line or a span.
+    "redact_query_string": true,
+    "issues": {
+      "enabled": true
+    },
     "logs": {
       "enabled": true,
       "head_sampling_rate": 1,
       "persist": true,
       "invocation_logs": true
     },
+    // Logs are complete; traces are sampled at 20%. Identical in all seventeen
+    // units so the numbers are comparable — tools/check-workers.mjs enforces it.
     "traces": {
       "enabled": true,
-      "persist": true,
-      "head_sampling_rate": 1
+      "head_sampling_rate": 0.2,
+      "persist": true
     }
   },
-  // Workers Cache API / default cache behaviour, enabled explicitly.
+  // Workers Cache is INTENTIONALLY DISABLED, and spelled `false` rather than
+  // removed: it will come back, but only after its contract with the CSP nonce,
+  // `X-Request-ID`, Host validation, first-touch rate limiting, completion
+  // logging, a cache key that does not include the hostname, and heuristic
+  // freshness has been designed. tools/check-workers.mjs fails on anything but
+  // an explicit `false`; see docs/caching-and-isr.md.
   "cache": {
-    "enabled": true
+    "enabled": false
   },
-  "upload_source_maps": false,
+  "upload_source_maps": true,
   "placement": {
     "mode": "smart"
   },

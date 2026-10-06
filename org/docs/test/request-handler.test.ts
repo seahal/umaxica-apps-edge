@@ -100,6 +100,42 @@ describe('request handler', () => {
     expect(response.headers.get('X-Frame-Options')).toBe('DENY');
   });
 
+  // The 429 has no locale precedence of its own: it speaks the locale the URL
+  // contract already assigns to the path that was asked for.
+  it.each([
+    ['/en/entries/', {}, 'en', 'The request could not be processed', '/en/'],
+    ['/ja/entries/', {}, 'ja', 'リクエストを処理できませんでした', '/ja/'],
+    [
+      '/',
+      { 'Accept-Language': 'en-US,en;q=0.9' },
+      'en',
+      'The request could not be processed',
+      '/en/',
+    ],
+    ['/', {}, 'ja', 'リクエストを処理できませんでした', '/ja/'],
+    // Unsupported locale and locale-less paths speak the default, as the 404 does.
+    ['/fr/entries/', { 'Accept-Language': 'en' }, 'ja', 'リクエストを処理できませんでした', '/ja/'],
+    ['/robots.txt', { 'Accept-Language': 'en' }, 'ja', 'リクエストを処理できませんでした', '/ja/'],
+  ] as const)('answers the 429 for %s %o in %s', async (path, headers, lang, heading, home) => {
+    setEnv({ RATE_LIMITER: refusing() });
+
+    const response = await handleRequest(
+      new Request(`http://localhost${path}`, { headers }),
+      vi.fn(ok),
+      true,
+    );
+    const body = await response.text();
+
+    expect(response.status).toBe(429);
+    expect(body).toContain(`<html lang="${lang}">`);
+    expect(body).toContain(`<h1>${heading}</h1>`);
+    expect(body).toContain(`<a href="${home}">`);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(response.headers.get('Content-Type')).toBe('text/html; charset=UTF-8');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(response.headers.get('X-Request-ID')).toBeTruthy();
+  });
+
   it('never meters the three constant probes, and does meter the Rails-backed ones', async () => {
     const limiter = refusing();
     setEnv({ RATE_LIMITER: limiter });

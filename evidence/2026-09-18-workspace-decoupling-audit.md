@@ -53,7 +53,7 @@ call with a dynamic argument and `[1, 2].join('..')` were not. Probe removed.
   `typecheck`, `knip`, `test`, `build`, `check:size`, `test:api` all pass.
 - `test:e2e`: first attempt failed identically with and without the change
   because Chromium was not installed. After `pnpm exec playwright install
-chromium` (headless shell v1243), `pnpm -C <unit> run test:e2e` passed in all
+  chromium` (headless shell v1243), `pnpm -C <unit> run test:e2e` passed in all
   20 units: 224 tests, 0 failed.
 - Root: `check:architecture`, `check:deps`, `pnpm run check` pass (root
   32 files / 369 tests).

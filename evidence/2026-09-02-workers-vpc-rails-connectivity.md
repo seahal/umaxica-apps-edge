@@ -84,7 +84,7 @@ caused by the Astro migration.
    returning the identical `302` — a request that reached the VPC Service would have been routed by
    `service_id` regardless of host. Resolved account-side.
 3. **Tunnel connector and Rails both stopped.** `dial tcp 10.89.2.2:3000: connect: connection
-refused`. Resolved by restarting both.
+   refused`. Resolved by restarting both.
 4. **`.localhost` in the VPC Service host.** This was the substantive regression. The Service's host
    was `core.app.localhost`. On the VPC path, name resolution happens **Cloudflare-side** and the
    connector receives an already-resolved `destAddr` (tunnel log: `originService=warp-routing`,

@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE, isLocale, negotiateLocale, type Locale } from './i18n';
 import { getEdgeBindings } from './lib/env';
 import {
   isAllowedPublishingHost,
@@ -59,6 +60,27 @@ import { createNonce, runWithNonce } from './security-nonce';
  */
 const UNMETERED_PROBES = new Set(['/health/startups', '/health/livenesses', '/api/v0/health.json']);
 
+/*
+ * The locale of the 429 document, taken from the contracts this unit already
+ * has rather than from a precedence invented for rate limiting:
+ *
+ * - `/{lang}/…` is the URL locale (`src/routes/$lang.tsx`), so `<html lang>`
+ *   on the 429 equals the locale of the page that was asked for.
+ * - the bare `/` negotiates from `Accept-Language`, exactly as its own route
+ *   does (`src/routes/index.ts`).
+ * - anything else — `/robots.txt`, `/health`, an unsupported `/fr/…` — is
+ *   locale-less and speaks the default, as the 404 document does.
+ *
+ * Pure and local: a path split and a header read. It is called only for a
+ * request the limiter has already refused.
+ */
+function rateLimitLocale(url: URL, request: Request): Locale {
+  const segment = url.pathname.split('/')[1];
+  if (isLocale(segment)) return segment;
+  if (url.pathname === '/') return negotiateLocale(request.headers.get('accept-language'));
+  return DEFAULT_LOCALE;
+}
+
 export async function handleRequest(
   request: Request,
   // Widened to what TanStack's handler actually is — it may answer synchronously
@@ -107,7 +129,9 @@ export async function handleRequest(
       withResponseGenerationTimeout(
         async (signal) => {
           if (!UNMETERED_PROBES.has(url.pathname)) {
-            const limited = await checkRateLimit(request, bindings.RATE_LIMITER);
+            const limited = await checkRateLimit(request, bindings.RATE_LIMITER, () =>
+              rateLimitLocale(url, request),
+            );
             if (limited) return limited;
           }
 

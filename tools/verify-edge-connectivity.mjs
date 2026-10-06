@@ -580,7 +580,7 @@ export function classifyHealthContract({ entry, transport }) {
 // ---------------------------------------------------------------------------
 
 /*
- * One shape across all twenty units: `/health` answers `text/plain`
+ * One shape across all seventeen units: `/health` answers `text/plain`
  *
  *   status: ok
  *   startup: ok
@@ -589,7 +589,7 @@ export function classifyHealthContract({ entry, transport }) {
  *
  * with HTTP 200 iff all three probes are ok. `startup` and `liveness` are the
  * isolate; `readiness` is the Rails half on the fifteen frames and isolate-only
- * on the five apex workers, which stay Rails-blind (ADR 016 decision 5).
+ * on the two apex workers, which stay Rails-blind (ADR 016 decision 5).
  *
  * It answered a JSON document with a nested `rails.liveness.kind` until ADR 016
  * moved the probes to `text/plain`. Nothing here reads that shape any more.

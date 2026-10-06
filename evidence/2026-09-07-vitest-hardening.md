@@ -200,7 +200,7 @@ Five concurrency layers, bounded so the product does not explode:
 2. **Per-unit Vitest file workers** — `minWorkers: 1`, `maxWorkers: 2`,
    `fileParallelism: true`, `isolate: true`.
 3. **Same-file concurrency** — `maxConcurrency: 4`, but `sequence.concurrent:
-false` by default; only the stress loop turns it on. No production test file
+   false` by default; only the stress loop turns it on. No production test file
    is globally concurrent.
 4. **workerd process concurrency** — N/A (layer deferred).
 5. **Browser Mode file concurrency** — N/A (layer deferred).

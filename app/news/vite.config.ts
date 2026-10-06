@@ -84,6 +84,12 @@ const wantsRemoteBindings = process.env['CLOUDFLARE_ENV'] === 'vpc';
 const publicRegion = process.env['PUBLIC_REGION'] === 'us' ? 'us' : 'jp';
 
 export default defineConfig(({ command }) => ({
+  // Source maps for the WORKER build only. `wrangler.jsonc` sets
+  // `upload_source_maps`, and the output is `no_bundle`, so wrangler uploads the
+  // maps it finds next to the server modules. Setting `build.sourcemap` at the
+  // root instead would also emit maps into `dist/client`, where they would be
+  // served as public static assets.
+  environments: { ssr: { build: { sourcemap: true } } },
   define: { 'import.meta.env.PUBLIC_REGION': JSON.stringify(publicRegion) },
   // The Cloudflare Tunnel forwards the browser's Host unchanged, so `vite dev`
   // sees the public hostname and refuses it: Vite allowlists Hosts to block DNS

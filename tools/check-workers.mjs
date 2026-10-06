@@ -88,7 +88,7 @@ function checkEnvironments(ws, config, requiredEnvs = ['development', 'test']) {
   // only place it can be caught, which is why it is asserted here rather than
   // left to a unit test.
   //
-  // Only the twenty units in the manifest reach this function. `all/busy` (a
+  // Only the seventeen units in the manifest reach this function. `all/busy` (a
   // maintenance page answering 503 straight from the assets binding) and
   // `tools/vpc-probe` (never deployed, no environments) are outside it, and are
   // exempt for those reasons rather than by oversight.
@@ -840,6 +840,95 @@ function checkRateLimitAllocation(ws, config, byNamespace) {
     if (!config) continue;
     checkRateLimitAllocation(ws, config, byNamespace);
   }
+}
+
+// Workers Cache is deliberately OFF on the twelve public content cells, and it
+// has to be spelled `false` rather than left out: an absent key reads as "nobody
+// decided", and this was decided. The feature was enabled for the whole default
+// entrypoint before its contract with the per-request CSP nonce, `X-Request-ID`,
+// Host validation, first-touch rate limiting, completion logging, a cache key
+// that does not include the hostname, and heuristic freshness was worked out.
+//
+// Re-enabling it is a redesign, not a flag flip, so it has to come through here:
+// whoever turns it back on changes this guard on purpose and records the
+// contract in docs/caching-and-isr.md.
+function checkWorkersCacheDisabled(ws, config) {
+  if (config.cache?.enabled !== false) {
+    fail(
+      ws,
+      'cache.enabled must be explicitly false — Workers Cache is intentionally disabled until its contract is redesigned (docs/caching-and-isr.md); re-enabling means changing this guard deliberately',
+    );
+  }
+  if (config.cache && Object.keys(config.cache).some((key) => key !== 'enabled')) {
+    fail(ws, 'cache must declare only `enabled: false` while Workers Cache is disabled');
+  }
+  for (const [envName, env] of Object.entries(config.env ?? {})) {
+    if (env.cache !== undefined) {
+      fail(ws, `env.${envName} must not declare cache — it is inherited from the top level`);
+    }
+  }
+}
+
+// One observability policy for all seventeen units, so what they report can be
+// compared. A unit that samples differently is not a slightly different unit; it
+// makes every cross-unit number meaningless. Compared as a whole object rather
+// than key by key, so a key ADDED to one unit is drift too.
+//
+// `observability` and `upload_source_maps` are both inherited into `env.*`, so
+// an environment that restates them is a second copy that can only disagree.
+const OBSERVABILITY_POLICY = {
+  enabled: true,
+  head_sampling_rate: 1,
+  redact_query_string: true,
+  issues: { enabled: true },
+  logs: { enabled: true, head_sampling_rate: 1, persist: true, invocation_logs: true },
+  traces: { enabled: true, head_sampling_rate: 0.2, persist: true },
+};
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value !== null && typeof value === 'object') {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function checkObservabilityPolicy(ws, config) {
+  if (canonicalJson(config.observability) !== canonicalJson(OBSERVABILITY_POLICY)) {
+    fail(
+      ws,
+      `observability must equal the repository policy ${canonicalJson(OBSERVABILITY_POLICY)} — got ${canonicalJson(config.observability)}`,
+    );
+  }
+  if (config.upload_source_maps !== true) {
+    fail(ws, 'upload_source_maps must be true');
+  }
+  for (const [envName, env] of Object.entries(config.env ?? {})) {
+    for (const key of ['observability', 'upload_source_maps']) {
+      if (env[key] !== undefined) {
+        fail(ws, `env.${envName} must not declare ${key} — it is inherited from the top level`);
+      }
+    }
+  }
+}
+
+for (const ws of manifest.railsBackedVpcVite ?? []) {
+  const config = loadWrangler(ws);
+  if (config) checkWorkersCacheDisabled(ws, config);
+}
+
+for (const ws of [
+  ...manifest.railsBacked,
+  ...(manifest.railsBackedVite ?? []),
+  ...(manifest.railsBackedVpcVite ?? []),
+  ...manifest.contentSurface,
+  ...manifest.standalone,
+]) {
+  const config = loadWrangler(ws);
+  if (config) checkObservabilityPolicy(ws, config);
 }
 
 if (failures.length > 0) {

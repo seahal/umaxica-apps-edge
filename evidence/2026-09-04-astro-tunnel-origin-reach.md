@@ -93,5 +93,5 @@ document). That is application behaviour after the HTML landed, not a second ing
 - Rails / Workers VPC on these requests. `astro dev` in this run used `CLOUDFLARE_ENV=local`
   with `remoteBindings` off.
 - Persistence across a Dev Container recreate. Public Hostnames live in Cloudflare; `pnpm
-run dev` does not.
+  run dev` does not.
 - The authenticated Access JWT. Login URLs were not stored.

@@ -115,7 +115,7 @@ async function stopServer(server) {
   }
 }
 
-function runHurl() {
+function runHurl(args) {
   return new Promise((resolve) => {
     // `hurl` resolves from this unit's node_modules/.bin: pnpm puts it on PATH
     // for a script run, which is why `test:api` must be invoked through pnpm and
@@ -128,7 +128,7 @@ function runHurl() {
     // all hit `WARM_PATH` at once and race the first Vite/TanStack compile of
     // the fallback route, which answers 500 instead of 404. Playwright already
     // uses `workers: 1`.
-    const hurl = spawn('hurl', ['--test', '--jobs', '1', '--variable', `base=${BASE}`, 'api'], {
+    const hurl = spawn('hurl', ['--test', '--variable', `base=${BASE}`, ...args], {
       cwd: unitDir,
       stdio: 'inherit',
     });
@@ -140,6 +140,38 @@ function runHurl() {
       resolve(signal === null ? (code ?? 1) : 1);
     });
   });
+}
+
+// The contract suite: every file directly under `api/`, one at a time. The glob
+// is explicit so `api/isolation/` is NOT swept into this pass — that directory
+// is run separately, below, with different flags.
+const CONTRACT_ARGS = ['--jobs', '1', '--glob', 'api/*.hurl'];
+
+// The workerd isolation canary: one file, fifty runs, ten at a time. Overlapping
+// requests are the whole point — see the header of the file itself.
+const ISOLATION_ARGS = ['--repeat', '50', '--jobs', '10', '--glob', 'api/isolation/*.hurl'];
+
+// The canary compares the nonce in the CSP header with the nonce in the
+// document, so it only means something against a server that issues one: the
+// built Worker `serve:api` starts, or a deployment. A reused `vite dev` server
+// sends the development policy (`'unsafe-inline'`, no nonce); there the canary
+// is skipped out loud rather than failed, exactly as `api/security-headers.hurl`
+// accepts either policy.
+async function issuesNonce() {
+  const response = await probe(WARM_PATH);
+  return response?.headers.get('content-security-policy')?.includes("'nonce-") ?? false;
+}
+
+async function runSuites() {
+  const contract = await runHurl(CONTRACT_ARGS);
+  if (contract !== 0) return contract;
+  if (!(await issuesNonce())) {
+    process.stdout.write(
+      'isolation canary skipped: this server sends no CSP nonce (development policy)\n',
+    );
+    return 0;
+  }
+  return runHurl(ISOLATION_ARGS);
 }
 
 async function waitUntilReady({ hasExited, log }) {
@@ -163,7 +195,7 @@ async function waitUntilReady({ hasExited, log }) {
 async function main() {
   if (await isListening()) {
     process.stderr.write(`reusing the server already answering on ${BASE}\n`);
-    return (await waitUntilReady({ hasExited: () => false, log: () => '' })) || runHurl();
+    return (await waitUntilReady({ hasExited: () => false, log: () => '' })) || runSuites();
   }
 
   if (EXTERNAL_BASE !== undefined) {
@@ -179,7 +211,7 @@ async function main() {
   try {
     const ready = await waitUntilReady({ hasExited, log });
     if (ready !== 0) return ready;
-    return await runHurl();
+    return await runSuites();
   } finally {
     await stopServer(server);
   }

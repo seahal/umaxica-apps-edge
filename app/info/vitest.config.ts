@@ -77,7 +77,7 @@ export default defineConfig({
     include: ['test/**/*.test.{ts,tsx}'],
     setupFiles: ['./vitest.setup.ts'],
     // --- Hardened execution contract -----------------------------------------
-    // Identical across all twenty deployment units and kept inline in each,
+    // Identical across all seventeen deployment units and kept inline in each,
     // never a shared import or root config, so the directory stays independently
     // runnable and extractable (test/deployment-unit-boundaries.test.ts).
     // Rationale and the concurrency benchmark: evidence/2026-09-07-vitest-hardening.md.

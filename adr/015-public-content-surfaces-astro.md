@@ -199,12 +199,12 @@ prepare a search-island UI boundary but must not proxy search through SSR.
    `src/lib/cloudflare-env.ts` used — and only from `prerender = false` modules
    (importing it in a build-time collection loader fails).
 4. **`remoteBindings: false` unless `CLOUDFLARE_ENV=vpc`; `prerenderEnvironment:
-'node'`.** A Workers VPC Service has no local simulator, so any build that
+   'node'`.** A Workers VPC Service has no local simulator, so any build that
    resolves a config declaring `vpc_services` opens a remote proxy session that
    only an interactive `wrangler login` can authenticate. Same hazard, same fix
    as `adr/013` sub-decision 3.
 5. **CSP is the production policy minus the nonce.** `build.inlineStylesheets:
-'never'` + the service-worker registration as an external file →
+   'never'` + the service-worker registration as an external file →
    `script-src 'self'` / `style-src 'self'` with no nonce and no per-build hash.
    `frame-ancestors 'none'` and the other five headers stay. Static routes get
    them from `public/_headers`; on-demand routes from `src/middleware.ts`. Both

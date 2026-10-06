@@ -6,6 +6,16 @@
 > 持ち、collection、検索、失敗文書、機械向け応答は保存しない。方針の境界は
 > `adr/019-edge-parallel-contract-boundaries.md` と各unitの `cache-policy.ts` にある。
 
+> **2026-10-06 更新 — Workers Cache は意図的に停止中。** 公開系12面の
+> `wrangler.jsonc` は `"cache": { "enabled": false }` を明示する。default entrypoint
+> 全体への有効化は時期尚早だった: CSP nonce、`X-Request-ID`、Host validation、
+> first-touch rate limiting、completion logging、hostname を含まない cache key、
+> heuristic caching との契約が未整理である。これは恒久的な廃止ではなく、
+> **再有効化の前に再設計する**という決定であり、`tools/check-workers.mjs` が
+> 明示的な `false` 以外を拒否する。再導入はその guard を意図的に変更して行う。
+> `src/lib/cache-policy.ts` の `Cache-Control` は browser / 共有HTTP cache 向けの
+> 指示であり、Workers Cache の設定ではない。
+
 ## 現状(2026-08-23 更新)
 
 **この文書が記録していた旧ISR方針は、実装機構ごと失効した。**

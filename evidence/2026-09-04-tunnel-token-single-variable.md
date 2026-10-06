@@ -47,7 +47,7 @@ pre-checks passed.
 
 - `bash -n scripts/dev-start` clean.
 - `pnpm vitest run test/compose-tunnel-invariants.test.ts
-test/development-container-security.test.ts` — 2 files, 31 tests, 0 failures.
+  test/development-container-security.test.ts` — 2 files, 31 tests, 0 failures.
   These suites read `compose.override.yaml.example`, whose deletion in the working
   tree is intentional, so it was restored with `git checkout --` for the run and
   deleted again afterwards.

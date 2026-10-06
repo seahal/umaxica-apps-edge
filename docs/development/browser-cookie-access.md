@@ -127,5 +127,5 @@ This file records how to do it, not a request to do it. No `cookie-store.ts`
 wrapper, no typed cookie-name registry and no client/server shared constant
 should be written before a feature needs one — a wrapper with no consumer is the
 speculative abstraction YAGNI exists to prevent, and it would have to be
-duplicated across up to twenty units to boot. Write the smallest thing the
+duplicated across up to seventeen units to boot. Write the smallest thing the
 first real feature needs, at that point, in that unit.

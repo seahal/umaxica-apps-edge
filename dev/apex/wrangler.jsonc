@@ -25,20 +25,28 @@
   // domain from the development Tunnel.
   "workers_dev": true,
   "preview_urls": true,
-  "upload_source_maps": false,
+  "upload_source_maps": true,
   "observability": {
-    "enabled": false,
+    "enabled": true,
     "head_sampling_rate": 1,
+    // Query strings carry `lx`, `lang`, search terms and OIDC parameters; none of
+    // them belongs in a log line or a span.
+    "redact_query_string": true,
+    "issues": {
+      "enabled": true
+    },
     "logs": {
       "enabled": true,
       "head_sampling_rate": 1,
       "persist": true,
       "invocation_logs": true
     },
+    // Logs are complete; traces are sampled at 20%. Identical in all seventeen
+    // units so the numbers are comparable — tools/check-workers.mjs enforces it.
     "traces": {
-      "enabled": false,
-      "persist": true,
-      "head_sampling_rate": 1
+      "enabled": true,
+      "head_sampling_rate": 0.2,
+      "persist": true
     }
   },
   // The top level IS production; there is no `env.production`. Deploy scripts blank
@@ -65,21 +73,6 @@
       // Required: `routes` IS inherited, so without this an `--env development`
       // deploy would reassign the production custom domain.
       "routes": [],
-      "observability": {
-        "enabled": false,
-        "head_sampling_rate": 1,
-        "logs": {
-          "enabled": true,
-          "invocation_logs": true,
-          "head_sampling_rate": 1,
-          "persist": true
-        },
-        "traces": {
-          "enabled": false,
-          "head_sampling_rate": 1,
-          "persist": true
-        }
-      },
       "ratelimits": [
         {
           "name": "RATE_LIMITER",

@@ -14,7 +14,7 @@
 GET {{base}}/robots.txt
 HTTP 200
 [Asserts]
-header "content-type" matches /^text\/plain/
+header "content-type" == "text/plain; charset=utf-8"
 body contains "User-Agent:"
 # A robots.txt that does not point at the sitemap is the common way this file
 # rots: the sitemap keeps being generated and nothing ever finds it.

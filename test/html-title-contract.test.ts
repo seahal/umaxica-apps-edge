@@ -26,8 +26,8 @@ vi.mock('@sentry/nextjs', () => ({ captureException: () => {} }));
 /**
  * The single owner of the UMAXICA HTML `<title>` contract.
  *
- *   Root title -> `UMAXICA ({TLD})`
- *   Page title -> `{LOCALIZED_PAGE_TITLE} — UMAXICA ({TLD})`
+ *   Root title -> `UMAXICA (FAMILY_TLD[family] ?? '')`
+ *   Page title -> `{LOCALIZED_PAGE_TITLE} — UMAXICA (FAMILY_TLD[family] ?? '')`
  *
  * Two things this file deliberately does NOT do:
  *
@@ -393,7 +393,13 @@ describe('rate limited 429 documents', () => {
   it.each(coreUnits)('%s/core serves a full 429 document', async (family) => {
     const { checkRateLimit } = (await import(
       /* @vite-ignore */ `../${family}/core/src/lib/rate-limit.ts`
-    )) as { checkRateLimit: (request: Request, limiter: unknown) => Promise<Response | null> };
+    )) as {
+      checkRateLimit: (
+        request: Request,
+        limiter: unknown,
+        locale?: unknown,
+      ) => Promise<Response | null>;
+    };
 
     const response = await checkRateLimit(new Request('https://example.test/'), blocked);
     expect(response?.status).toBe(429);
@@ -403,6 +409,17 @@ describe('rate limited 429 documents', () => {
       tld: FAMILY_TLD[family] ?? '',
       requirePageSpecific: true,
       label: `${family}/core 429`,
+    });
+
+    // The other locale is a second hand-written document, so it has to meet the
+    // same title contract and declare its own language.
+    const other = await checkRateLimit(new Request('https://example.test/'), blocked, () => 'en');
+    const otherHtml = await (other as Response).text();
+    expect(otherHtml).toContain('<html lang="en"');
+    expectTitleContract(otherHtml, {
+      tld: FAMILY_TLD[family] ?? '',
+      requirePageSpecific: true,
+      label: `${family}/core 429 (en)`,
     });
   });
 
@@ -428,7 +445,13 @@ describe('rate limited 429 documents', () => {
   it.each(apexUnits)('%s/apex serves a full 429 document', async (family) => {
     const { checkRateLimit } = (await import(
       /* @vite-ignore */ `../${family}/apex/src/rate-limit.ts`
-    )) as { checkRateLimit: (request: Request, limiter: unknown) => Promise<Response | null> };
+    )) as {
+      checkRateLimit: (
+        request: Request,
+        limiter: unknown,
+        locale?: unknown,
+      ) => Promise<Response | null>;
+    };
 
     const response = await checkRateLimit(new Request('https://example.test/'), blocked);
     expect(response?.status).toBe(429);
@@ -439,6 +462,17 @@ describe('rate limited 429 documents', () => {
       tld: FAMILY_TLD[family] ?? '',
       requirePageSpecific: true,
       label: `${family}/apex 429`,
+    });
+
+    // The other locale is a second hand-written document, so it has to meet the
+    // same title contract and declare its own language.
+    const other = await checkRateLimit(new Request('https://example.test/'), blocked, 'ja');
+    const otherHtml = await (other as Response).text();
+    expect(otherHtml).toContain('<html lang="ja"');
+    expectTitleContract(otherHtml, {
+      tld: FAMILY_TLD[family] ?? '',
+      requirePageSpecific: true,
+      label: `${family}/apex 429 (ja)`,
     });
   });
 
@@ -472,7 +506,13 @@ describe('rate limited 429 documents', () => {
   it.each(contentSurfaces)('%s serves a full 429 document', async (workspace) => {
     const { checkRateLimit } = (await import(
       /* @vite-ignore */ `../${workspace}/src/lib/rate-limit.ts`
-    )) as { checkRateLimit: (request: Request, limiter: unknown) => Promise<Response | null> };
+    )) as {
+      checkRateLimit: (
+        request: Request,
+        limiter: unknown,
+        locale?: unknown,
+      ) => Promise<Response | null>;
+    };
 
     const response = await checkRateLimit(new Request('https://example.test/'), blocked);
     expect(response?.status).toBe(429);
@@ -483,6 +523,17 @@ describe('rate limited 429 documents', () => {
       tld: FAMILY_TLD[workspace.split('/')[0] ?? ''] ?? '',
       requirePageSpecific: true,
       label: `${workspace} 429`,
+    });
+
+    // The other locale is a second hand-written document, so it has to meet the
+    // same title contract and declare its own language.
+    const other = await checkRateLimit(new Request('https://example.test/'), blocked, () => 'en');
+    const otherHtml = await (other as Response).text();
+    expect(otherHtml).toContain('<html lang="en"');
+    expectTitleContract(otherHtml, {
+      tld: FAMILY_TLD[workspace.split('/')[0] ?? ''] ?? '',
+      requirePageSpecific: true,
+      label: `${workspace} 429 (en)`,
     });
   });
 });

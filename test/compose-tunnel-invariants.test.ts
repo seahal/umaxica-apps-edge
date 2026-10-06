@@ -288,18 +288,9 @@ describe('secret hygiene', () => {
        * the equivalent for a Vite frame, denied in the client environment by the
        * Start plugin. Either satisfies the invariant; neither is optional.
        */
-      const isAstro = existsSync(
-        join(repoRoot, client.replace(/src\/lib\/rails-client\.ts$/u, 'astro.config.mjs')),
+      expect(source, `${client} must be server-only`).toMatch(
+        /import '(?:server-only|@tanstack\/react-start\/server-only)'/u,
       );
-      if (isAstro) {
-        expect(source, `${client} must not import a Start/Next server-only marker`).not.toMatch(
-          /import '(?:server-only|@tanstack\/react-start\/server-only)'/u,
-        );
-      } else {
-        expect(source, `${client} must be server-only`).toMatch(
-          /import '(?:server-only|@tanstack\/react-start\/server-only)'/u,
-        );
-      }
 
       for (const header of [
         'cookie',
@@ -313,23 +304,12 @@ describe('secret hygiene', () => {
       const stripIndex = source.indexOf('FORBIDDEN_REQUEST_HEADERS) {');
       expect(stripIndex, `${client} lost the header strip`).toBeGreaterThan(-1);
 
-      if (!isAstro) {
-        // The Cores reach Rails over the public internet with no transport
-        // credential at all (adr/018-core-rails-direct-internet.md), so there is
-        // nothing to apply after the strip — and nothing may be added back.
-        expect(source, `${client} must apply no transport credentials`).not.toContain(
-          'authHeaders',
-        );
-        continue;
-      }
-
-      // The strip must precede the transport's own headers, otherwise a caller
-      // could override the service token — or keep their own.
-      const applyIndex = source.indexOf('Object.entries(authHeaders)');
-      expect(applyIndex, `${client} lost the auth application`).toBeGreaterThan(-1);
-      expect(applyIndex, `${client} applies credentials before stripping`).toBeGreaterThan(
-        stripIndex,
-      );
+      // No frame applies a transport credential after the strip: the Cores reach
+      // Rails over the public internet with none at all
+      // (adr/018-core-rails-direct-internet.md) and the public cells through the
+      // Workers VPC binding, which carries none either — so nothing may be added
+      // back.
+      expect(source, `${client} must apply no transport credentials`).not.toContain('authHeaders');
     }
   });
 });

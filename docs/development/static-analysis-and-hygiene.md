@@ -59,8 +59,8 @@ JavaScript that oxlint's rule also covers. Remove neither until §4 changes.
 `pre-push` runs cheapest-first so a one-word mistake is reported in under a
 second rather than after the test suite; the measured costs are listed in
 `lefthook.yml`. Size Limit is absent from both hooks because it would require
-building all twenty units before every push — a cost CI already pays. `vite
-build` is fast, but twenty of them is still twenty.
+building all seventeen units before every push — a cost CI already pays. `vite
+build` is fast, but seventeen of them is still seventeen.
 
 Every CI step is `pnpm run <script>` or `pnpm -C <dir> run <script>`. No tool
 flags live in `.github/workflows/integration.yaml`, so a red check is reproduced

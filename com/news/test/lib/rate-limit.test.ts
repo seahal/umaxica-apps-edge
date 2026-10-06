@@ -46,6 +46,27 @@ describe('rate limiting', () => {
     );
   });
 
+  it('answers in English when the caller resolved English', async () => {
+    const limit = vi.fn().mockResolvedValue({ success: false });
+
+    const body = await (await checkRateLimit(request(), { limit }, () => 'en'))?.text();
+
+    expect(body).toContain('<html lang="en">');
+    expect(body).toContain(`<title>The request could not be processed — ${BRAND_TITLE}</title>`);
+    expect(body).toContain('<a href="/en/">Back to top</a>');
+  });
+
+  // Locale resolution belongs to a refused request only: it must not run before
+  // the limiter has answered, and not at all for a request that is let through.
+  it('does not resolve a locale for a request the limiter allows', async () => {
+    const limit = vi.fn().mockResolvedValue({ success: true });
+    const locale = vi.fn((): 'en' => 'en');
+
+    await checkRateLimit(request(), { limit }, locale);
+
+    expect(locale).not.toHaveBeenCalled();
+  });
+
   it('keys the limiter on the Cloudflare client IP', async () => {
     const limit = vi.fn().mockResolvedValue({ success: true });
 

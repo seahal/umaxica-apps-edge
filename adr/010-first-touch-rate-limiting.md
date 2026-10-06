@@ -244,3 +244,86 @@ it must not be the one page on an origin served untitled, untyped and cacheable.
   response, plus a source-level check for the twelve satellites.
 - Each unit's own `test/rate-limit.test.ts` covers the per-path fallback, the
   empty-header case, and that the 429 carries no security headers of its own.
+
+## Amendment — 2026-10-06
+
+Nothing in this amendment changes a limit, a namespace, a key or a call site.
+It records what the binding is _for_, so that the next change to it is made
+against a stated position rather than an inferred one.
+
+### What the limiter is
+
+A **coarse-grained, network-origin load-shedding and abuse ceiling.** It bounds
+how much traffic one network origin can push through a unit's first touch. It is
+not a security guarantee, and it is not a strict attempt counter.
+
+### Who owns what
+
+- **Wrangler configuration owns the budget:** `namespace_id`, `limit` and
+  `period`, per tier, in each unit's `wrangler.jsonc`. The allocation scheme is
+  ADR 022 and is unchanged.
+- **Worker code owns the key semantics:** `rateLimitKey()` in each unit's own
+  `rate-limit.ts` decides what one bucket means. Today that is the
+  `CF-Connecting-IP` value, verbatim, with the per-path `no-ip:` fallback above.
+
+Those two halves meet at one seam — `checkRateLimit(request, limiter, …)` — and
+that seam is what has to survive. A later key policy (an aggregated prefix, an
+identity, a composite) replaces `rateLimitKey()`; a later budget replaces three
+numbers in configuration. Neither should require touching the other, or any
+caller.
+
+### Known limitation, accepted for now
+
+`CF-Connecting-IP` is used as-is. An IPv6 client that rotates addresses inside
+its own allocation lands in a different bucket per address, so the ceiling is
+looser for such a client than the number suggests. This is known and accepted:
+aggregating to a prefix means owning an address parser and a canonicalisation
+rule, and tightening before there is production data to tighten against would
+be guessing. The same reasoning defers account, device, session and composite
+keys, adaptive or burst algorithms, tighter thresholds, and any layering with
+WAF rules.
+
+The order is deliberate: collect comparable observability across all seventeen
+units first (one policy, enforced by `tools/check-workers.mjs`), then tighten
+from what it shows.
+
+### What this binding is not responsible for
+
+Strict counting of authentication attempts — per account, per credential, with
+lockout or step-up — is not this binding's job, including for
+`AUTH_RATE_LIMITER`. That binding narrows the network-origin ceiling on the
+paths that can attempt a credential; it does not know who is being attempted.
+Attempt accounting belongs to the system that owns the credential.
+
+### The 429 speaks the unit's existing locale
+
+The 429 document is now `ja`/`en`. Rate limiting did **not** gain a locale
+precedence of its own; each family hands the limiter the resolution it already
+had:
+
+| Family         | Source of the 429 locale                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| Core           | `resolveDisplayLocale()` — `lx`, then the `language` cookie, then the default              |
+| Public content | the `/{lang}/` URL segment; `Accept-Language` on the bare `/`; the default everywhere else |
+| Apex           | the unit's one `languageDetector`, now registered ahead of the limiter; English when unset |
+
+In the frames the resolution is a thunk that runs only for a request already
+refused. In the apex Workers the detector runs before the limiter, which is
+safe at first touch because it is local and bounded — it reads the query string,
+one cookie and one header, performs no I/O, and with `caches: false` writes
+nothing. Reading the `language` cookie does not move the Core's cookie
+boundary: nothing is forwarded, and the application-side cookie strip is
+untouched.
+
+### ASVS references
+
+The earlier amendment cites "ASVS V2.2.1". That number is from the ASVS 4 line
+and does not name this control in ASVS 5.0. It is left as written above, as a
+record of what was cited at the time. The current references, checked against
+the OWASP ASVS 5.0.0 text, are:
+
+| ASVS 5.0 | Level | Requirement (abridged)                                                                                         | Where it is met here                                                                                         |
+| -------- | ----- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| V2.4.1   | 2     | Anti-automation controls protect against excessive calls leading to denial of service or costly overuse        | `RATE_LIMITER` at first touch, every unit                                                                    |
+| V6.1.1   | 1     | Documentation defines how rate limiting and anti-automation defend against credential stuffing and brute force | this record                                                                                                  |
+| V6.3.1   | 1     | Controls against credential stuffing and password brute force are implemented as documented                    | `AUTH_RATE_LIMITER` on the Core credential paths, as one layer; attempt accounting is the credential owner's |

@@ -49,7 +49,7 @@ or production deployment has been completed.
   `18 files, 85 tests passed`.
 - Hurl against self-hosted dedicated localhost servers, run one unit at a time:
   app/com/org each `12 files, 79 requests passed`; net/dev each `12 files,
-78 requests passed`. This includes the real HTTP `X-Forwarded-Host` case.
+  78 requests passed`. This includes the real HTTP `X-Forwarded-Host` case.
 - `format:check`, `lint`, `lint:types`, and `knip`: passed for all five units.
 - `typecheck` with each unit's Wrangler-generated bindings: passed for all five
   units. The first sandboxed attempt emitted Wrangler's expected EROFS log-path

@@ -35,6 +35,12 @@ import { defineConfig } from 'vite';
  * requires so TanStack Start's server build targets the Worker environment.
  */
 export default defineConfig({
+  // Source maps for the WORKER build only. `wrangler.jsonc` sets
+  // `upload_source_maps`, and the output is `no_bundle`, so wrangler uploads the
+  // maps it finds next to the server modules. Setting `build.sourcemap` at the
+  // root instead would also emit maps into `dist/client`, where they would be
+  // served as public static assets.
+  environments: { ssr: { build: { sourcemap: true } } },
   // The core's pages and components import through `@/`, declared in its own
   // tsconfig. Vite resolves it from there rather than from a second list here.
   resolve: { tsconfigPaths: true },

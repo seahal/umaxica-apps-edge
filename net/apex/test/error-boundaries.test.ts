@@ -79,6 +79,34 @@ describe('apex error boundary', () => {
     expect(response.status).toBe(429);
   });
 
+  // `app.request()` is only the driver: a refusing RATE_LIMITER is an injected
+  // binding no HTTP client can produce. The 429 speaks whatever the unit's one
+  // language detector resolved — it runs ahead of the limiter for that reason —
+  // and falls back to English where nothing is detected, including the machine
+  // endpoints that are never language-negotiated.
+  it.each([
+    ['/about?lang=ja', {}, 'ja', 'リクエストを処理できませんでした'],
+    ['/about', { cookie: 'language=ja' }, 'ja', 'リクエストを処理できませんでした'],
+    ['/about', { 'accept-language': 'ja,en;q=0.5' }, 'ja', 'リクエストを処理できませんでした'],
+    ['/about?lang=en', { cookie: 'language=ja' }, 'en', 'The request could not be processed'],
+    ['/about', {}, 'en', 'The request could not be processed'],
+    ['/revision', { cookie: 'language=ja' }, 'en', 'The request could not be processed'],
+  ] as const)('answers the 429 for %s %o in %s', async (path, headers, lang, heading) => {
+    const app = createApexApp(() => undefined);
+    const limit = vi.fn().mockResolvedValue({ success: false });
+
+    const response = await app.request(path, { headers }, { RATE_LIMITER: { limit } });
+    const body = await response.text();
+
+    expect(response.status).toBe(429);
+    expect(body).toContain(`<html lang="${lang}"`);
+    expect(body).toContain(`>${heading}</h1>`);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('content-type')).toBe('text/html; charset=UTF-8');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(response.headers.get('set-cookie')).toBeNull();
+  });
+
   it('accepts an exact byte-bound body from a stream and rejects the next byte', async () => {
     const app = createApexApp((routes) => {
       routes.post('/echo-size', async (c) =>

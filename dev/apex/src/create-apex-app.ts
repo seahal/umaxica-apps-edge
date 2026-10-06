@@ -104,7 +104,7 @@ const varyOnNegotiation: MiddlewareHandler = async (c, next) => {
  * `/health` and `/health/readinesses` are deliberately absent. They answer from
  * this isolate on an apex Worker, but they reach Rails over the Workers VPC
  * binding on a Core and on a TanStack public surface, and this exemption is written once
- * for all twenty units rather than per family: a set that means "cheap here,
+ * for all seventeen units rather than per family: a set that means "cheap here,
  * an uncounted path into Rails there" is not a rule anyone can check. Readiness
  * is the probe whose job is to answer "do not send me traffic"; being throttled
  * is a correct answer for it, and is not one for liveness or startup.
@@ -221,18 +221,6 @@ export function createApexApp(configurePageRoutes: ConfigurePageRoutes) {
     }
     return next();
   });
-  app.use(async (c, next) => {
-    if (isUnmeteredProbe(c.req.path)) return next();
-    const blocked = await checkRateLimit(c.req.raw, bindings(c)?.RATE_LIMITER);
-    if (blocked) return blocked;
-    return next();
-  });
-  app.use('*', apexCsrf);
-  // CSRF and Host checks stay ahead of body consumption. The official Hono
-  // bodyLimit then handles both Content-Length and chunked streams for every
-  // route owned by this Hono Worker.
-  app.use('*', rejectUnsupportedContentEncoding);
-  app.use('*', limitEdgeRequestBody);
   // Reads the locale set from this unit's own config rather than repeating
   // it, so the detector and `<html lang>` cannot disagree. Machine health
   // must not emit a language cookie as a side effect.
@@ -245,6 +233,18 @@ export function createApexApp(configurePageRoutes: ConfigurePageRoutes) {
     if (isMachineEndpoint(c.req.path)) return next();
     return detectLanguage(c, next);
   });
+  app.use(async (c, next) => {
+    if (isUnmeteredProbe(c.req.path)) return next();
+    const blocked = await checkRateLimit(c.req.raw, bindings(c)?.RATE_LIMITER, c.get('language'));
+    if (blocked) return blocked;
+    return next();
+  });
+  app.use('*', apexCsrf);
+  // CSRF and Host checks stay ahead of body consumption. The official Hono
+  // bodyLimit then handles both Content-Length and chunked streams for every
+  // route owned by this Hono Worker.
+  app.use('*', rejectUnsupportedContentEncoding);
+  app.use('*', limitEdgeRequestBody);
 
   pageRoutes.use(renderer);
   configurePageRoutes(pageRoutes);

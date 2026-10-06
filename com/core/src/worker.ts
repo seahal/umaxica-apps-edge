@@ -98,7 +98,7 @@ function isHealthPath(pathname: string): boolean {
  * and is not a correct answer for liveness or startup.
  *
  * The same three paths are the exempt set in every apex `create-apex-app.ts`
- * and every TanStack public surface's `src/request-handler.ts`. One rule, twenty units.
+ * and every TanStack public surface's `src/request-handler.ts`. One rule, seventeen units.
  */
 function isUnmeteredProbe(pathname: string): boolean {
   return (
@@ -137,9 +137,10 @@ function isRateLimitExempt(pathname: string): boolean {
  *
  * These count against `AUTH_RATE_LIMITER`, a separate and much smaller budget
  * than the page-view limiter. Sharing one budget meant an OIDC endpoint was as
- * cheap to hammer as a static page — ASVS V2.2.1 asks for anti-automation on the
- * authentication path specifically, and a limit sized for ordinary browsing is
- * not that.
+ * cheap to hammer as a static page — ASVS 5.0 V6.3.1 asks for controls against
+ * credential stuffing and brute force on the authentication path specifically
+ * (V2.4.1 is the general anti-automation requirement), and a limit sized for
+ * ordinary browsing is not that.
  *
  * Both limiters are consulted for these paths, not one instead of the other: the
  * general budget still bounds total traffic from a client, and this one bounds
@@ -234,15 +235,28 @@ export default {
       const response = await runWithRequestId(requestId, () =>
         withResponseGenerationTimeout(
           async (signal) => {
+            // The 429 speaks the Core's existing display-locale contract. It
+            // only READS the `language` cookie from the untouched request —
+            // nothing is forwarded, and the cookie strip below is unchanged —
+            // and it runs only for a request a limiter has already refused.
+            const displayLocale = () => resolveDisplayLocale(request);
             if (!isRateLimitExempt(pathname)) {
-              const rateLimitedResponse = await checkRateLimit(request, env.RATE_LIMITER);
+              const rateLimitedResponse = await checkRateLimit(
+                request,
+                env.RATE_LIMITER,
+                displayLocale,
+              );
               if (rateLimitedResponse) {
                 return withSecurityHeaders(rateLimitedResponse, isProduction);
               }
             }
 
             if (isAuthPath(pathname)) {
-              const authLimitedResponse = await checkRateLimit(request, env.AUTH_RATE_LIMITER);
+              const authLimitedResponse = await checkRateLimit(
+                request,
+                env.AUTH_RATE_LIMITER,
+                displayLocale,
+              );
               if (authLimitedResponse) {
                 return withSecurityHeaders(authLimitedResponse, isProduction);
               }

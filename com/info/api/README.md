@@ -34,6 +34,29 @@ for the same reason every unit owns its `vitest.config.ts`: a suite that only
 runs from the root is not extractable. `test/deployment-unit-boundaries.test.ts`
 enforces that.
 
+## The isolation canary (`api/isolation/`)
+
+`api/run.mjs` makes a second Hurl pass over `api/isolation/*.hurl`, repeated
+fifty times, ten at a time. It is the unit's one **workerd runtime** check: it
+asserts that the CSP nonce in the response header and the nonce on the rendered
+document agree while requests overlap, which is only true if the request-local
+AsyncLocalStorage store is really per request in the Workers runtime. Vitest
+cannot say that — its store is Node's and its requests never overlap.
+
+It is skipped, with a line saying so, when the server sends no nonce (a reused
+`vite dev` server sends the development policy).
+
+Two things are deliberately NOT asserted there, because nothing local can
+observe them honestly:
+
+- **Request-ID isolation.** `X-Request-ID` on the response comes from a local
+  variable, not from the store, so no HTTP client can see a leak. That needs a
+  test running inside the Worker; Cloudflare's Vitest integration currently
+  peers Vitest 4 and this repository runs Vitest 5, so it is not installed.
+- **The Rate Limiting binding.** The local simulator does not reproduce the
+  distributed counter's semantics. Refusal behaviour is covered in Vitest with
+  an injected limiter, which is what that layer is for.
+
 ## What belongs here
 
 The three test layers in this repository are split by responsibility, not by
@@ -88,7 +111,7 @@ is fresh per response needs two responses compared, so that is asserted there.
   rather than comparing it against a list that has to be kept in step by hand.
 - Pin key SETS, not just key presence. `jsonpath "$.x" exists` cannot see an
   added field, and these payloads are read by machines, so `jsonpath "$.*"
-count == n` is the assertion that catches a schema change in either direction.
+  count == n` is the assertion that catches a schema change in either direction.
 - `/health` here is a UNIFIED document — this frame's own state and Rails'
   liveness — and it answers 503 when Rails is absent, which is correct rather
   than broken. `standard-contract.hurl` therefore uses `HTTP *` and asserts the

@@ -66,7 +66,7 @@ be unset when running these commands or wrangler prefers it and fails.
 `node tools/verify-edge-connectivity.mjs vpc`:
 
 - `Binding resolved: env.UMAXICA_APPS_EDGE_CF_WORKERS_VPC (01a06fd0-89b7-7613-9e1d-f7d07c693273)
-VPC Service remote` — PASS
+  VPC Service remote` — PASS
 - `Direct VPC → Rails` PASS for all fifteen surfaces, Rails answering `200`
 - `VPC identity` WARN for all fifteen: the health payload carries no namespace field. Pre-existing;
   identical on the old service before the migration.
