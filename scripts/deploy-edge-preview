@@ -22,10 +22,16 @@ if [[ -n "$bootstrap_option" && "$bootstrap_option" != '--bootstrap-missing' ]];
 fi
 
 case "$worker_directory" in
-  app/apex | app/core | app/docs | app/help | app/info | app/news | \
-    com/apex | com/core | com/docs | com/help | com/info | com/news | \
-    org/apex | org/core | org/docs | org/help | org/info | org/news | \
+  app/core | app/docs | app/help | app/info | app/news | \
+    com/core | com/docs | com/help | com/info | com/news | \
+    org/core | org/docs | org/help | org/info | org/news | \
     net/apex) ;;
+  # Retired by adr/024-retire-app-com-org-apex-units.md. Rejected explicitly so
+  # a stale command fails with the reason rather than a generic "unknown".
+  app/apex | com/apex | org/apex)
+    echo "Retired Edge Worker directory: $worker_directory (adr/024)" >&2
+    exit 64
+    ;;
   *)
     echo "Unknown Edge Worker directory: $worker_directory" >&2
     exit 64

@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Asserts each production apex hostname is served by ITS OWN Worker.
+# Asserts each Edge-owned production apex hostname is served by ITS OWN Worker.
+#
+# Only umaxica.net remains: the app/com/org apex Workers were retired by
+# adr/024-retire-app-com-org-apex-units.md and those hostnames are no longer
+# Edge-owned. umaxica.dev is not a production Worker.
 #
 # A plain 200 check cannot catch this class of failure: when umaxica.net was
-# bound to the app/apex Worker it answered every request successfully, just
+# bound to the (now retired) app/apex Worker it answered every request successfully, just
 # from the wrong Worker. The `service` field in /health.json is set from the
 # `createApexApp(..., { service })` argument, so it identifies which Worker
 # actually handled the request.
 
 checks=(
-  'umaxica.com|com'
   'umaxica.net|net'
-  'umaxica.org|org'
-  'umaxica.app|app'
 )
 
 failed=0

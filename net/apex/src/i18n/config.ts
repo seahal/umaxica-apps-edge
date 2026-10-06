@@ -8,7 +8,7 @@
  *
  * `defaultLocale` is the single source of truth for `<html lang>` on every
  * document this unit emits — the JSX renderer, the health page, the status
- * pages and the offline page — each of which used to carry its own literal.
+ * pages — each of which used to carry its own literal.
  * `locales` is the set the request-level language detector accepts.
  * `test/html-lang-contract.test.tsx` pins that the emitters agree.
  */

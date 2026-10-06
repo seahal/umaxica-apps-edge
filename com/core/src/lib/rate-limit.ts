@@ -1,3 +1,7 @@
+// Relative, not `@/`: the repository-level title guard imports this file from
+// outside the unit, where the unit's path alias does not resolve.
+import { defaultLocale, type Locale } from '../i18n/config';
+
 /*
  * The 429 document, and the key the limiter counts against.
  *
@@ -12,14 +16,28 @@ export interface RateLimiter {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
-const RATE_LIMITED_DOCUMENT =
-  '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">' +
-  '<title>リクエストを処理できませんでした — UMAXICA (COM)</title></head>' +
-  '<body><main><h1>リクエストを処理できませんでした</h1><p>HTTP 429</p>' +
-  '<a href="/">トップへ戻る</a></main></body></html>';
+/*
+ * One literal document per locale. The wording is the status-page vocabulary
+ * every family uses for a refused request. This module does not decide the
+ * locale: `src/worker.ts` passes the Core's existing display-locale contract
+ * (`resolveDisplayLocale`: `lx`, then the `language` cookie, then the default),
+ * so rate limiting has no locale precedence of its own.
+ */
+const RATE_LIMITED_DOCUMENTS: Record<Locale, string> = {
+  ja:
+    '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">' +
+    '<title>リクエストを処理できませんでした — UMAXICA (COM)</title></head>' +
+    '<body><main><h1>リクエストを処理できませんでした</h1><p>HTTP 429</p>' +
+    '<a href="/">トップへ戻る</a></main></body></html>',
+  en:
+    '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">' +
+    '<title>The request could not be processed — UMAXICA (COM)</title></head>' +
+    '<body><main><h1>The request could not be processed</h1><p>HTTP 429</p>' +
+    '<a href="/">Back to top</a></main></body></html>',
+};
 
-export function rateLimitedResponse(): Response {
-  return new Response(RATE_LIMITED_DOCUMENT, {
+export function rateLimitedResponse(locale: Locale = defaultLocale): Response {
+  return new Response(RATE_LIMITED_DOCUMENTS[locale], {
     status: 429,
     headers: { 'Cache-Control': 'no-store', 'Content-Type': 'text/html; charset=UTF-8' },
   });
@@ -50,12 +68,17 @@ function rateLimitKey(request: Request): string {
   return `no-ip:${new URL(request.url).pathname}`;
 }
 
+/*
+ * `locale` is a thunk so the caller's resolution runs only for a request that
+ * was actually refused, and never before the limiter has answered.
+ */
 export async function checkRateLimit(
   request: Request,
   rateLimiter: RateLimiter | undefined,
+  locale: () => Locale = () => defaultLocale,
 ): Promise<Response | null> {
   if (!rateLimiter) return null;
 
   const { success } = await rateLimiter.limit({ key: rateLimitKey(request) });
-  return success ? null : rateLimitedResponse();
+  return success ? null : rateLimitedResponse(locale());
 }

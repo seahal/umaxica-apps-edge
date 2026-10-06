@@ -4,7 +4,7 @@
 server with [Hurl](https://hurl.dev).
 
 ```sh
-pnpm run test:api                      # starts a server, runs the suite, stops it
+pnpm run test:api                      # builds, serves the build, runs the suite, stops it
 pnpm run dev &&  pnpm run test:api     # or reuse one you already have
 ```
 
@@ -18,6 +18,11 @@ port first and reuses whatever is already answering, exactly as
 `playwright.config.ts` does with `reuseExistingServer`; it only starts a server
 when nothing does, and then it stops the whole process group it started. Running
 `pnpm run dev` in another terminal therefore behaves as it always did.
+
+The server it starts is `pnpm run serve:api` — the Worker built, then served by
+`vite preview` — not `vite dev`. A dev server compiles each route on its first
+request, and on a small CI runner that alone outlasted the response budget and
+answered 503: a failure of the dev server, not of the contract.
 
 Set `EDGE_API_BASE` to run these files against a preview deployment. Nothing is
 started or stopped in that case — a remote target is not ours to manage — and a
@@ -58,14 +63,13 @@ itself, it belongs in this directory.
 no connection, no cookie jar, and no state between calls, so every call looks
 like a first-ever visit.
 
-`i18n.hurl` exists because of that. Hono's `languageDetector` caches its
-decision in a `language` cookie for a year and ranks that cookie above
-`Accept-Language`. Under `app.request()` the cookie is never sent back, so the
-header appeared to decide every time. Under any real client it decides once.
+`i18n.hurl` exists because of that. Hono's `languageDetector` reads an explicit
+`language` cookie before `Accept-Language`, while its cache is disabled so the
+request does not create or refresh that cookie. The in-process test still has
+no cookie jar, so this file sends each language input explicitly.
 
-Hurl keeps one cookie jar **per file**, which is why the language sequence has a
-file to itself: folding it into `routes.hurl` would have it inherit a cookie set
-by the requests above it.
+Hurl keeps one cookie jar **per file**. The language cases use explicit cookie
+headers so their inputs remain visible and independent of requests elsewhere.
 
 ## Conventions
 

@@ -1,5 +1,11 @@
 # Edge connectivity acceptance
 
+> **2026-10-01 — app/com/org apex retired.** `app/apex`, `com/apex` and `org/apex` are no longer
+> deployment units ([ADR 024](../../adr/024-retire-app-com-org-apex-units.md)). Rows and run logs
+> below that mention them, or `umaxica.{app,com,org}` → `core:5401/5101/5301`, are historical
+> measurements. Edge no longer owns those apex hostnames; the remaining Edge apexes are `net/apex`
+> and `dev/apex`.
+
 The active acceptance matrix and commands are maintained in
 [`docs/development/cloudflare-development-network.md`](../development/cloudflare-development-network.md).
 
@@ -26,18 +32,15 @@ itself and the order it has to be created in.
 
 ## Apex domain binding
 
-`scripts/check-apex-domains` verifies that each production apex hostname is
-served by its own Worker, by reading the `service` field of `/health.json`:
+`scripts/check-apex-domains` verifies that each Edge-owned production apex hostname is
+served by its own Worker (only `umaxica.net` since ADR 024; `umaxica.dev` is listed for reference), by reading the `service` field of `/health.json`:
 
 | Hostname      | Expected Worker              | `service` |
 | ------------- | ---------------------------- | --------- |
-| `umaxica.com` | `umaxica-apps-edge-com-apex` | `com`     |
 | `umaxica.net` | `umaxica-apps-edge-net-apex` | `net`     |
-| `umaxica.org` | `umaxica-apps-edge-org-apex` | `org`     |
-| `umaxica.app` | `umaxica-apps-edge-app-apex` | `app`     |
 | `umaxica.dev` | `umaxica-apps-edge-dev-apex` | `dev`     |
 
-## Development Tunnel acceptance — 2026-09-01
+## Development Tunnel acceptance — 2026-09-01 (historical; predates ADR 024)
 
 All five apex Hono development servers are reachable through the Edge-owned Cloudflare Tunnel. The remotely managed Public Hostnames terminate on the Compose service name `core`, one port per unit:
 

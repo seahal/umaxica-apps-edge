@@ -93,6 +93,15 @@
   --leading-heading: 1.3;
 }
 
+:root {
+  --ui-tint: var(--color-red-500);
+  --ui-canvas: color-mix(in oklab, var(--color-white) 85%, var(--ui-tint));
+}
+
+@theme inline {
+  --color-canvas: var(--ui-canvas);
+}
+
 @layer base {
   /*
    * Visible focus, at the shell contract's shared value (§9). One element rule

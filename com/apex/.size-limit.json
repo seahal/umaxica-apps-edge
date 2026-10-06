@@ -1,8 +1,0 @@
-[
-  {
-    "name": "client JavaScript (baseline 502 B, budget = +10%)",
-    "path": "public/*.js",
-    "gzip": true,
-    "limit": "560 B"
-  }
-]

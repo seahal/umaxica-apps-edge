@@ -1,8 +1,8 @@
-# The status surfaces: 404 and /offline.
+# The status surface: 404.
 #
-# Both are chrome-free by design (docs/design/ui-shell-contract.md §15) but not
-# unstyled — they link the same compiled stylesheet as every other document, and
-# they must carry the brand title contract `{PAGE} — UMAXICA (DEV)` like any
+# The 404 is chrome-free by design (docs/design/ui-shell-contract.md §15) but not
+# unstyled — it links the same compiled stylesheet as every other document, and
+# it must carry the brand title contract `{PAGE} — UMAXICA (DEV)` like any
 # other page. Replaces the `app.request()` halves of
 # `test/routes/error-pages.test.ts`, `test/routes/coverage.test.ts` and
 # `test/status-surfaces.test.ts`.
@@ -23,6 +23,8 @@ body contains "HTTP 404"
 xpath "string(//a[normalize-space(.)='このURLについて']/@href)" == "/about"
 body contains "このURLについて"
 body not contains "再読み込み"
+[Captures]
+stylesheet_url: xpath "string(//link[@rel='stylesheet']/@href)"
 
 
 GET {{base}}/__definitely_not_found_in_english__
@@ -44,21 +46,7 @@ HTTP 404
 xpath "normalize-space(//h1)" == "ページが見つかりません"
 
 
-GET {{base}}/offline
-HTTP 200
-[Asserts]
-header "content-type" matches /^text\/html/
-xpath "string(//html/@lang)" == "ja"
-xpath "string(//title)" == "オフライン — UMAXICA (DEV)"
-xpath "normalize-space(//h1)" == "オフラインです"
-xpath "count(//link[@rel='stylesheet'])" == 1
-xpath "string(//link[@rel='stylesheet']/@href)" matches /^\/[^"]+\.css(\?[^"]*)?$/
-body contains "トップへ戻る"
-[Captures]
-stylesheet_url: xpath "string(//link[@rel='stylesheet']/@href)"
-
-
-# The stylesheet the three status documents above link to. It is served by the
+# The stylesheet the status document above links to. It is served by the
 # assets binding without invoking the Worker, so a broken build shows up as a
 # 404 here and nowhere else in this suite.
 #

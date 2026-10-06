@@ -1,6 +1,8 @@
 # 開発者ローカル / ホスト固有の任意 override の「例」です。
 #
-#   compose.yaml                  = 標準開発環境。これ 1 本で成立する。
+#   compose.yaml                  = 共有サービス (トンネル、各ユニットの app プロファイル)
+#   .devcontainer/compose.yaml    = `core` (ワークスペースコンテナ)
+#                                   この 2 本で標準開発環境が成立する。
 #   compose.override.yaml         = 任意のローカル override (Git 追跡外)
 #   compose.override.yaml.example = このファイル。追跡されるドキュメント。
 #
@@ -8,14 +10,21 @@
 #
 #   cp compose.override.yaml.example compose.override.yaml
 #
-# として自分のマシンに合わせて編集してください。`docker compose` /
-# `podman compose` は -f を付けずに実行したとき compose.override.yaml を
-# 自動で読み込みます。`scripts/dev-start` も存在すれば読み込みます。
+# として自分のマシンに合わせて編集してください。読み込むのは
+# `scripts/dev-start` です。`compose.yaml` と `.devcontainer/compose.yaml` に
+# 続けて、存在すれば `-f compose.override.yaml` を渡します。
 #
-# 注意: `.devcontainer/devcontainer.json` は `dockerComposeFile` で
-# `../compose.yaml` だけを明示指定します。Dev Containers は指定されたファイルを
-# `-f` で渡すため、Compose の override 自動探索はそこでは働きません。
-# override を効かせたい場合は `scripts/dev-start` で起動してください。
+# 注意 1: このファイルが上書きする `core` は `.devcontainer/compose.yaml` にしか
+# 定義されていません。`-f` を付けない素の `docker compose` / `podman compose` も
+# compose.override.yaml を自動で読み込みますが、そのとき読むのは `compose.yaml`
+# だけなので、`core` がイメージもビルドも持たないサービスになり失敗します。
+# `core` を扱うときは `scripts/dev-start` を使ってください。
+#
+# 注意 2: `.devcontainer/devcontainer.json` は `dockerComposeFile` で
+# `../compose.yaml` と `./compose.yaml` の 2 本を明示指定します。Dev Containers は
+# 指定されたファイルを `-f` で渡すため、Compose の override 自動探索はそこでは
+# 働かず、このファイルは読み込まれません。override を効かせたい場合は
+# `scripts/dev-start` で起動してください。
 #
 # ここに秘密情報を書かないでください。値は必ずホストの環境変数を
 # `${VAR}` で参照する形にします。秘密鍵をマウントしてはいけません。

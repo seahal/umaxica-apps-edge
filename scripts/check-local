@@ -2,12 +2,9 @@
 set -euo pipefail
 
 checks=(
-  'com/apex|http://127.0.0.1:5101/health.json'
   'com/core|http://127.0.0.1:5105/health'
   'net/apex|http://127.0.0.1:5201/health.json'
-  'org/apex|http://127.0.0.1:5301/health.json'
   'org/core|http://127.0.0.1:5305/health'
-  'app/apex|http://127.0.0.1:5401/health.json'
   'app/core|http://127.0.0.1:5405/health'
 )
 
