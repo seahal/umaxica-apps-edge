@@ -47,12 +47,13 @@
   },
   "devDependencies": {
     "@size-limit/file": "catalog:",
+    "@tanstack/intent": "catalog:",
     "@types/node": "catalog:",
     "cspell": "catalog:",
     "dependency-cruiser": "catalog:",
     "hono": "catalog:",
     "knip": "catalog:",
-    "lefthook": "^2.1.17",
+    "lefthook": "^2.2.2",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
@@ -65,13 +66,18 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "12.0.0",
+      "version": "12.11.2",
       "onFail": "download"
     },
     "runtime": {
       "name": "node",
-      "version": "24.20.0",
+      "version": "24.21.0",
       "onFail": "warn"
     }
+  },
+  "intent": {
+    "skills": [
+      "*"
+    ]
   }
 }

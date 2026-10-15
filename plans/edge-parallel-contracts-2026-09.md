@@ -1,5 +1,10 @@
 # UMAXICA Edge 並行実装計画 — 2026-09
 
+> 2026-10-11: この計画内のCoreにおける `lx` → language Cookie → `ja` の
+> 記述は履歴です。現在のCoreはURLの最後のscalar `lx` または既定の `ja` のみを
+> 使用し、公開12面の未使用Cookie readerも撤去済みです。
+> 現行契約は `docs/development/core-display-locale.md` を参照してください。
+
 ## 目的と判定
 
 Rails の大規模改修を待たずに、Rails が不要な Edge 境界を安全に整備する。

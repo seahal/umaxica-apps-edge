@@ -29,3 +29,5 @@ Current boundary records:
 - [ADR 023](023-rails-proxy-trust-boundary.md) — Edge → Rails proxy trust boundary
 - [ADR 024](024-retire-app-com-org-apex-units.md) — app/com/org apex deployment units retired; apex ownership vacated for Experience
 - [ADR 025](025-csp-report-ownership.md) — CSP violation report ownership (contract only; implementation deferred)
+- [ADR 026](026-tanstack-start-stable-caret-range.md) — TanStack Start stable; `^` catalog range, single Router, plain entry for Publishing cells
+- [ADR 027](027-reintroduce-app-com-org-apex-units.md) — app/com/org apex Hono units reintroduced (supersedes ADR 024); Cloudflare cutover pending

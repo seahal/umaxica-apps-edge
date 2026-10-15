@@ -3,16 +3,24 @@ import {
   defaultRenderHandler,
   defineHandlerCallback,
 } from '@tanstack/react-start/server';
-import { createServerEntry } from '@tanstack/react-start/server-entry';
 
 import { handleRequest } from './request-handler';
 import './security-nonce-als';
 
 /*
  * This unit's Worker entry (`main` in wrangler.jsonc), and wiring only: the
- * behaviour lives in `src/request-handler.ts`, because
- * `@tanstack/react-start/server-entry` resolves in the Worker build and nowhere
- * else — so a test can reach the boundary's logic but not this module.
+ * behaviour lives in `src/request-handler.ts`, because `createStartHandler`
+ * resolves in the Worker build and nowhere else — so a test can reach the
+ * boundary's logic but not this module.
+ *
+ * A plain `{ fetch }`, NOT `createServerEntry({ fetch })`, and the choice is
+ * load-bearing: since 1.169, `createServerEntry` answers a path with invalid
+ * percent-encoding (`/%E0%A4%A`) with a bare 400 before calling `fetch`, so
+ * that 400 skipped `handleRequest` and left without security headers,
+ * `X-Request-Id` or a completion log. With a plain entry the same 400 comes
+ * from `createStartHandler`, inside `handleRequest`. The three Cores have the
+ * same shape (`src/lib/app-handler.ts` in each); `api/malformed-path.hurl` pins
+ * the result.
  *
  * `defaultRenderHandler`, NOT `defaultStreamHandler`, and the choice is
  * load-bearing: streaming flushes the shell before a failure is known, which
@@ -28,6 +36,8 @@ import './security-nonce-als';
  */
 const fetchHandler = createStartHandler(defineHandlerCallback((ctx) => defaultRenderHandler(ctx)));
 
-export default createServerEntry({
-  fetch: (request: Request) => handleRequest(request, fetchHandler, import.meta.env.PROD),
-});
+export default {
+  async fetch(request: Request): Promise<Response> {
+    return handleRequest(request, fetchHandler, import.meta.env.PROD);
+  },
+};

@@ -1,7 +1,7 @@
 # Edge development container
 
-`Containerfile` builds the Podman-first development image. It pins Node 24.19.0, pnpm
-12.0.0, Claude Code, Codex, and OpenCode, and installs GitHub CLI, Chromium prerequisites,
+`Containerfile` builds the Podman-first development image. It pins Node 24.21.0, pnpm
+12.11.2, Claude Code, Codex, and OpenCode, and installs GitHub CLI, Chromium prerequisites,
 Wrangler through project dependencies. No credential enters a build
 argument, environment instruction, copy, or image layer.
 

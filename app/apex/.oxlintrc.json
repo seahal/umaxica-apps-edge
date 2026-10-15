@@ -1,0 +1,142 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "promise", "vitest"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "error",
+    "perf": "error"
+  },
+  "env": {
+    "browser": true,
+    "es2024": true,
+    "node": true
+  },
+  "globals": {
+    "afterEach": "readonly",
+    "beforeEach": "readonly",
+    "describe": "readonly",
+    "expect": "readonly",
+    "it": "readonly",
+    "vi": "readonly"
+  },
+  "rules": {
+    "no-unused-vars": "error",
+    "no-console": "error",
+    "no-var": "error",
+    "prefer-const": "error",
+    "eqeqeq": "error",
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/consistent-type-imports": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["**/shared/**", "**/shared/*"],
+            "message": "shared/ has been removed. Each frame owns its own components, types, hooks, and utilities — copy the implementation into this frame instead of reintroducing a shared module. (Cross-unit imports are a separate invariant, owned by test/deployment-unit-boundaries.test.ts — this rule only stops a shared/ directory coming back.)"
+          }
+        ]
+      }
+    ],
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/no-unsafe-type-assertion": "error",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/restrict-template-expressions": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
+    "typescript/non-nullable-type-assertion-style": "error",
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": "off",
+    "vitest/require-mock-type-parameters": "off",
+    "vitest/no-conditional-in-test": "off",
+    "vitest/no-conditional-expect": "off",
+    "vitest/valid-expect": "off",
+    "vitest/valid-title": "off",
+    "vitest/expect-expect": [
+      "error",
+      {
+        "assertFunctionNames": [
+          "expect",
+          "expectTypeOf",
+          "assert",
+          "assertType",
+          "expectTitleContract",
+          "expectFailClosed"
+        ]
+      }
+    ],
+    "eslint/max-lines": "off",
+    "eslint/max-lines-per-function": "off",
+    "eslint/max-classes-per-file": "off",
+    "eslint/max-nested-callbacks": "off",
+    "eslint/no-inline-comments": "off",
+    "eslint/no-warning-comments": "off",
+    "eslint/no-await-in-loop": "off",
+    "eslint/require-await": "off",
+    "eslint/prefer-promise-reject-errors": "off",
+    "promise/no-promise-in-callback": "off",
+    "import/max-dependencies": "off",
+    "typescript/prefer-readonly-parameter-types": "off",
+    "typescript/strict-boolean-expressions": "off",
+    "typescript/prefer-nullish-coalescing": "off",
+    "typescript/no-confusing-void-expression": "off",
+    "typescript/strict-void-return": "off",
+    "typescript/require-await": "off",
+    "typescript/prefer-promise-reject-errors": "off",
+    "typescript/consistent-return": "off",
+    "import/no-cycle": "error",
+    "import/no-self-import": "error"
+  },
+  "overrides": [
+    {
+      "files": ["test/**", "**/*.test.ts", "**/*.test.tsx", "e2e/**", "**/__mocks__/**"],
+      "rules": {
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/no-unnecessary-condition": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
+        "typescript/non-nullable-type-assertion-style": "off"
+      }
+    },
+    {
+      "files": ["tools/**", "scripts/**", "public/**", "*.mjs", "*.cjs"],
+      "rules": {
+        "typescript/no-floating-promises": "off",
+        "typescript/no-misused-promises": "off",
+        "typescript/await-thenable": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/no-unnecessary-condition": "off",
+        "typescript/restrict-template-expressions": "off",
+        "typescript/use-unknown-in-catch-callback-variable": "off",
+        "typescript/non-nullable-type-assertion-style": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "**/.wrangler/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "worker-configuration.d.ts",
+    "**/+types/**",
+    "**/build/**"
+  ]
+}

@@ -12,7 +12,7 @@ carry the header, the footer and the skip link. Check which one you are reading
 before copying a route or a shell change; `docs/design/ui-shell-contract.md` §15
 is normative.
 
-TanStack Start is at Release Candidate, and its API moves quickly. Read the
+TanStack Start is stable as of 1.169 (adr/026), but it moved quickly to get there. Read the
 current documentation rather than working from memory:
 
 - <https://tanstack.com/start/latest/docs/framework/react/overview>

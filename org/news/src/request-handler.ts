@@ -33,7 +33,7 @@ import { createNonce, runWithNonce } from './security-nonce';
  *
  * `src/server.ts` is the wiring that hands it TanStack's fetch handler; keeping
  * the behaviour here is what makes the request boundary testable without
- * resolving `@tanstack/react-start/server-entry`, which only the Worker build
+ * resolving `@tanstack/react-start/server`, which only the Worker build
  * can resolve.
  *
  * Order is the contract:

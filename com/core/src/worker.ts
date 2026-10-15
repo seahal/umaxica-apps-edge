@@ -235,11 +235,8 @@ export default {
       const response = await runWithRequestId(requestId, () =>
         withResponseGenerationTimeout(
           async (signal) => {
-            // The 429 speaks the Core's existing display-locale contract. It
-            // only READS the `language` cookie from the untouched request —
-            // nothing is forwarded, and the cookie strip below is unchanged —
-            // and it runs only for a request a limiter has already refused.
-            const displayLocale = () => resolveDisplayLocale(request);
+            // Resolve the 429 locale from the URL only, when the limiter refuses.
+            const displayLocale = () => resolveDisplayLocale(new URL(request.url));
             if (!isRateLimitExempt(pathname)) {
               const rateLimitedResponse = await checkRateLimit(
                 request,
@@ -279,7 +276,7 @@ export default {
               : request;
             const strippedRequest = stripApplicationCookie(
               sanitizedRequest,
-              resolveDisplayLocale(sanitizedRequest),
+              resolveDisplayLocale(new URL(sanitizedRequest.url)),
             );
             const bounded = await limitRequestBody(strippedRequest, signal);
             if (bounded.kind !== 'ok') {

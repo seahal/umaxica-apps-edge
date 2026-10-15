@@ -28,10 +28,10 @@ Sibling repositories split out of this one:
 
 ## Prerequisites
 
-- Node.js 24.20.0 — Active LTS "Krypton" (declared in
+- Node.js 24.21.0 — Active LTS "Krypton" (declared in
   `package.json#devEngines.runtime`, matched by `Containerfile` as
-  `node:24.20.0-trixie`)
-- [pnpm](https://pnpm.io/) 12.0.0 (declared in
+  `node:24.21.0-trixie`)
+- [pnpm](https://pnpm.io/) 12.11.2 (declared in
   `package.json#devEngines.packageManager`, matched by `Containerfile`) — the
   ONLY package manager; `pnpm-lock.yaml` is the only lockfile and
   `test/package-manager-invariants.test.ts` enforces both
@@ -39,21 +39,24 @@ Sibling repositories split out of this one:
 
 ## Workspaces
 
-Seventeen deployment units, all in `pnpm-workspace.yaml`:
+Twenty deployment units, all in `pnpm-workspace.yaml`:
 
 | Package    | Role                | Domain             | Dev Port |
 | ---------- | ------------------- | ------------------ | -------- |
+| `com/apex` | Apex/static worker  | `umaxica.com`      | 5101     |
 | `com/info` | Corporate info      | `info.umaxica.com` | 5103     |
 | `com/core` | Corporate app       | `umaxica.com`      | 5105     |
 | `com/docs` | Corporate docs      | `docs.umaxica.com` | 5106     |
 | `com/news` | Corporate news      | `news.umaxica.com` | 5107     |
 | `com/help` | Corporate help      | `help.umaxica.com` | 5108     |
 | `net/apex` | Network apex worker | `umaxica.net`      | 5201     |
+| `org/apex` | Apex/static worker  | `umaxica.org`      | 5301     |
 | `org/info` | Staff info          | `info.umaxica.org` | 5303     |
 | `org/core` | Staff app           | `umaxica.org`      | 5305     |
 | `org/docs` | Staff docs          | `docs.umaxica.org` | 5306     |
 | `org/news` | Staff news          | `news.umaxica.org` | 5307     |
 | `org/help` | Staff help          | `help.umaxica.org` | 5308     |
+| `app/apex` | Apex/static worker  | `umaxica.app`      | 5401     |
 | `app/info` | Service info        | `info.umaxica.app` | 5403     |
 | `app/core` | Service app         | `umaxica.app`      | 5405     |
 | `app/docs` | Service docs        | `docs.umaxica.app` | 5406     |
@@ -63,23 +66,24 @@ Seventeen deployment units, all in `pnpm-workspace.yaml`:
 
 ### Edge apex ownership
 
-| Apex          | Edge apex unit | State    |
-| ------------- | -------------- | -------- |
-| `umaxica.app` | —              | retired  |
-| `umaxica.com` | —              | retired  |
-| `umaxica.org` | —              | retired  |
-| `umaxica.dev` | `dev/apex`     | retained |
-| `umaxica.net` | `net/apex`     | retained |
+| Apex          | Edge apex unit | State in this repository |
+| ------------- | -------------- | ------------------------ |
+| `umaxica.app` | `app/apex`     | reintroduced (ADR 027)   |
+| `umaxica.com` | `com/apex`     | reintroduced (ADR 027)   |
+| `umaxica.org` | `org/apex`     | reintroduced (ADR 027)   |
+| `umaxica.dev` | `dev/apex`     | retained                 |
+| `umaxica.net` | `net/apex`     | retained                 |
 
-`app/apex`, `com/apex` and `org/apex` were retired as deployment units by
-`adr/024-retire-app-com-org-apex-units.md`. Their behaviour (region redirect,
-`/about`, health, service worker, …) was not moved anywhere. The apex hostnames
-are deliberately left unowned by Edge so the future Experience (`xper`) surface
-can own them. `{com,org,app}/core` remain at their regional subdomains.
+`{com,org,app}/apex` were retired by `adr/024-retire-app-com-org-apex-units.md`
+and reintroduced by `adr/027-reintroduce-app-com-org-apex-units.md`, built on
+the current `dev/apex`. `/` answers a 302 to `jp.umaxica.<tld>` (or
+`us.` for `?ri=us`); `/about` is the brand page. `{com,org,app}/core` remain at
+their regional subdomains.
 
-Removing the units from this repository does not by itself free the hostnames
-in Cloudflare: Tunnel Public Hostnames, Access applications and any leftover
-Worker or DNS objects are external state, tracked in ADR 024.
+Reintroducing the units does **not** make them public. Every apex
+`wrangler.jsonc` keeps `"routes": []`; the hostnames stay with whatever
+Cloudflare object currently owns them (last verified: a Tunnel Public Hostname,
+ADR 024) until an operator moves them, per ADR 027.
 
 One deliberate outlier lives outside the workspace list: `all/busy` is a
 dependency-free static maintenance Worker (`umaxica-apps-edge-all-busy`) with a
@@ -125,7 +129,7 @@ pnpm run typecheck       # each unit's `typecheck` (cf-typegen, then tsc --noEmi
 pnpm run test            # each unit's Vitest run, then the root invariant suite
 pnpm run test:api        # each unit's Hurl suite
 pnpm run test:e2e        # each unit's Playwright run
-pnpm run build           # each unit's `vite build` — all seventeen, one bundler
+pnpm run build           # each unit's `vite build` — all twenty, one bundler
 pnpm run check           # check:static + test
 pnpm run check:static    # format:check + lint + lint:types + check:generated
                          #   + typecheck + knip + check:workers
@@ -160,7 +164,7 @@ without rewriting its toolchain. `test/deployment-unit-boundaries.test.ts`
 enforces this.
 
 Shared dependency versions live in the `catalog:` section of
-`pnpm-workspace.yaml`, so seventeen units cannot drift onto different versions of
+`pnpm-workspace.yaml`, so twenty units cannot drift onto different versions of
 the same tool; `check:deps` fails if a manifest steps outside the catalog. The
 workspace file also enforces supply-chain policy: `minimumReleaseAge: 1440`
 (strict) holds newly published versions back a day before they can install.
@@ -171,7 +175,7 @@ workspace file also enforces supply-chain policy: `minimumReleaseAge: 1440`
 
 | Tool                                                            | Role                                 | Version  |
 | --------------------------------------------------------------- | ------------------------------------ | -------- |
-| [pnpm](https://pnpm.io/)                                        | Package manager & task orchestration | 12.0.0   |
+| [pnpm](https://pnpm.io/)                                        | Package manager & task orchestration | 12.11.2  |
 | [Vite](https://vite.dev/)                                       | Dev server & production build        | 8.2.x    |
 | [TanStack Start](https://tanstack.com/start)                    | Framework, the fifteen frames        | 1.168.x  |
 | [Hono](https://hono.dev/)                                       | Framework, the two apex Workers      | 4.13.x   |
@@ -191,8 +195,8 @@ workspace file also enforces supply-chain policy: `minimumReleaseAge: 1440`
 
 ```jsonc
 "devEngines": {
-  "runtime":        { "name": "node", "version": "24.20.0", "onFail": "warn" },
-  "packageManager": { "name": "pnpm", "version": "12.0.0", "onFail": "download" }
+  "runtime":        { "name": "node", "version": "24.21.0", "onFail": "warn" },
+  "packageManager": { "name": "pnpm", "version": "12.11.2", "onFail": "download" }
 }
 ```
 
@@ -222,7 +226,7 @@ together; the test tells you when you have edited only one.
 The development environment is started with the Dev Containers CLI over
 rootless Podman.
 
-- **Base image**: `node:24.20.0-trixie` from `Containerfile`, with pnpm 12.0.0
+- **Base image**: `node:24.21.0-trixie` from `Containerfile`, with pnpm 12.11.2
   pre-installed via the standalone script documented at
   <https://pnpm.io/installation>. Both are pinned to exact versions so a
   rebuild reproduces the same toolchain, and both match the sibling Rails repo
@@ -288,7 +292,7 @@ workspace unit is also a Compose service of its own, behind the `app` profile:
 ```bash
 podman compose up                          # the shared services only
 podman compose --profile app up net-apex   # just net/apex, on 5201
-podman compose --profile app up            # all seventeen dev servers
+podman compose --profile app up            # all twenty dev servers
 ```
 
 Each service runs that unit's own `pnpm run dev` and publishes the port that
@@ -308,12 +312,12 @@ compose.override.yaml          = optional, gitignored, yours
 compose.override.yaml.example  = documented example, tracked
 ```
 
-| File                            | Holds                                                                                                                                                                                                    | Edit it?                                   |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `compose.yaml`                  | the shared services — the Edge-owned `cloudflare-tunnel` connector, the networks and volumes — plus one dev-server service per workspace unit behind `profiles: [app]`                                   | only as a change that applies to everyone  |
-| `.devcontainer/compose.yaml`    | `core`, the workspace container: the SELinux `label=disable`, the seventeen published ports, the `GH_TOKEN` passthrough, `sleep infinity`. It lives here so a bare `podman compose up` does not start it | only as a change that applies to everyone  |
-| `compose.override.yaml`         | host-specific convenience only — an ssh-agent socket, a `known_hosts` bind, machine-local ports, experiments                                                                                             | yes, freely; it is yours and is gitignored |
-| `compose.override.yaml.example` | a documented example of the above                                                                                                                                                                        | only to change what the example teaches    |
+| File                            | Holds                                                                                                                                                                                                 | Edit it?                                   |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `compose.yaml`                  | the shared services — the Edge-owned `cloudflare-tunnel` connector, the networks and volumes — plus one dev-server service per workspace unit behind `profiles: [app]`                                | only as a change that applies to everyone  |
+| `.devcontainer/compose.yaml`    | `core`, the workspace container: the SELinux `label=disable`, the twenty published ports, the `GH_TOKEN` passthrough, `sleep infinity`. It lives here so a bare `podman compose up` does not start it | only as a change that applies to everyone  |
+| `compose.override.yaml`         | host-specific convenience only — an ssh-agent socket, a `known_hosts` bind, machine-local ports, experiments                                                                                          | yes, freely; it is yours and is gitignored |
+| `compose.override.yaml.example` | a documented example of the above                                                                                                                                                                     | only to change what the example teaches    |
 
 **A fresh clone needs no override.** `compose.yaml` and
 `.devcontainer/compose.yaml` between them are a complete, supported development
@@ -487,7 +491,7 @@ parser behind it is a Vitest test, and the login screen is a Playwright test;
 the same `GET /health → 200` in all three is not.
 
 Each unit's `api/README.md` states this contract locally and names the Vitest
-file each `.hurl` file replaced. All seventeen units implement the same contract,
+file each `.hurl` file replaced. All twenty units implement the same contract,
 including `dev/apex`; none is exempt.
 
 Root-level `vitest run --dir test` runs only `test/` — the repository
@@ -523,7 +527,7 @@ Two caveats worth knowing before a first run:
 - **Playwright browsers are not installed** by the image or by CI. Run
   `pnpm exec playwright install chromium` once before `test:e2e`.
 - **CI deliberately skips `test:e2e`** for the same browser reason — do not
-  "fix" that. CI does run `test:api` for all seventeen units.
+  "fix" that. CI does run `test:api` for all twenty units.
 
 ## TypeScript
 
@@ -547,9 +551,9 @@ Generated files follow two opposite rules:
 
 ## Production Environment
 
-| Platform                                              | Workspaces                                                                         | Domains                                                                                 |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| [Cloudflare Workers](https://workers.cloudflare.com/) | all seventeen — `{app,com,org}/{core,docs,help,info,news}`, `net/apex`, `dev/apex` | subdomains of `umaxica.app`, `umaxica.com`, `umaxica.org`; `umaxica.net`, `umaxica.dev` |
+| Platform                                              | Workspaces                                                                           | Domains                                                                                        |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| [Cloudflare Workers](https://workers.cloudflare.com/) | all twenty — `{app,com,org}/{apex,core,docs,help,info,news}`, `net/apex`, `dev/apex` | `umaxica.app`, `umaxica.com`, `umaxica.org` and their subdomains; `umaxica.net`, `umaxica.dev` |
 
 There is no second platform. `dev/apex` moved from Vercel to Workers and
 `dev/acme` was deleted (`adr/012-apex-vite-build-and-static-assets.md`), so
@@ -604,7 +608,7 @@ Notes:
 
   `upload:ci` is `pnpm run build && CLOUDFLARE_ENV= wrangler versions upload` —
   it builds, blanks the injected variable and uploads the output the build
-  step just produced. All seventeen deployable workspaces define it, and since
+  step just produced. All twenty deployable workspaces define it, and since
   every one of them builds with Vite the definition is identical in each. Keep
   it in place when adding a workspace, and substitute the workspace path in
   both commands above. Watch the build configuration's root directory too — a

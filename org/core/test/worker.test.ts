@@ -124,6 +124,27 @@ describe('org/core worker.ts dispatch', () => {
     expect(forwardedRequest.headers.get('x-edge-display-locale')).toBe('en');
   });
 
+  // The mocked handler exposes the internal request, which HTTP clients cannot inspect.
+  it.each([
+    ['', 'language=en', 'ja'],
+    ['?lx=ja', 'language=en', 'ja'],
+    ['?lx=invalid', 'language=en', 'ja'],
+    ['', 'flag; language=%broken; language=en', 'ja'],
+    ['?lx=en&lx=ja', 'language=en', 'ja'],
+  ])('ignores preference cookies and forged locale for %s', async (search, cookie, expected) => {
+    appFetch.mockResolvedValue(new Response('ok'));
+    await worker.fetch(
+      new Request(`https://jp.umaxica.org/${search}`, {
+        headers: { cookie, 'x-edge-display-locale': 'en' },
+      }),
+      makeEnv(),
+      ctx,
+    );
+    const forwardedRequest = appFetch.mock.calls[0]?.[0] as Request;
+    expect(forwardedRequest.headers.get('cookie')).toBeNull();
+    expect(forwardedRequest.headers.get('x-edge-display-locale')).toBe(expected);
+  });
+
   it('rejects an oversized application body before calling handler.fetch', async () => {
     appFetch.mockResolvedValue(new Response('should not render', { status: 200 }));
 
@@ -249,11 +270,11 @@ describe('org/core worker.ts dispatch', () => {
   });
 
   // The 429 has no locale precedence of its own: the worker hands the limiter the
-  // Core's existing display-locale contract — `lx`, then the `language` cookie,
-  // then the default — as a thunk the limiter only runs for a refused request.
+  // Core's display-locale contract — `lx`, then the default — as a thunk
+  // the limiter only runs for a refused request.
   it.each([
     ['https://jp.umaxica.org/?lx=en', {}, 'en'],
-    ['https://jp.umaxica.org/', { cookie: 'language=en' }, 'en'],
+    ['https://jp.umaxica.org/', { cookie: 'language=en' }, 'ja'],
     ['https://jp.umaxica.org/?lx=ja', { cookie: 'language=en' }, 'ja'],
     ['https://jp.umaxica.org/', {}, 'ja'],
   ] as const)('resolves the 429 locale for %s %o as %s', async (url, headers, expected) => {

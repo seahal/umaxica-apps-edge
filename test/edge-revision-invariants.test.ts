@@ -14,7 +14,7 @@ const code = (relativePath: string) =>
     .replace(/\/\*[\s\S]*?\*\//gu, '')
     .replace(/\/\/.*$/gmu, '');
 
-const APEX = ['net/apex', 'dev/apex'] as const;
+const APEX = ['app/apex', 'com/apex', 'org/apex', 'net/apex', 'dev/apex'] as const;
 const CORES = ['app/core', 'com/core', 'org/core'] as const;
 const SATELLITES = (['app', 'com', 'org'] as const).flatMap((brand) =>
   (['docs', 'help', 'info', 'news'] as const).map((frame) => `${brand}/${frame}`),
@@ -62,36 +62,28 @@ describe('Edge revision representations', () => {
   });
 
   it.each([...APEX, ...CORES, ...SATELLITES])(
-    '$0 ships the Hurl JSON contract and Playwright text contract',
+    '$0 ships the Hurl contract for both representations',
     (workspace) => {
       const hurl = `${workspace}/api/revision-api.hurl`;
-      const e2e = `${workspace}/e2e/revision.spec.ts`;
       expect(existsSync(join(repoRoot, hurl)), hurl).toBe(true);
-      expect(existsSync(join(repoRoot, e2e)), e2e).toBe(true);
       const source = read(hurl);
       expect(source).toContain('GET {{base}}/api/v0/revision.json');
       expect(source).toContain('header "content-type" contains "application/json"');
       expect(source).toContain('header "content-type" not contains "text/plain"');
       expect(source).toContain('header "content-type" not contains "text/html"');
       expect(source).toContain('jsonpath "$.*" count == 3');
-      expect(read(e2e)).toContain('toMatch(/^text\\/plain\\b/u)');
-      expect(read(e2e)).toContain('JSON.parse(body)');
+      expect(source).toContain('GET {{base}}/revision\n');
+      expect(source).toContain('header "content-type" matches /^text\\/plain/');
+      // The text contract is an HTTP assertion; it must not drift back into a
+      // browser suite.
+      expect(existsSync(join(repoRoot, `${workspace}/e2e/revision.spec.ts`))).toBe(false);
     },
   );
 
-  it('keeps Hurl revision API contracts byte-identical across all seventeen units', () => {
+  it('keeps Hurl revision API contracts byte-identical across all twenty units', () => {
     const digests = new Set(
       [...APEX, ...CORES, ...SATELLITES].map((workspace) =>
         read(`${workspace}/api/revision-api.hurl`),
-      ),
-    );
-    expect(digests.size).toBe(1);
-  });
-
-  it('keeps Playwright revision contracts byte-identical across all seventeen units', () => {
-    const digests = new Set(
-      [...APEX, ...CORES, ...SATELLITES].map((workspace) =>
-        read(`${workspace}/e2e/revision.spec.ts`),
       ),
     );
     expect(digests.size).toBe(1);

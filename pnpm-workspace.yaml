@@ -1,9 +1,11 @@
 packages:
+  - app/apex
   - app/core
   - app/docs
   - app/help
   - app/info
   - app/news
+  - com/apex
   - com/core
   - com/docs
   - com/help
@@ -11,6 +13,7 @@ packages:
   - com/news
   - dev/apex
   - net/apex
+  - org/apex
   - org/core
   - org/docs
   - org/help
@@ -35,11 +38,11 @@ catalog:
   # Paraglide is the generated, request-isolated message runtime for the
   # fifteen TanStack frames. The strategy list is pinned in each Vite config;
   # this catalog keeps compiler behavior identical across all units.
-  '@inlang/paraglide-js': 2.23.1
-  '@inlang/plugin-m-function-matcher': 2.2.15
-  '@inlang/plugin-message-format': 4.3.0
-  '@cloudflare/vite-plugin': ^1.54.3
-  '@cloudflare/workers-types': ^5.20260903.1
+  '@inlang/paraglide-js': 2.27.0
+  '@inlang/plugin-m-function-matcher': 2.3.2
+  '@inlang/plugin-message-format': 4.5.2
+  '@cloudflare/vite-plugin': ^1.63.1
+  '@cloudflare/workers-types': ^5.20261013.1
   '@fontsource-variable/inter': ^5.3.0
   '@hono/structured-logger': ^1.0.0
   # Hurl is a Rust binary; this package is the official npm distribution of it
@@ -53,14 +56,14 @@ catalog:
   # well as the API, so two units on different minors drive two different
   # browsers. This sat as an identical literal in every manifest with nothing
   # enforcing it — syncpack's catalog policy now does (see .syncpackrc.json).
-  '@playwright/test': ^1.62.1
+  '@playwright/test': ^1.64.0
   # Size Limit's file plugin. `size-limit` itself and its plugins must move in
   # lockstep — the plugin package declares an EXACT peer on the runner
   # ("size-limit": "13.0.3"), so a drift here is a resolution failure, not a
   # subtle one. The preset packages are deliberately not used: @size-limit/time
   # (which preset-app pulls in) needs a headless Chrome that neither CI nor the
   # Containerfile installs — the same reason `test:e2e` is not a CI gate.
-  '@size-limit/file': ^14.1.0
+  '@size-limit/file': ^14.2.0
   # Tailwind v4 has no JS config file: the theme is declared in each unit's own
   # stylesheet with `@theme`. One engine, one delivery mechanism, because every
   # unit builds with Vite: `@tailwindcss/vite`.
@@ -76,63 +79,68 @@ catalog:
   # so the seventeen units cannot drift onto different Tailwind versions.
   '@tailwindcss/vite': ^4.3.3
   # TanStack Router and TanStack Start, the framework behind all fifteen frames.
-  # They move in lockstep — Start's peer range pins Router — so a per-unit drift
-  # is a resolution failure rather than a subtle one. Start is a `dependency`
-  # rather than a devDependency: unlike Vite, it IS in the request path, because
-  # `wrangler.jsonc` names `@tanstack/react-start/server-entry` as `main`.
+  # They move in lockstep: Start names one exact Router release as a
+  # `dependency` (not a peer range), so a Router that resolves ahead of it is
+  # not a resolution failure — it is a second copy of Router installed beside
+  # the one Start uses, which is silent. `test/tanstack-router-single-version.test.ts`
+  # reads the lockfile and fails on that. Start is a `dependency` rather than a
+  # devDependency: unlike Vite, it IS in the request path, because every frame's
+  # Worker entry calls its `createStartHandler`.
   #
-  # Start is at Release Candidate, not GA. The minor is pinned with `~`: patch
-  # releases flow in, a minor does not. Crossing a minor means reading the
-  # changelog and running the full suite first — that is one of the four
-  # constraints in adr/013-frames-tanstack-start.md, not a preference. Not an
-  # exact pin, on purpose: an RC line ships its fixes as patches.
+  # Start is stable as of 1.169.0 (2026-10-13), so the range is `^`: minors flow
+  # in. adr/026-tanstack-start-stable-caret-range.md records that and amends the
+  # minor-pin constraint of adr/013-frames-tanstack-start.md.
   #
   # The two numbers are a tested pair, not two independent choices: this Start
   # release depends on exactly this Router release.
-  '@tanstack/react-router': ~1.170.41
-  '@tanstack/react-start': ~1.168.60
+  '@tanstack/react-router': ^1.170.44
+  '@tanstack/react-start': ^1.169.1
+  # Serves the agent skills that TanStack packages ship (`pnpm exec intent
+  # list`), as the Skill Loading block at the top of AGENTS.md describes. Root
+  # only: it reads every unit's `node_modules` from the workspace root.
+  '@tanstack/intent': ^0.5.5
   # The DOM-assertion and DOM-implementation halves of the Vitest setup. Every
   # unit's vitest.setup.ts imports `@testing-library/jest-dom`, and every
   # vitest.config.ts names happy-dom as its environment, so a per-unit drift
   # here changes what a test MEANS rather than whether it runs.
   '@testing-library/jest-dom': ^7.0.1
   '@testing-library/react': ^16.3.3
-  '@types/node': ^26.6.4
-  '@types/react': ^19.2.18
-  '@types/react-dom': ^19.2.7
+  '@types/node': ^26.6.5
+  '@types/react': ^19.3.0
+  '@types/react-dom': ^19.3.0
   # React Fast Refresh and the JSX transform for the Vite-built units. The two
   # apex Workers do not install it — they render with hono/jsx and have no React
   # at all (docs/design/ui-shell-contract.md §3a).
-  '@vitejs/plugin-react': ^6.1.1
+  '@vitejs/plugin-react': ^6.1.2
   # Exact, not a range, and deliberately so: V8 coverage remapping has to match
   # the vitest it instruments, and the provider says so itself — it declares an
   # EXACT peer on the runner. `vitest` below is therefore exact too, at the same
   # version, and the two are only ever bumped together. That pairing is what
   # lets this file carry no `peerDependencyRules` exception for vitest.
-  '@vitest/coverage-v8': 5.0.3
+  '@vitest/coverage-v8': 5.0.4
   # The spell checker. Pinned here rather than per unit because the dictionary
   # it reads (.cspell/project-words.txt) is repository-wide: a unit resolving a
   # different major could disagree about what the config file even means.
-  cspell: ^10.3.6
-  dependency-cruiser: ^18.5.0
-  happy-dom: ^20.13.2
+  cspell: ^10.4.0
+  dependency-cruiser: ^18.6.0
+  happy-dom: ^21.0.1
   hono: ^4.13.13
-  knip: ^6.39.0
+  knip: ^6.41.0
   # The static analysis toolchain. These were literal strings in every
   # manifest until they drifted (knip sat at 6.32.1 in every unit and 6.32.2 at
   # the root), which is exactly the failure a catalog exists to prevent: a lint
   # or type rule that fires in CI and not on a developer's machine is worse than
   # the rule being off. oxlint and oxlint-tsgolint in particular have to move
   # together — tsgolint is the type-aware backend oxlint shells out to.
-  oxfmt: ^0.72.0
-  oxlint: 1.87.0
-  oxlint-tsgolint: ^7.0.2003
-  react: ^19.2.8
-  react-aria-components: ^1.21.0
-  react-dom: ^19.2.8
+  oxfmt: ^0.73.0
+  oxlint: 1.88.0
+  oxlint-tsgolint: ^7.0.2004
+  react: ^19.3.0
+  react-aria-components: ^1.22.1
+  react-dom: ^19.3.0
   # The frontend performance budget runner. See '@size-limit/file' above for why
   # the two move together and why no preset is used.
-  size-limit: ^14.1.0
+  size-limit: ^14.2.0
   # Workspace dependency-consistency checking. It reads this very file — the
   # catalog definitions and the `catalog:` specifiers pointing at them — so it
   # belongs to the repository root rather than to any unit.
@@ -157,13 +165,13 @@ catalog:
   #
   # Vitest already resolves a transitive copy of Vite; this entry is the direct,
   # version-pinned one, so the two cannot disagree about which major is in play.
-  vite: ^8.2.2
+  vite: ^8.3.4
   # Exact, and equal to '@vitest/coverage-v8' above — see the note there.
-  vitest: 5.0.3
+  vitest: 5.0.4
   # Floor set by `@cloudflare/vite-plugin`'s peer range (^4.127.0), not chosen
   # independently. Bumping the plugin without bumping this is a resolution
   # failure rather than a subtle one.
-  wrangler: ^4.147.0
+  wrangler: ^4.151.0
 
 ignoredBuiltDependencies:
   - esbuild

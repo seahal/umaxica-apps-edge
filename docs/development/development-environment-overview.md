@@ -62,7 +62,7 @@ Enter the interactive service with:
 podman compose exec core bash -l
 ```
 
-Node.js is pinned to 24.19.0 and pnpm to 12.0.0, both declared in
+Node.js is pinned to 24.21.0 and pnpm to 12.11.2, both declared in
 `package.json#devEngines` and matched by `Containerfile`. pnpm is installed from the
 standalone script, not Corepack, which the image removes outright. Use `pnpm` directly in
 scripts and documented commands; the `pn`/`pnpx`/`pnx` short commands that pnpm 11 installs

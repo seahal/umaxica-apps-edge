@@ -1,5 +1,12 @@
 # ADR 019: Edge boundaries that can ship beside the Rails rewrite
 
+> 2026-10-11 amendment: Core no longer reads the Preference `language` Cookie.
+> Display locale (including 429) uses the last scalar `lx` URL parameter,
+> lowercased and validated, or the existing `ja` default. The twelve public
+> cells keep path locales and root `Accept-Language` negotiation; their unused
+> Cookie readers were removed. Earlier Cookie fallback descriptions below are
+> historical. No replacement persistence or synchronization was introduced.
+
 ## Status
 
 Accepted and implemented for the independent Edge slices recorded here on

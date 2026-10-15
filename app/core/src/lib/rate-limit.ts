@@ -20,7 +20,7 @@ export interface RateLimiter {
  * One literal document per locale. The wording is the status-page vocabulary
  * every family uses for a refused request. This module does not decide the
  * locale: `src/worker.ts` passes the Core's existing display-locale contract
- * (`resolveDisplayLocale`: `lx`, then the `language` cookie, then the default),
+ * (`resolveDisplayLocale`: `lx`, then the default),
  * so rate limiting has no locale precedence of its own.
  */
 const RATE_LIMITED_DOCUMENTS: Record<Locale, string> = {

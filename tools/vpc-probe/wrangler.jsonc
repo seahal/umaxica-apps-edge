@@ -2,7 +2,7 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "umaxica-apps-edge-vpc-probe",
   "main": "probe.mjs",
-  "compatibility_date": "2026-05-13",
+  "compatibility_date": "2026-10-06",
   "compatibility_flags": ["nodejs_compat"],
 
   // Never served, never deployed. This Worker exists only to be run by

@@ -1,5 +1,10 @@
 # Edge connectivity acceptance
 
+> **2026-10-14 — app/com/org apex reintroduced** as repository units by
+> [ADR 027](../../adr/027-reintroduce-app-com-org-apex-units.md). They are not routed: the
+> apex hostnames are not moved to them until an operator does so per ADR 027. The 2026-10-01
+> note below is kept as history.
+>
 > **2026-10-01 — app/com/org apex retired.** `app/apex`, `com/apex` and `org/apex` are no longer
 > deployment units ([ADR 024](../../adr/024-retire-app-com-org-apex-units.md)). Rows and run logs
 > below that mention them, or `umaxica.{app,com,org}` → `core:5401/5101/5301`, are historical
@@ -33,12 +38,18 @@ itself and the order it has to be created in.
 ## Apex domain binding
 
 `scripts/check-apex-domains` verifies that each Edge-owned production apex hostname is
-served by its own Worker (only `umaxica.net` since ADR 024; `umaxica.dev` is listed for reference), by reading the `service` field of `/health.json`:
+served by its own Worker. `/health.json` no longer exists (ADR 017) and the health API
+carries no brand, so the script reads the canonical URL of `/about`, which each Worker renders
+from its own brand:
 
-| Hostname      | Expected Worker              | `service` |
-| ------------- | ---------------------------- | --------- |
-| `umaxica.net` | `umaxica-apps-edge-net-apex` | `net`     |
-| `umaxica.dev` | `umaxica-apps-edge-dev-apex` | `dev`     |
+| Hostname      | Expected Worker              | `/about` canonical          |
+| ------------- | ---------------------------- | --------------------------- |
+| `umaxica.com` | `umaxica-apps-edge-com-apex` | `https://umaxica.com/about` |
+| `umaxica.net` | `umaxica-apps-edge-net-apex` | `https://umaxica.net/about` |
+| `umaxica.org` | `umaxica-apps-edge-org-apex` | `https://umaxica.org/about` |
+| `umaxica.app` | `umaxica-apps-edge-app-apex` | `https://umaxica.app/about` |
+
+The app/com/org rows FAIL until their hostnames are cut over to these Workers (ADR 027).
 
 ## Development Tunnel acceptance — 2026-09-01 (historical; predates ADR 024)
 

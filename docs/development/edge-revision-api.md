@@ -52,7 +52,7 @@ unknown
 `Accept` is ignored. The URL fixes the representation. No redirect, no language
 cookie, no HTML.
 
-Playwright owns this representation: `<unit>/e2e/revision.spec.ts`.
+Hurl owns this representation, beside the JSON one: `<unit>/api/revision-api.hurl`.
 
 ## `/api/v0/revision.json`
 

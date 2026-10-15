@@ -2,6 +2,8 @@
 
 ## Status: Accepted 2026-10-01 — code and Cloudflare cutover done
 
+> Superseded by [ADR 027](027-reintroduce-app-com-org-apex-units.md) (2026-10-14): the three units are reintroduced. The record below is unchanged history.
+
 ## Context
 
 The future Experience surface (internal code `xper`) will be the authority at

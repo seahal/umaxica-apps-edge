@@ -11,7 +11,7 @@ trap 'rm -f "${canary}"' EXIT
 
 temporary=$(mktemp -d)
 trap 'rm -f "${canary}"; rm -rf "${temporary}"' EXIT
-printf 'FROM node:24.19.0-trixie\nCOPY . /context\nRUN test ! -e /context/.secrets/build-context-canary\n' >"${temporary}/CanaryContainerfile"
+printf 'FROM node:24.21.0-trixie\nCOPY . /context\nRUN test ! -e /context/.secrets/build-context-canary\n' >"${temporary}/CanaryContainerfile"
 
 tag="edge-build-context-canary-$$"
 podman build --file "${temporary}/CanaryContainerfile" --tag "${tag}" . >/dev/null

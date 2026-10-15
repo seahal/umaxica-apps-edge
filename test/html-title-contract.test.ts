@@ -424,20 +424,25 @@ describe('rate limited 429 documents', () => {
   });
 
   /*
-   * The two remaining apex Workers (app/com/org retired by ADR 024). Their 429 was a bare `Response('Too Many Requests')`
+   * The five apex Workers. Their 429 was a bare `Response('Too Many Requests')`
    * — untitled, no `Content-Type`, no `Cache-Control` — while every frame beside
    * them answered a titled document. This guard is what stops that from
    * reappearing: it drives the real function, so a 429 that stopped going
    * through `statusPage` would fail here even if the markup still existed
    * somewhere in the unit.
    */
-  const apexUnits = ['dev', 'net'] as const;
+  const apexUnits = ['app', 'com', 'dev', 'net', 'org'] as const;
 
   it('covers every apex worker', () => {
+    // Inspect the working tree so newly added units are covered before staging.
     expect(
-      trackedFiles()
-        .filter((file) => file.endsWith('/apex/src/rate-limit.ts'))
-        .map((file) => file.split('/')[0] ?? '')
+      readdirSync(repoRoot, { withFileTypes: true })
+        .filter(
+          (entry) =>
+            entry.isDirectory() &&
+            existsSync(join(repoRoot, entry.name, 'apex/src/rate-limit.ts')),
+        )
+        .map((entry) => entry.name)
         .sort((a, b) => a.localeCompare(b)),
     ).toEqual([...apexUnits].sort((a, b) => a.localeCompare(b)));
   });
@@ -550,7 +555,7 @@ describe('rate limited 429 documents', () => {
 //
 //   /about, /health, /offline, 404                 -> <unit>/api/title-contract.hurl
 //   /health.html and /health.json are HTML 404     -> the same file
-//   /revision text identity                        -> Playwright e2e/revision.spec.ts
+//   /revision text identity                        -> <unit>/api/revision-api.hurl
 //   /api/v0/revision.json key set                  -> <unit>/api/revision-api.hurl
 //                                                     and title-contract.hurl (`$.title`)
 //   the root redirect and its Location             -> <unit>/api/routes.hurl

@@ -1,0 +1,29 @@
+// Knip boundary for ONE deployment unit: org/apex (Cloudflare Workers).
+//
+// This file is deliberately self-contained: it extends nothing at the
+// repository root, so this directory stays valid if it is ever extracted into
+// its own repository. Run it with `pnpm --dir org/apex exec knip` or
+// `pnpm --filter <pkg> run knip`. Knip finds no pnpm-workspace.yaml at this
+// level, so it analyses this unit alone and never reaches a sibling unit.
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+
+  // The runtime entrypoint is read from wrangler.jsonc by Knip's wrangler
+  // plugin, and the build graph from vite.config.ts by its vite plugin. Only
+  // what neither plugin can see is listed here.
+  "entry": ["test/**/*.test.{ts,tsx}", "e2e/**/*.spec.ts"],
+
+  "project": ["**/*.{ts,tsx,css}"],
+
+  // `catalog:` version specifiers resolve from the repository-root
+  // pnpm-workspace.yaml, which does not exist inside this unit. That is a real
+  // repository-split coupling (the specifiers must be inlined when splitting),
+  // but it is a version-resolution concern rather than an unused-code one, so
+  // it is excluded here and tracked as a boundary finding instead.
+  "exclude": ["catalogReferences"],
+
+  // Types and constants that a module exports as part of its own public surface
+  // and also consumes internally (e.g. RailsClientInit, DEFAULT_BRAND_SEPARATOR)
+  // are not dead code.
+  "ignoreExportsUsedInFile": true
+}

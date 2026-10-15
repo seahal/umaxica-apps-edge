@@ -4,6 +4,9 @@ Eleven tools run over this repository. Each one owns exactly one question, and
 none of them is allowed to answer another's. This file is the ownership table,
 the command list, and the policy for adding an exception.
 
+For browser-reachable internal APIs and exclusion of development-only code from
+production artifacts, follow [client API and debug security](client-api-and-debug-security.md).
+
 ## 1. Who owns what
 
 | Tool                    | Answers                              | Explicitly does NOT                                                                                     |

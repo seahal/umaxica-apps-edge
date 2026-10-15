@@ -4,31 +4,18 @@ import { describe, expect, it } from 'vitest';
 
 import { resolveDisplayLocale } from '../../src/lib/display-locale';
 
-const requestFor = (search: string, cookie?: string): Request =>
-  new Request(`https://jp.umaxica.app/${search}`, {
-    headers: cookie === undefined ? {} : { cookie },
-  });
-
-describe('Core display locale boundary', () => {
+describe('Core URL display locale boundary', () => {
   it.each([
-    ['?lx=en', undefined, 'en'],
-    ['?lx=EN', undefined, 'en'],
-    ['?lx=', 'language=en', 'en'],
-    ['?lx=unsupported', 'language=en', 'en'],
-    ['?lx=unsupported', undefined, 'ja'],
-    ['?lx=en&lx=ja', undefined, 'ja'],
-    ['?lx[]=en', 'language=en', 'en'],
-    ['', 'language=EN; theme=dark', 'en'],
-    ['', 'theme=dark', 'ja'],
-  ])('resolves %s with %s to %s', (search, cookie, expected) => {
-    expect(resolveDisplayLocale(requestFor(search, cookie))).toBe(expected);
+    ['?lx=en', 'en'],
+    ['?lx=ja', 'ja'],
+    ['?lx=EN', 'en'],
+    ['?lx=', 'ja'],
+    ['?lx=invalid', 'ja'],
+    ['?lx=en&lx=ja', 'ja'],
+    ['?lx=en&lx=invalid', 'ja'],
+    ['?lx[]=en', 'ja'],
+    ['', 'ja'],
+  ])('resolves %s to %s', (search, expected) => {
+    expect(resolveDisplayLocale(new URL(`https://jp.umaxica.app/${search}`))).toBe(expected);
   });
-
-  it('does not treat a similarly named cookie as the Rails language cookie', () => {
-    expect(resolveDisplayLocale(requestFor('', 'language_backup=en'))).toBe('ja');
-  });
-});
-
-it('skips cookie fragments that carry no name/value separator', () => {
-  expect(resolveDisplayLocale(requestFor('', 'flag; language=en'))).toBe('en');
 });

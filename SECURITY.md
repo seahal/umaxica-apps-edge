@@ -1,6 +1,6 @@
 # Security Policy
 
-This is the edge layer of Umaxica: a public, Apache-2.0 monorepo of seventeen
+This is the edge layer of Umaxica: a public, Apache-2.0 monorepo of twenty
 Cloudflare Workers. The Rails application behind it lives in a different
 repository and is not covered by this policy.
 
@@ -50,7 +50,7 @@ ships. `develop` is the working branch and carries no security guarantee.
 
 ## Scope
 
-In scope: the seventeen deployment units listed in `pnpm-workspace.yaml` (see the
+In scope: the twenty deployment units listed in `pnpm-workspace.yaml` (see the
 workspace table in `README.md`) and their production hostnames under
 `umaxica.com`, `umaxica.app`, `umaxica.org`, `umaxica.net`, and `umaxica.dev`.
 

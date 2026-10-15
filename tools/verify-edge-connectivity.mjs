@@ -144,9 +144,10 @@ export function loadSurfaces(manifest = loadManifest()) {
 }
 
 /**
- * The thirteen surfaces published through the Rails-shared Cloudflare Tunnel:
- * the `net/apex` Hono worker plus the twelve non-core content frames. The
- * app/com/org apex workers were retired by ADR 024 and are not surfaces.
+ * The surfaces published through the Rails-shared Cloudflare Tunnel: every
+ * `standalone` Hono apex worker plus the twelve non-core content frames. The
+ * app/com/org apexes (reintroduced by ADR 027) fail here until their hostnames
+ * are routed to them.
  *
  * The `core` frames are excluded deliberately, not incidentally. `jp.umaxica.{app,com,org}`
  * is a shared FQDN where Rails owns some paths and the frame the rest, so it needs
