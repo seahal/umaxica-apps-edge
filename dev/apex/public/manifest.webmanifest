@@ -1,9 +1,0 @@
-{
-  "name": "UMAXICA dev",
-  "short_name": "UMAXICA",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#171717",
-  "icons": [{ "src": "/favicon.ico", "sizes": "32x32", "type": "image/x-icon" }]
-}

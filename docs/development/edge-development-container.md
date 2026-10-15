@@ -1,7 +1,7 @@
 # Edge development container
 
-`Containerfile` builds the Podman-first development image. It pins Node 24.19.0, pnpm
-12.0.0, Claude Code, Codex, and OpenCode, and installs GitHub CLI, Chromium prerequisites,
+`Containerfile` builds the Podman-first development image. It pins Node 24.21.0, pnpm
+12.11.2, Claude Code, Codex, and OpenCode, and installs GitHub CLI, Chromium prerequisites,
 Wrangler through project dependencies. No credential enters a build
 argument, environment instruction, copy, or image layer.
 
@@ -20,16 +20,12 @@ tool paths at build time.
 Start the credential-free Dev Container through Dev Containers CLI from the repository root:
 
 ```bash
-PODMAN_COMPOSE_PROVIDER=/usr/bin/podman-compose \
-devcontainer up \
-  --docker-path /usr/bin/podman \
-  --docker-compose-path /usr/bin/podman-compose \
-  --workspace-folder .
+scripts/devcontainer-up
 ```
 
-There is no launcher script. The engine flag and the `PODMAN_COMPOSE_PROVIDER` variable have
-no `devcontainer.json` equivalent and must be typed; everything else is Compose configuration
-the CLI reads on its own.
+The launcher supplies the engine flag and the `PODMAN_COMPOSE_PROVIDER` variable, which have
+no `devcontainer.json` equivalent; everything else is Compose configuration the CLI reads on
+its own.
 [Dev Containers CLI startup on rootless Podman](devcontainer-cli-podman-startup.md) explains
 why each flag is required and what the removed `podman/tools/dcup` used to enforce.
 

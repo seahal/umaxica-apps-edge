@@ -1,31 +1,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Asserts each production apex hostname is served by ITS OWN Worker.
+# Asserts each Edge-owned production apex hostname is served by ITS OWN Worker.
 #
 # A plain 200 check cannot catch this class of failure: when umaxica.net was
 # bound to the app/apex Worker it answered every request successfully, just
-# from the wrong Worker. The `service` field in /health.json is set from the
-# `createApexApp(..., { service })` argument, so it identifies which Worker
-# actually handled the request.
+# from the wrong Worker. The health API carries no brand (its contract is
+# byte-identical across every unit), so identity comes from `/about` instead:
+# its canonical URL is rendered from the brand compiled into that Worker, so a
+# different apex Worker answering the hostname names a different host.
+#
+# app/com/org were reintroduced by adr/027-reintroduce-app-com-org-apex-units.md.
+# Their hostnames stay FAIL until the operator moves them from the Tunnel to
+# these Workers; a FAIL there is the expected pre-cutover state, not a bug.
+# umaxica.dev is not a production Worker.
 
 checks=(
-  'umaxica.com|com'
-  'umaxica.net|net'
-  'umaxica.org|org'
-  'umaxica.app|app'
+  'umaxica.com'
+  'umaxica.net'
+  'umaxica.org'
+  'umaxica.app'
 )
 
 failed=0
-for check in "${checks[@]}"; do
-  host=${check%%|*}
-  want=${check#*|}
-  got=$(curl --fail --silent --show-error --max-time 10 "https://${host}/health.json" \
-    | sed -n 's/.*"service":"\([^"]*\)".*/\1/p') || got=''
+for host in "${checks[@]}"; do
+  want="https://${host}/about"
+  got=$(curl --fail --silent --show-error --max-time 10 "https://${host}/about" \
+    | sed -n 's/.*<link rel="canonical" href="\([^"]*\)".*/\1/p' | head -n 1) || got=''
   if [[ "${got}" == "${want}" ]]; then
-    echo "PASS ${host} served by ${got}/apex"
+    echo "PASS ${host} canonical ${got}"
   else
-    echo "FAIL ${host} served by ${got:-<unreachable>}/apex (want ${want}/apex)" >&2
+    echo "FAIL ${host} canonical ${got:-<unreachable>} (want ${want})" >&2
     failed=1
   fi
 done

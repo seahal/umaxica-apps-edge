@@ -4,7 +4,7 @@
 server with [Hurl](https://hurl.dev).
 
 ```sh
-pnpm run test:api                      # starts a server, runs the suite, stops it
+pnpm run test:api                      # builds, serves the build, runs the suite, stops it
 pnpm run dev &&  pnpm run test:api     # or reuse one you already have
 ```
 
@@ -19,6 +19,11 @@ port first and reuses whatever is already answering, exactly as
 when nothing does, and then it stops the whole process group it started. Running
 `pnpm run dev` in another terminal therefore behaves as it always did.
 
+The server it starts is `pnpm run serve:api` — the Worker built, then served by
+`vite preview` — not `vite dev`. A dev server compiles each route on its first
+request, and on a small CI runner that alone outlasted the response budget and
+answered 503: a failure of the dev server, not of the contract.
+
 Set `EDGE_API_BASE` to run these files against a preview deployment. Nothing is
 started or stopped in that case — a remote target is not ours to manage — and a
 target that does not answer is an error rather than a reason to fall back to
@@ -28,6 +33,29 @@ The runner is duplicated per unit rather than shared from the repository root,
 for the same reason every unit owns its `vitest.config.ts`: a suite that only
 runs from the root is not extractable. `test/deployment-unit-boundaries.test.ts`
 enforces that.
+
+## The isolation canary (`api/isolation/`)
+
+`api/run.mjs` makes a second Hurl pass over `api/isolation/*.hurl`, repeated
+fifty times, ten at a time. It is the unit's one **workerd runtime** check: it
+asserts that the CSP nonce in the response header and the nonce on the rendered
+document agree while requests overlap, which is only true if the request-local
+AsyncLocalStorage store is really per request in the Workers runtime. Vitest
+cannot say that — its store is Node's and its requests never overlap.
+
+It is skipped, with a line saying so, when the server sends no nonce (a reused
+`vite dev` server sends the development policy).
+
+Two things are deliberately NOT asserted there, because nothing local can
+observe them honestly:
+
+- **Request-ID isolation.** `X-Request-ID` on the response comes from a local
+  variable, not from the store, so no HTTP client can see a leak. That needs a
+  test running inside the Worker; Cloudflare's Vitest integration currently
+  peers Vitest 4 and this repository runs Vitest 5, so it is not installed.
+- **The Rate Limiting binding.** The local simulator does not reproduce the
+  distributed counter's semantics. Refusal behaviour is covered in Vitest with
+  an injected limiter, which is what that layer is for.
 
 ## What belongs here
 
@@ -48,7 +76,7 @@ tool, and using it here would erase the boundary this directory exists to draw.
 
 The reverse also holds: a Vitest file may still invoke a server route or the
 request boundary directly when the thing under test is **not** reachable over
-HTTP — an injected VPC binding that makes Rails time out, a rate limiter that
+HTTP — a stubbed `fetch` that makes Rails time out, a rate limiter that
 refuses, a Workers binding. There the call is the driver and the assertion is
 elsewhere. When the assertion is on the response itself, it belongs here.
 
@@ -68,9 +96,9 @@ stayed green if that wiring had been deleted outright.
 One assertion did come back to Vitest, in
 `test/content-security-policy.test.ts`, and the reason is the mirror image:
 `script-src` carries `'unsafe-eval'` under `vite dev` and must not carry it in a
-build, and the server this runner starts is a dev server. The development policy
-is asserted here, on a real response; the production one is unobservable from
-here at any depth, so the branch that produces it is asserted there instead.
+build, and this runner may be answered by either (it reuses a running `pnpm
+dev`). This file accepts either policy on a real response; that a build's nonce
+is fresh per response needs two responses compared, so that is asserted there.
 
 ## Conventions
 
@@ -83,10 +111,9 @@ here at any depth, so the branch that produces it is asserted there instead.
   rather than comparing it against a list that has to be kept in step by hand.
 - Pin key SETS, not just key presence. `jsonpath "$.x" exists` cannot see an
   added field, and these payloads are read by machines, so `jsonpath "$.*"
-count == n` is the assertion that catches a schema change in either direction.
+  count == n` is the assertion that catches a schema change in either direction.
 - `/health` here is a UNIFIED document — this frame's own state and Rails'
   liveness — and it answers 503 when Rails is absent, which is correct rather
   than broken. `standard-contract.hurl` therefore uses `HTTP *` and asserts the
   shape plus this frame's own half; the branches Rails can drive are unit-tested
-  against an injected VPC binding, the only layer that can produce them on
-  demand.
+  against a stubbed `fetch`, the only layer that can produce them on demand.

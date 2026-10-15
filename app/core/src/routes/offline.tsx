@@ -7,8 +7,10 @@ import { brandTitle } from '@/lib/title';
  * recovery document with navigation in it is worse than one without
  * (`docs/design/ui-shell-contract.md` §15).
  *
- * The service worker caches this document at install and serves it for a failed
- * navigation, so it must stay reachable as an ordinary route.
+ * This route remains reachable for the online HTTP contract. The service
+ * worker's cached fallback is a fixed response from
+ * `public/service-worker.js`, without request nonce, preference,
+ * authentication or application shell state.
  */
 export const Route = createFileRoute('/offline')({
   head: () => ({ meta: [{ title: brandTitle('オフライン') }] }),

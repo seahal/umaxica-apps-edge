@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "umaxica-apps-edge-org-apex",
   "keep_vars": true,
-  "compatibility_date": "2026-02-27",
+  "compatibility_date": "2026-10-06",
   "compatibility_flags": ["nodejs_als"],
   "main": "./src/index.tsx",
   // No `directory`: this is the INPUT config, and `vite build` writes an output
@@ -25,31 +25,39 @@
   // domain from the development Tunnel.
   "workers_dev": true,
   "preview_urls": true,
-  "upload_source_maps": false,
+  "upload_source_maps": true,
   "observability": {
-    "enabled": false,
+    "enabled": true,
     "head_sampling_rate": 1,
+    // Query strings carry `lx`, `lang`, search terms and OIDC parameters; none of
+    // them belongs in a log line or a span.
+    "redact_query_string": true,
+    "issues": {
+      "enabled": true
+    },
     "logs": {
       "enabled": true,
       "head_sampling_rate": 1,
       "persist": true,
       "invocation_logs": true
     },
+    // Logs are complete; traces are sampled at 20%. Identical in all seventeen
+    // units so the numbers are comparable — tools/check-workers.mjs enforces it.
     "traces": {
-      "enabled": false,
-      "persist": true,
-      "head_sampling_rate": 1
+      "enabled": true,
+      "head_sampling_rate": 0.2,
+      "persist": true
     }
   },
-  // The top level IS production; there is no `env.production`.
-  // Deploy scripts blank CLOUDFLARE_ENV so a no-`--env` deploy stays production, and the
-  // tier reaches the Worker as EDGE_ENV only. tools/check-workers.mjs enforces both.
+  // The top level IS production; there is no `env.production`. Deploy scripts blank
+  // CLOUDFLARE_ENV so a no-`--env` deploy stays production; the tier reaches the
+  // Worker as EDGE_ENV only. tools/check-workers.mjs enforces both.
   "vars": {
     "EDGE_ENV": "production",
     "BRAND_NAME": "UMAXICA"
   },
-  // Empty on purpose: the apex hostname is owned by the development Tunnel, which cannot
-  // share it with a custom domain — see adr/008-edge-development-tunnel-exposure.md.
+  // Empty on purpose: the apex hostname is owned by the development Tunnel, which
+  // cannot share it with a custom domain — see adr/008-edge-development-tunnel-exposure.md.
   // Named environments inherit this key, so they pin `"routes": []` too.
   "routes": [],
 
@@ -62,28 +70,13 @@
         "EDGE_ENV": "development",
         "BRAND_NAME": "UMAXICA"
       },
-      // Required: `routes` IS inherited, so without this an `--env development` deploy
-      // would reassign the production custom domain.
+      // Required: `routes` IS inherited, so without this an `--env development`
+      // deploy would reassign the production custom domain.
       "routes": [],
-      "observability": {
-        "enabled": false,
-        "head_sampling_rate": 1,
-        "logs": {
-          "enabled": true,
-          "invocation_logs": true,
-          "head_sampling_rate": 1,
-          "persist": true
-        },
-        "traces": {
-          "enabled": false,
-          "head_sampling_rate": 1,
-          "persist": true
-        }
-      },
       "ratelimits": [
         {
           "name": "RATE_LIMITER",
-          "namespace_id": "2003",
+          "namespace_id": "2530100",
           "simple": {
             "limit": 2000,
             "period": 60
@@ -106,7 +99,7 @@
       "ratelimits": [
         {
           "name": "RATE_LIMITER",
-          "namespace_id": "3003",
+          "namespace_id": "3530100",
           "simple": {
             "limit": 2000,
             "period": 60
@@ -142,7 +135,7 @@
   "ratelimits": [
     {
       "name": "RATE_LIMITER",
-      "namespace_id": "1003",
+      "namespace_id": "530100",
       "simple": {
         "limit": 2000,
         "period": 60

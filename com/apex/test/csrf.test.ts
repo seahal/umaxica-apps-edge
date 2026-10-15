@@ -91,7 +91,8 @@ describe('apex CSRF config', () => {
  */
 describe('apex CSRF environment gate', () => {
   const postFrom = (origin: string, env?: { EDGE_ENV?: string }) => {
-    const request = new Request('http://com.localhost/about', { method: 'POST' });
+    const requestHost = env?.EDGE_ENV === 'production' ? PRODUCTION_ORIGIN : 'http://com.localhost';
+    const request = new Request(`${requestHost}/about`, { method: 'POST' });
     /*
      * Set on the built request, not passed to the constructor. `Origin` is a
      * forbidden header name — which is the whole reason the value can be
@@ -101,7 +102,7 @@ describe('apex CSRF environment gate', () => {
      * wrong reason.
      */
     request.headers.set('Origin', origin);
-    return createApexApp(() => undefined, { service: 'com' }).request(request, undefined, env);
+    return createApexApp(() => undefined).request(request, undefined, env);
   };
 
   it('refuses the local dev origin once EDGE_ENV says production', async () => {

@@ -34,6 +34,33 @@ describe(checkRateLimit, () => {
     expect(await result?.text()).toContain('HTTP 429');
   });
 
+  it('answers in the default locale when the caller resolves none', async () => {
+    const limit = vi.fn().mockResolvedValue({ success: false });
+    const result = await checkRateLimit(new Request('http://localhost/'), { limit });
+    expect(result?.headers.get('Cache-Control')).toBe('no-store');
+    expect(result?.headers.get('Content-Type')).toBe('text/html; charset=UTF-8');
+    const body = await result?.text();
+    expect(body).toContain('<html lang="ja">');
+    expect(body).toContain('<title>リクエストを処理できませんでした — UMAXICA (APP)</title>');
+  });
+
+  it('answers in English when the caller resolved English', async () => {
+    const limit = vi.fn().mockResolvedValue({ success: false });
+    const result = await checkRateLimit(new Request('http://localhost/'), { limit }, () => 'en');
+    const body = await result?.text();
+    expect(body).toContain('<html lang="en">');
+    expect(body).toContain('<title>The request could not be processed — UMAXICA (APP)</title>');
+    expect(body).toContain('<h1>The request could not be processed</h1>');
+  });
+
+  // Locale resolution belongs to a refused request only.
+  it('does not resolve a locale for a request the limiter allows', async () => {
+    const limit = vi.fn().mockResolvedValue({ success: true });
+    const locale = vi.fn((): 'en' => 'en');
+    await checkRateLimit(new Request('http://localhost/'), { limit }, locale);
+    expect(locale).not.toHaveBeenCalled();
+  });
+
   // A missing `CF-Connecting-IP` must not put every such request into one shared
   // bucket: that bucket is a bypass for the clients inside it and a denial of
   // service against each other, since any one of them can spend it for all.

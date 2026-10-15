@@ -6,10 +6,11 @@
 #
 # This unit is a NET-series apex: it owns a domain and answers its own root
 # with a page. It is not a redirector. `umaxica.net` has no per-region hosts
-# and no `src/root-redirect.ts`, so unlike the COM-series apexes there is no
-# `?ri=` allowlist and no request-supplied value that can reach a `Location`
-# header at all. That absence is the point of this comment — a future `?ri=`
-# on this unit needs the app/apex file's open-redirect checks brought with it.
+# and no `src/root-redirect.ts`, so there is no `?ri=` allowlist and no
+# request-supplied value that can reach a `Location` header at all. That absence
+# is the point of this comment. The `?ri=` region redirect lived only in the
+# app/com/org apex Workers, retired by ADR 024 together with their open-redirect
+# checks; a future `?ri=` here needs those checks written again, not restored.
 
 # The homepage. 200 and a document, NOT a redirect: `/` used to 301 to
 # `/about`, which left the domain with no canonical page of its own.
@@ -65,8 +66,8 @@ header "referrer-policy" == "no-referrer"
 
 
 # /about is the one rendered page this unit serves. It goes through the JSX
-# renderer, so it carries the full shell: manifest link, favicon, stylesheet,
-# service worker registration, the SEO head and the title contract.
+# renderer, so it carries the full shell: favicon, stylesheet, the SEO head and
+# the title contract.
 GET {{base}}/about
 HTTP 200
 [Asserts]
@@ -79,11 +80,9 @@ xpath "string(//meta[@name='description']/@content)" == "umaxica.net is a UMAXIC
 xpath "string(//link[@rel='canonical']/@href)" == "https://umaxica.net/about"
 xpath "string(//meta[@name='robots']/@content)" == "index,follow"
 xpath "string(//meta[@name='twitter:card']/@content)" == "summary_large_image"
-xpath "//link[@rel='manifest'][@href='/manifest.webmanifest']" exists
 xpath "//link[@rel='icon'][@href='/favicon.ico']" exists
 xpath "count(//link[@rel='stylesheet'])" == 1
 xpath "string(//link[@rel='stylesheet']/@href)" matches /^\/[^"]+\.css(\?[^"]*)?$/
-xpath "//script[@src='/service-worker-register.js']" exists
 xpath "//head" exists
 xpath "//body" exists
 xpath "//main" exists

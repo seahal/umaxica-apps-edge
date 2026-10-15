@@ -1,0 +1,43 @@
+name: Set up workspace
+description: pnpm + Node from package.json, the pnpm store restored from cache, and a frozen install.
+
+# Every job used to hand `cache: true` to pnpm/setup, which made every one of
+# ~60 jobs both restore AND try to save the same ~800 MB store under the same
+# key. Only one save can win; the rest spent up to four minutes compressing an
+# archive the cache then refused ("another job may be creating this cache").
+# Restore is still everywhere; saving is opt-in and done by a single job.
+inputs:
+  save-cache:
+    description: Save the pnpm store when the lockfile's key is not cached yet. Set in exactly one job.
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/setup@84cb39b217b10273981911c288cd62326dc7c6d2 # v2
+      with:
+        # The store cache is handled below, and `pnpm install` runs as its own
+        # step with `--frozen-lockfile`, which fails on a lockfile the manifests
+        # no longer agree with instead of quietly updating it.
+        install: false
+
+    - id: store
+      shell: bash
+      run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+    - id: restore
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.store.outputs.path }}
+        key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: pnpm-store-${{ runner.os }}-
+
+    - shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - if: inputs.save-cache == 'true' && steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.store.outputs.path }}
+        key: ${{ steps.restore.outputs.cache-primary-key }}

@@ -70,10 +70,9 @@ function contentSecurityPolicy(isProduction: boolean, nonce: string | undefined)
 }
 
 /*
- * `preload` is deliberately absent from `Strict-Transport-Security`. Submitting a
- * domain to the browser preload list is effectively irreversible and binds every
- * subdomain to HTTPS, so it is a decision to take once for the whole zone rather
- * than a header a frame adds on its own.
+ * `preload` is sent because the zone uses HSTS preload: that decision was taken
+ * once for the whole zone in `adr/021-hsts-preload.md`, and every Edge unit sends
+ * the same value.
  */
 export function securityHeaders(isProduction: boolean, nonce?: string): Record<string, string> {
   return {
@@ -81,7 +80,7 @@ export function securityHeaders(isProduction: boolean, nonce?: string): Record<s
     'Permissions-Policy':
       'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()',
     'Referrer-Policy': 'no-referrer',
-    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
   };

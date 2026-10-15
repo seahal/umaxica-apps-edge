@@ -27,7 +27,7 @@ design, not a revival of the phase-1 work.
    removes the need for `network_mode: service:core` and with it three podman-compose
    pitfalls: `networks:`/`network_mode:` mutual exclusion, the `depends_on` → `--requires`
    hazard that makes `core` un-removable and breaks `devcontainer up
---remove-existing-container`, and port-publication ownership.
+   --remove-existing-container`, and port-publication ownership.
    _Caveat: the sibling repo never exercised that forward (its OpenSSH was disabled), so this
    is the one assumption that must be proven live — see Verification gate A._
 4. **`TS_USERSPACE` defaults to `true`.** Userspace networking needs no `/dev/net/tun`, no

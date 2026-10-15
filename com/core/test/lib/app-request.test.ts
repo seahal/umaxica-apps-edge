@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { getDictionary } from '../../src/i18n/dictionaries';
 import { handleAppRequest } from '../../src/lib/app-request';
+import { getLocale } from '../../src/paraglide/runtime';
 
 /*
  * The application-document wrap: nonce + security headers around whatever the
@@ -69,5 +71,28 @@ describe('handleAppRequest', () => {
     await handleAppRequest(new Request('http://localhost/'), render, true);
 
     expect(render).toHaveBeenCalledOnce();
+  });
+
+  it('keeps Paraglide locale and translated content isolated across concurrent requests', async () => {
+    const render = async () => {
+      const dictionary = await getDictionary();
+      return new Response(`${getLocale()}|${dictionary.home.title}`);
+    };
+
+    const [english, japanese] = await Promise.all([
+      handleAppRequest(
+        new Request('http://localhost/', { headers: { 'x-edge-display-locale': 'en' } }),
+        render,
+        false,
+      ),
+      handleAppRequest(
+        new Request('http://localhost/', { headers: { 'x-edge-display-locale': 'ja' } }),
+        render,
+        false,
+      ),
+    ]);
+
+    await expect(english.text()).resolves.toBe('en|Home');
+    await expect(japanese.text()).resolves.toBe('ja|ホーム');
   });
 });

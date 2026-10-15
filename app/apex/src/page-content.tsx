@@ -135,7 +135,7 @@ export function getAboutMeta(env: AssetEnv, language?: string) {
  *
  * And the page no longer claims the domain "is not operated as a public-facing
  * website", because on none of the five was that true. On the three
- * redirectors `/` answers 301 to a regional host, so this domain is exactly
+ * redirectors `/` answers 302 to a regional host, so this domain is exactly
  * how a visitor reaches the service; on `net` and `dev` it serves an
  * `index,follow` homepage of its own. The sentence also contradicted the
  * `<meta name="description">` this same page emits — "a UMAXICA platform

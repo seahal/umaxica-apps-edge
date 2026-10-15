@@ -6,9 +6,6 @@
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
 
-/service-worker.js
-  Cache-Control: no-cache, no-store, must-revalidate
-
 # Vite's build output. Every file under /assets/ carries a content hash in its
 # name, so a change produces a new URL and this one can never go stale — which
 # is the whole reason the stylesheet is built rather than copied. Without it

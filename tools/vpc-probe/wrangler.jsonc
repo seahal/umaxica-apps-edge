@@ -2,7 +2,7 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "umaxica-apps-edge-vpc-probe",
   "main": "probe.mjs",
-  "compatibility_date": "2026-05-13",
+  "compatibility_date": "2026-10-06",
   "compatibility_flags": ["nodejs_compat"],
 
   // Never served, never deployed. This Worker exists only to be run by
@@ -16,7 +16,7 @@
   "vpc_services": [
     {
       "binding": "UMAXICA_APPS_EDGE_CF_WORKERS_VPC",
-      "service_id": "019f5fe0-287f-7040-9f2f-036cb5b21df7",
+      "service_id": "01a06fd0-89b7-7613-9e1d-f7d07c693273",
       "remote": true
     }
   ]

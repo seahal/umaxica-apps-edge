@@ -104,7 +104,7 @@ root checks the emitted HTML for exactly this. See
 Do not build an in-house metadata framework beyond that one function. The
 concrete API surface and its options must be checked against the TanStack Start
 documentation current at implementation time; this document deliberately does not
-pin them, and the framework is at Release Candidate, so they move.
+pin them, because they moved often before Start became stable (1.169, adr/026).
 
 ## Structured data
 

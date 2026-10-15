@@ -34,6 +34,16 @@ describe('dev/apex rate limiting', () => {
 
     const body = await response?.text();
     expect(body).toContain('HTTP 429');
+    // No language was detected for this call, so the document falls back to
+    // English exactly as every other refused request on this origin does.
+    expect(body).toContain('<html lang="en"');
+    expect(body).toContain('<title>The request could not be processed — UMAXICA (DEV)</title>');
+  });
+
+  it('answers the 429 in the language the unit detected', async () => {
+    const body = await (await checkRateLimit(request(), refuses(), 'ja'))?.text();
+
+    expect(body).toContain('<html lang="ja"');
     expect(body).toContain('<title>リクエストを処理できませんでした — UMAXICA (DEV)</title>');
   });
 
