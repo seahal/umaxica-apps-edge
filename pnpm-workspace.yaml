@@ -38,7 +38,7 @@ catalog:
   # Paraglide is the generated, request-isolated message runtime for the
   # fifteen TanStack frames. The strategy list is pinned in each Vite config;
   # this catalog keeps compiler behavior identical across all units.
-  '@inlang/paraglide-js': 2.27.0
+  '@inlang/paraglide-js': 3.0.0
   '@inlang/plugin-m-function-matcher': 2.4.1
   '@inlang/plugin-message-format': 4.5.7
   '@cloudflare/vite-plugin': ^1.67.0
