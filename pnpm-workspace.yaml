@@ -39,8 +39,8 @@ catalog:
   # fifteen TanStack frames. The strategy list is pinned in each Vite config;
   # this catalog keeps compiler behavior identical across all units.
   '@inlang/paraglide-js': 2.27.0
-  '@inlang/plugin-m-function-matcher': 2.3.2
-  '@inlang/plugin-message-format': 4.5.2
+  '@inlang/plugin-m-function-matcher': 2.4.1
+  '@inlang/plugin-message-format': 4.5.7
   '@cloudflare/vite-plugin': ^1.67.0
   '@cloudflare/workers-types': ^5.20261103.1
   '@fontsource-variable/inter': ^5.3.0
@@ -117,7 +117,7 @@ catalog:
   # EXACT peer on the runner. `vitest` below is therefore exact too, at the same
   # version, and the two are only ever bumped together. That pairing is what
   # lets this file carry no `peerDependencyRules` exception for vitest.
-  '@vitest/coverage-v8': 5.0.5
+  '@vitest/coverage-v8': 5.1.0
   # The spell checker. Pinned here rather than per unit because the dictionary
   # it reads (.cspell/project-words.txt) is repository-wide: a unit resolving a
   # different major could disagree about what the config file even means.
@@ -132,8 +132,8 @@ catalog:
   # or type rule that fires in CI and not on a developer's machine is worse than
   # the rule being off. oxlint and oxlint-tsgolint in particular have to move
   # together — tsgolint is the type-aware backend oxlint shells out to.
-  oxfmt: ^0.73.0
-  oxlint: 1.88.0
+  oxfmt: ^0.75.0
+  oxlint: 1.90.0
   oxlint-tsgolint: ^7.0.2005
   react: ^19.3.1
   react-aria-components: ^1.22.1
@@ -167,7 +167,7 @@ catalog:
   # version-pinned one, so the two cannot disagree about which major is in play.
   vite: ^8.3.5
   # Exact, and equal to '@vitest/coverage-v8' above — see the note there.
-  vitest: 5.0.5
+  vitest: 5.1.0
   # Floor set by `@cloudflare/vite-plugin`'s peer range (^4.127.0), not chosen
   # independently. Bumping the plugin without bumping this is a resolution
   # failure rather than a subtle one.
@@ -230,7 +230,7 @@ minimumReleaseAgeExclude: []
 
 audit:
   ignore:
-    # @orangeopensource/hurl@8.0.4 uses extract-zip only in its install script
+    # @orangeopensource/hurl@8.1.0 uses extract-zip only in its install script
     # to unpack Hurl's fixed GitHub release archive. GHSA-jmr9-qjv8-65gv names
     # 2.0.2 as the patched floor, but npm publishes no version after 2.0.1 and
     # Hurl has no newer release. Remove this exception as soon as either exists.
