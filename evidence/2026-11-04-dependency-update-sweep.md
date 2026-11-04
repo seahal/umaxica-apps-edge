@@ -34,3 +34,18 @@ and only warned.
   `GHSA-7pqw-9j4j-h8q3`, `extract-zip@2.0.1` via `@orangeopensource/hurl`).
   Still unfixable: npm lists no extract-zip after 2.0.1 and hurl 8.1.0 pins it.
 - `pnpm run test:e2e` was not run.
+
+## Coverage
+
+Before: the three cores failed their 100% per-file thresholds on
+`src/lib/client-ip.ts`, `src/lib/core-dispatch.ts` and
+`src/lib/rails-body-limit.ts` (app/core: 98.6% statements, 98.85% branches,
+97.23% functions, 99.37% lines). The other seventeen units were at 100%.
+
+Fix: tests for the uncovered cancel-failure, non-byte-chunk and
+reject-after-ceiling paths, plus IPv6 edge cases; `isIpv6` now finds `::` with
+`indexOf` instead of indexing `split` results, removing two unreachable `?? ''`
+arms without changing which inputs are accepted.
+
+After: `pnpm --dir <unit> run test:cov` exits 0 in all twenty units, each at
+100% statements, branches, functions and lines. `pnpm run check`: exit 0.
