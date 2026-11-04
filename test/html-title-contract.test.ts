@@ -439,8 +439,7 @@ describe('rate limited 429 documents', () => {
       readdirSync(repoRoot, { withFileTypes: true })
         .filter(
           (entry) =>
-            entry.isDirectory() &&
-            existsSync(join(repoRoot, entry.name, 'apex/src/rate-limit.ts')),
+            entry.isDirectory() && existsSync(join(repoRoot, entry.name, 'apex/src/rate-limit.ts')),
         )
         .map((entry) => entry.name)
         .sort((a, b) => a.localeCompare(b)),
