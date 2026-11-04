@@ -1,4 +1,4 @@
-import { statusPage } from './status-page';
+import { errorPage } from './status-page';
 import { requestThemeAttribute } from './theme';
 
 export interface RateLimiter {
@@ -19,8 +19,16 @@ export interface RateLimiter {
  * unwinds back through it and is decorated in the same place every other
  * response is.
  */
-export function rateLimitedResponse(request: Request): Response {
-  return statusPage(429, 'リクエストを処理できませんでした', requestThemeAttribute(request));
+/*
+ * `language` is whatever the unit's one language detector resolved for this
+ * request (`create-apex-app.ts`), handed in rather than re-derived here: rate
+ * limiting has no locale precedence of its own. `errorPage` is the same document
+ * every other refused request on this origin gets, so the 429 shares its wording
+ * — and its fallback to English when nothing was detected, which is the case on
+ * the machine endpoints that are deliberately never language-negotiated.
+ */
+export function rateLimitedResponse(request: Request, language?: string): Response {
+  return errorPage(429, language, requestThemeAttribute(request));
 }
 
 /*
@@ -56,9 +64,10 @@ function rateLimitKey(request: Request): string {
 export async function checkRateLimit(
   request: Request,
   rateLimiter: RateLimiter | undefined,
+  language?: string,
 ): Promise<Response | null> {
   if (!rateLimiter) return null;
 
   const { success } = await rateLimiter.limit({ key: rateLimitKey(request) });
-  return success ? null : rateLimitedResponse(request);
+  return success ? null : rateLimitedResponse(request, language);
 }

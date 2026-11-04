@@ -1,5 +1,7 @@
 # ADR 012: The apex workers build through Vite, and the NET series owns its root
 
+> Superseded for app/com/org apex only by [ADR 024](024-retire-app-com-org-apex-units.md). The record below is unchanged history.
+
 ## Status: Implemented 2026-08-19
 
 Five units — `{app,com,dev,net,org}/apex` — build with Vite and

@@ -7,12 +7,13 @@
 # through any mistake in `create-apex-app.ts` that dropped or reordered the
 # middleware. Asserting on a real response closes that gap.
 #
-# Headers are checked on `/health` rather than `/`, because `/` is a 301 and the
+# Headers are checked on `/health` rather than `/`, because `/` is a 302 and the
 # question here is what a served document carries.
 
 GET {{base}}/health
 HTTP 200
 [Asserts]
+header "x-request-id" matches /^[0-9a-f-]{36}$/
 header "strict-transport-security" contains "max-age=31536000"
 header "strict-transport-security" contains "includeSubDomains"
 header "strict-transport-security" contains "preload"
@@ -45,12 +46,24 @@ header "permissions-policy" contains "payment=()"
 header "permissions-policy" contains "usb=()"
 
 
+# The application uses the URL host selected by the server, never a client
+# supplied forwarding header. This keeps a proxy identity header from changing
+# the unit selected by the Host guard.
+GET {{base}}/health
+X-Forwarded-Host: unknown.invalid
+HTTP 200
+[Asserts]
+header "x-request-id" matches /^[0-9a-f-]{36}$/
+header "content-security-policy" contains "default-src 'self'"
+
+
 # The headers are applied with `app.use('*', …)`, so they must survive the error
 # path too — a 404 that answers without a CSP is the case a happy-path-only
 # assertion misses.
 GET {{base}}/__definitely_not_found__
 HTTP 404
 [Asserts]
+header "x-request-id" matches /^[0-9a-f-]{36}$/
 header "content-security-policy" contains "default-src 'self'"
 header "x-frame-options" == "DENY"
 header "x-content-type-options" == "nosniff"

@@ -1,5 +1,7 @@
 # ADR 011: The apex workers stay Hono
 
+> Superseded for app/com/org apex only by [ADR 024](024-retire-app-com-org-apex-units.md). The record below is unchanged history.
+
 ## Status: Rejected 2026-08-20 — `{app,com,net,org}/apex` remain Hono on Workers
 
 **Do not migrate the apex workers to Astro.** The four units keep Hono, hono/jsx

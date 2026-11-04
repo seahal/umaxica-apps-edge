@@ -25,6 +25,10 @@ export type FooterLabels = {
   about: string;
 };
 
+// Read once per isolate, not per render: react(purity) forbids impure calls in
+// render, and the copyright year does not need request-time precision.
+const COPYRIGHT_YEAR = new Date().getUTCFullYear();
+
 export function SiteFooter({ labels }: Readonly<{ labels: FooterLabels }>) {
   return (
     <footer className="col-span-full border-t border-gray-200 bg-white py-4">
@@ -38,7 +42,7 @@ export function SiteFooter({ labels }: Readonly<{ labels: FooterLabels }>) {
       </nav>
       <p className="mx-auto flex w-full max-w-7xl flex-wrap justify-between gap-2 px-4 text-sm text-gray-600 wide:px-8">
         <span>
-          © {new Date().getUTCFullYear()} {labels.brand}
+          © {COPYRIGHT_YEAR} {labels.brand}
         </span>
         <a className="text-brand" href={CANONICAL_HOME_URL}>
           {CANONICAL_HOME_URL}

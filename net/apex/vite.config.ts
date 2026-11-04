@@ -23,6 +23,13 @@ import { defineConfig } from 'vite';
  * unit in parallel; on the plugin's default (9229) they would collide.
  */
 export default defineConfig({
+  // Source maps for the WORKER build only. `wrangler.jsonc` sets
+  // `upload_source_maps`, and the output is `no_bundle`, so wrangler uploads the
+  // maps it finds next to the Worker module. The environment is named after the
+  // Worker (`name` in wrangler.jsonc, hyphens as underscores). Setting
+  // `build.sourcemap` at the root instead would also emit maps into
+  // `dist/client`, where they would be served as public static assets.
+  environments: { umaxica_apps_edge_net_apex: { build: { sourcemap: true } } },
   plugins: [cloudflare({ inspectorPort: 9201 }), tailwindcss()],
   server: { allowedHosts: ['umaxica.net'] },
 });

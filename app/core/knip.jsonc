@@ -33,11 +33,10 @@
   // now resolved from `@import 'tailwindcss'` in the stylesheet like any other
   // import, and a suppression became a real check.
   //
-  // `cloudflare` is not a package. `src/lib/cloudflare-env.ts` imports
-  // `cloudflare:workers`, a module the Workers runtime provides, and Knip reads
-  // the part before the colon as a package name. There is nothing to install and
-  // nothing to remove.
-  "ignoreDependencies": ["cloudflare"],
+  // These two packages are loaded by project.inlang/settings.json as
+  // compiler plugins. Knip only reads TypeScript/CSS entrypoints, so it cannot
+  // see that runtime configuration edge; keep the dependencies explicit.
+  "ignoreDependencies": ["@inlang/plugin-m-function-matcher", "@inlang/plugin-message-format"],
 
   // Types and constants that a module exports as part of its own public surface
   // and also consumes internally (e.g. RailsClientInit, DEFAULT_BRAND_SEPARATOR)

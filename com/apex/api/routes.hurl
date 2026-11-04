@@ -9,8 +9,12 @@
 # The apex root is a redirect, never a document. `[Options] location: false` is
 # the default, but the assertion below only means anything if the redirect is
 # not followed, so the intent is worth stating.
+#
+# 302, not the pre-ADR-024 301: a 301 is cached by browsers without bound, and
+# the owner of these hostnames has already changed once (ADR 024, ADR 027). A
+# temporary redirect keeps a later change of the regional target reversible.
 GET {{base}}/
-HTTP 301
+HTTP 302
 [Asserts]
 header "location" == "https://jp.umaxica.com/"
 
@@ -19,17 +23,17 @@ header "location" == "https://jp.umaxica.com/"
 # `toLowerCase()`, and an unknown region falls back to the default rather than
 # erroring — the 400 branch that used to sit here was unreachable.
 GET {{base}}/?ri=us
-HTTP 301
+HTTP 302
 [Asserts]
 header "location" == "https://us.umaxica.com/"
 
 GET {{base}}/?ri=JP
-HTTP 301
+HTTP 302
 [Asserts]
 header "location" == "https://jp.umaxica.com/"
 
 GET {{base}}/?ri=atlantis
-HTTP 301
+HTTP 302
 [Asserts]
 header "location" == "https://jp.umaxica.com/"
 
@@ -40,19 +44,19 @@ header "location" == "https://jp.umaxica.com/"
 # header handling that happens between the network and that function — layers
 # the unit test does not go through.
 GET {{base}}/?ri=jp.evil.com
-HTTP 301
+HTTP 302
 [Asserts]
 header "location" == "https://jp.umaxica.com/"
 
 GET {{base}}/?ri=jp%2eevil%2ecom
-HTTP 301
+HTTP 302
 [Asserts]
 header "location" == "https://jp.umaxica.com/"
 
 
 # Security headers are on the redirect too — it is a response like any other.
 GET {{base}}/
-HTTP 301
+HTTP 302
 [Asserts]
 header "strict-transport-security" contains "max-age=31536000"
 header "content-security-policy" contains "default-src 'self'"
@@ -62,8 +66,8 @@ header "referrer-policy" == "no-referrer"
 
 
 # /about is the one rendered page this unit serves. It goes through the JSX
-# renderer, so it carries the full shell: manifest link, favicon, stylesheet,
-# service worker registration, the SEO head and the title contract.
+# renderer, so it carries the full shell: favicon, stylesheet, the SEO head and
+# the title contract.
 GET {{base}}/about
 HTTP 200
 [Asserts]
@@ -76,11 +80,9 @@ xpath "string(//meta[@name='description']/@content)" == "umaxica.com is a UMAXIC
 xpath "string(//link[@rel='canonical']/@href)" == "https://umaxica.com/about"
 xpath "string(//meta[@name='robots']/@content)" == "index,follow"
 xpath "string(//meta[@name='twitter:card']/@content)" == "summary_large_image"
-xpath "//link[@rel='manifest'][@href='/manifest.webmanifest']" exists
 xpath "//link[@rel='icon'][@href='/favicon.ico']" exists
 xpath "count(//link[@rel='stylesheet'])" == 1
 xpath "string(//link[@rel='stylesheet']/@href)" matches /^\/[^"]+\.css(\?[^"]*)?$/
-xpath "//script[@src='/service-worker-register.js']" exists
 xpath "//head" exists
 xpath "//body" exists
 xpath "//main" exists

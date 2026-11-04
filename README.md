@@ -5,18 +5,33 @@
 （ ＾ν＾） Hello, World!
 
 The edge layer of Umaxica: a multi-domain monorepo of Cloudflare Workers —
-fifteen TanStack Start frames and five Hono apex Workers — spanning three
-domain families: `umaxica.com` (corporate), `umaxica.app` (service), and
-`umaxica.org` (staff), plus the `umaxica.net` and `umaxica.dev` apexes. Every
+fifteen TanStack Start frames and two Hono apex Workers (`net/apex`,
+`dev/apex`) — spanning three domain families: `umaxica.com` (corporate),
+`umaxica.app` (service), and `umaxica.org` (staff), plus the `umaxica.net` and
+`umaxica.dev` apexes. The bare `umaxica.{app,com,org}` apex hostnames are not
+owned by this repository (see below). Every
 deployment unit builds with Vite, runs on workerd, and implements one shared
 script contract; nothing here deploys anywhere but Cloudflare Workers.
 
+## EDGE Family
+
+Sibling repositories split out of this one:
+
+- [umaxica-apps-jump](https://github.com/seahal/umaxica-apps-jump) — controls
+  the Umaxica TLD apexes, keeping open-redirect defense in its own deployment.
+- [umaxica-apps-edge-core](https://github.com/seahal/umaxica-apps-edge-core) —
+  future home of the TanStack Start cores once they outgrow this repository;
+  created but not yet populated.
+- [umaxica-apps-edge-away](https://github.com/seahal/umaxica-apps-edge-away) —
+  planned standalone system for the outbound cushion (interstitial) pages that
+  jump does not implement yet; no core yet.
+
 ## Prerequisites
 
-- Node.js 24.20.0 — Active LTS "Krypton" (declared in
+- Node.js 24.21.0 — Active LTS "Krypton" (declared in
   `package.json#devEngines.runtime`, matched by `Containerfile` as
-  `node:24.20.0-trixie`)
-- [pnpm](https://pnpm.io/) 12.0.0 (declared in
+  `node:24.21.0-trixie`)
+- [pnpm](https://pnpm.io/) 12.11.2 (declared in
   `package.json#devEngines.packageManager`, matched by `Containerfile`) — the
   ONLY package manager; `pnpm-lock.yaml` is the only lockfile and
   `test/package-manager-invariants.test.ts` enforces both
@@ -49,19 +64,26 @@ Twenty deployment units, all in `pnpm-workspace.yaml`:
 | `app/help` | Service help        | `help.umaxica.app` | 5408     |
 | `dev/apex` | Apex/static worker  | `umaxica.dev`      | 5501     |
 
-`{com,org,app}/apex` are lightweight Hono Workers (root redirect, `/health`,
-`/about`); `{com,org,app}/core` are the TanStack Start applications behind them
-at regional subdomains. Cloudflare's custom domain for each apex root
-(`umaxica.com` / `.org` / `.app`) must point at the `*-apex` Worker, not
-`*-core` — reassigning production domain routing is a Cloudflare dashboard/DNS
-change outside this repo and must be coordinated before deploying `*/apex`.
+### Edge apex ownership
 
-Those custom domains are currently **removed**: since 2026-08-11 the apex
-hostnames are Public Hostnames on the development Cloudflare Tunnel, and a
-custom domain and a Public Hostname cannot both own one name. Each
-`*/apex/wrangler.jsonc` therefore declares `"routes": []`. Returning an apex to
-its Worker means removing the Public Hostname entry first, then restoring the
-route — in that order. See `adr/008-edge-development-tunnel-exposure.md`.
+| Apex          | Edge apex unit | State in this repository |
+| ------------- | -------------- | ------------------------ |
+| `umaxica.app` | `app/apex`     | reintroduced (ADR 027)   |
+| `umaxica.com` | `com/apex`     | reintroduced (ADR 027)   |
+| `umaxica.org` | `org/apex`     | reintroduced (ADR 027)   |
+| `umaxica.dev` | `dev/apex`     | retained                 |
+| `umaxica.net` | `net/apex`     | retained                 |
+
+`{com,org,app}/apex` were retired by `adr/024-retire-app-com-org-apex-units.md`
+and reintroduced by `adr/027-reintroduce-app-com-org-apex-units.md`, built on
+the current `dev/apex`. `/` answers a 302 to `jp.umaxica.<tld>` (or
+`us.` for `?ri=us`); `/about` is the brand page. `{com,org,app}/core` remain at
+their regional subdomains.
+
+Reintroducing the units does **not** make them public. Every apex
+`wrangler.jsonc` keeps `"routes": []`; the hostnames stay with whatever
+Cloudflare object currently owns them (last verified: a Tunnel Public Hostname,
+ADR 024) until an operator moves them, per ADR 027.
 
 One deliberate outlier lives outside the workspace list: `all/busy` is a
 dependency-free static maintenance Worker (`umaxica-apps-edge-all-busy`) with a
@@ -153,10 +175,10 @@ workspace file also enforces supply-chain policy: `minimumReleaseAge: 1440`
 
 | Tool                                                            | Role                                 | Version  |
 | --------------------------------------------------------------- | ------------------------------------ | -------- |
-| [pnpm](https://pnpm.io/)                                        | Package manager & task orchestration | 12.0.0   |
+| [pnpm](https://pnpm.io/)                                        | Package manager & task orchestration | 12.11.2  |
 | [Vite](https://vite.dev/)                                       | Dev server & production build        | 8.2.x    |
 | [TanStack Start](https://tanstack.com/start)                    | Framework, the fifteen frames        | 1.168.x  |
-| [Hono](https://hono.dev/)                                       | Framework, the five apex Workers     | 4.13.x   |
+| [Hono](https://hono.dev/)                                       | Framework, the two apex Workers      | 4.13.x   |
 | [Tailwind CSS](https://tailwindcss.com/)                        | Styling, via `@tailwindcss/vite`     | 4.3.x    |
 | [Oxfmt](https://oxc.rs/)                                        | Formatter (`pnpm run format`)        | 0.65.x   |
 | [Oxlint](https://oxc.rs/)                                       | Linter (`pnpm run lint`)             | 1.80.x   |
@@ -173,8 +195,8 @@ workspace file also enforces supply-chain policy: `minimumReleaseAge: 1440`
 
 ```jsonc
 "devEngines": {
-  "runtime":        { "name": "node", "version": "24.20.0", "onFail": "warn" },
-  "packageManager": { "name": "pnpm", "version": "12.0.0", "onFail": "download" }
+  "runtime":        { "name": "node", "version": "24.21.0", "onFail": "warn" },
+  "packageManager": { "name": "pnpm", "version": "12.11.2", "onFail": "download" }
 }
 ```
 
@@ -204,7 +226,7 @@ together; the test tells you when you have edited only one.
 The development environment is started with the Dev Containers CLI over
 rootless Podman.
 
-- **Base image**: `node:24.20.0-trixie` from `Containerfile`, with pnpm 12.0.0
+- **Base image**: `node:24.21.0-trixie` from `Containerfile`, with pnpm 12.11.2
   pre-installed via the standalone script documented at
   <https://pnpm.io/installation>. Both are pinned to exact versions so a
   rebuild reproduces the same toolchain, and both match the sibling Rails repo
@@ -241,19 +263,15 @@ git clone https://github.com/seahal/umaxica-apps-edge.git
 cd umaxica-apps-edge
 docker compose config    # or: podman compose config -- resolves as-is
 
-PODMAN_COMPOSE_PROVIDER=/usr/bin/podman-compose \
-devcontainer up \
-  --docker-path /usr/bin/podman \
-  --docker-compose-path /usr/bin/podman-compose \
-  --workspace-folder .
+scripts/devcontainer-up
 ```
 
-`EDGE_CLOUDFLARED_TOKEN` in the gitignored root `.env` is only needed if you
+`CLOUDFLARED_TOKEN` in the gitignored root `.env` is only needed if you
 actually want the Cloudflare Tunnel connector; without it the connector starts
 with an empty token and everything else is unaffected.
 
-There is no launcher script. `PODMAN_COMPOSE_PROVIDER` and `--docker-path` are
-both mandatory and have no `devcontainer.json` equivalent; run the command as
+The launcher supplies the mandatory Podman options and serializes Dev Container
+Feature builds against the CLI's host-global temporary image name. Run it as
 the normal rootless user, never through `sudo`. See
 [Dev Containers CLI startup on rootless Podman](docs/development/devcontainer-cli-podman-startup.md).
 
@@ -265,29 +283,52 @@ scripts/dev-start [--rails] [--tunnel]
 podman compose exec core bash -l
 ```
 
+#### Running without an editor
+
+`core` is a workspace container: it parks on `sleep infinity` and you start dev
+servers inside it by hand. If you would rather not run an editor at all, each
+workspace unit is also a Compose service of its own, behind the `app` profile:
+
+```bash
+podman compose up                          # the shared services only
+podman compose --profile app up net-apex   # just net/apex, on 5201
+podman compose --profile app up            # all twenty dev servers
+```
+
+Each service runs that unit's own `pnpm run dev` and publishes the port that
+script already binds, so the URLs are the ones in the port table above. A bare
+`podman compose up` deliberately starts no dev server — that is the shape the
+Dev Container needs, and the shape you want before a build or a test run.
+
+`core` and the per-unit services publish the same host ports, so the two shapes
+are mutually exclusive: stop the Dev Container before `--profile app`.
+
 #### The three compose files
 
 ```text
-compose.yaml                   = the complete standard environment
+compose.yaml                   = the shared services, plus the `app` profile
+.devcontainer/compose.yaml     = `core`, the workspace container
 compose.override.yaml          = optional, gitignored, yours
 compose.override.yaml.example  = documented example, tracked
 ```
 
-| File                            | Holds                                                                                                                                                                                 | Edit it?                                   |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `compose.yaml`                  | everything the standard environment needs — the `core` workspace container, the Edge-owned `cloudflare-tunnel` connector, the SELinux `label=disable`, and the `GH_TOKEN` passthrough | only as a change that applies to everyone  |
-| `compose.override.yaml`         | host-specific convenience only — an ssh-agent socket, a `known_hosts` bind, machine-local ports, experiments                                                                          | yes, freely; it is yours and is gitignored |
-| `compose.override.yaml.example` | a documented example of the above                                                                                                                                                     | only to change what the example teaches    |
+| File                            | Holds                                                                                                                                                                                                 | Edit it?                                   |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `compose.yaml`                  | the shared services — the Edge-owned `cloudflare-tunnel` connector, the networks and volumes — plus one dev-server service per workspace unit behind `profiles: [app]`                                | only as a change that applies to everyone  |
+| `.devcontainer/compose.yaml`    | `core`, the workspace container: the SELinux `label=disable`, the twenty published ports, the `GH_TOKEN` passthrough, `sleep infinity`. It lives here so a bare `podman compose up` does not start it | only as a change that applies to everyone  |
+| `compose.override.yaml`         | host-specific convenience only — an ssh-agent socket, a `known_hosts` bind, machine-local ports, experiments                                                                                          | yes, freely; it is yours and is gitignored |
+| `compose.override.yaml.example` | a documented example of the above                                                                                                                                                                     | only to change what the example teaches    |
 
-**A fresh clone needs no override.** `compose.yaml` on its own is a complete,
-supported development environment on Ubuntu, on RHEL/Fedora with SELinux
-Enforcing, under Docker and under rootless Podman. Nothing copies the example
+**A fresh clone needs no override.** `compose.yaml` and
+`.devcontainer/compose.yaml` between them are a complete, supported development
+environment on Ubuntu, on RHEL/Fedora with SELinux Enforcing, under Docker and
+under rootless Podman. Nothing copies the example
 into place, and nothing fails because the override is absent — this is asserted
 by `test/compose-local-override-invariants.test.ts`.
 
 Two consequences of that contract are worth knowing:
 
-- **SELinux lives in `compose.yaml`.** `core` carries
+- **SELinux lives in the tracked compose files.** `core` carries
   `security_opt: [no-new-privileges:true, label=disable]`. The bind mounts here
   deliberately carry no `:z`/`:Z`, which would relabel your host tree;
   `label=disable` is scoped to this one container and is simply ignored on hosts
@@ -296,7 +337,7 @@ Two consequences of that contract are worth knowing:
 - **The Dev Container does not load your override.** The Dev Containers CLI
   passes each `dockerComposeFile` entry to Compose as `-f`, and Compose only
   auto-discovers `compose.override.yaml` when _no_ `-f` is given. So
-  `.devcontainer/devcontainer.json` lists `../compose.yaml` alone, and a bare
+  `.devcontainer/devcontainer.json` lists the two tracked files alone, and a bare
   `docker compose` (auto-discovery) or `scripts/dev-start` (explicit `-f` when
   the file exists) is where an override takes effect. VS Code already forwards
   your ssh-agent into the container for Git on its own.
@@ -384,8 +425,8 @@ via `exec`.
 
 The standard Dev Container starts an Edge-owned Tunnel connector. Put its
 dedicated connector token in the gitignored root `.env` as
-`EDGE_CLOUDFLARED_TOKEN`; this is not a Cloudflare API token and it must not
-be reused from Global. `vpc_services` remains independent and exists only in
+`CLOUDFLARED_TOKEN`; this is not a Cloudflare API token, and it must not be
+the value Global uses for the same variable name in its own `.env`. `vpc_services` remains independent and exists only in
 the explicit `env.vpc` development environment; production remains
 fail-closed.
 
@@ -510,9 +551,9 @@ Generated files follow two opposite rules:
 
 ## Production Environment
 
-| Platform                                              | Workspaces                                                     | Domains                                                                   |
-| ----------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [Cloudflare Workers](https://workers.cloudflare.com/) | all twenty — `app/*`, `com/*`, `org/*`, `net/apex`, `dev/apex` | `umaxica.app`, `umaxica.com`, `umaxica.org`, `umaxica.net`, `umaxica.dev` |
+| Platform                                              | Workspaces                                                                           | Domains                                                                                        |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| [Cloudflare Workers](https://workers.cloudflare.com/) | all twenty — `{app,com,org}/{apex,core,docs,help,info,news}`, `net/apex`, `dev/apex` | `umaxica.app`, `umaxica.com`, `umaxica.org` and their subdomains; `umaxica.net`, `umaxica.dev` |
 
 There is no second platform. `dev/apex` moved from Vercel to Workers and
 `dev/acme` was deleted (`adr/012-apex-vite-build-and-static-assets.md`), so
@@ -609,16 +650,19 @@ secrets, or authenticated Core session material.
 Cross-cutting contracts, enforced by lint rules and repository tests rather
 than convention:
 
-- **Logging** — `no-console` is an error in every unit. The only two
-  sanctioned emitters are `*/apex/src/structured-logger.ts`
-  (`@hono/structured-logger`) and `*/core/src/lib/rails-dispatch-log.ts`; both
-  emit one JSON line collected by `observability.logs.enabled`, and
-  `RailsDispatchLogEntry` has no free-text field by design.
+- **Logging** — `no-console` is an error in every unit. The sanctioned emitters
+  are `*/apex/src/structured-logger.ts` (`@hono/structured-logger`), the local
+  `*/{core,docs,help,info,news}/src/lib/request-log.ts` copies for TanStack
+  request completion, and `*/core/src/lib/rails-dispatch-log.ts` for the Rails
+  hop. All emit one JSON line collected by `observability.logs.enabled`; their
+  fields are closed and exclude free text, credentials, query, body and
+  exception details.
 - **Cookies** — browser code touches cookies only via the Cookie Store API
   (`cookieStore`); server side stays on `hono/cookie` and Rails.
   `*/core/src/worker.ts` strips every `Set-Cookie` from application responses,
-  so a browser-visible cookie can only come from an apex Worker or Rails
-  (ADR 007). `docs/development/browser-cookie-access.md` is normative.
+  so Rails is the only preference-cookie writer; Rails-owned passthrough keeps
+  Rails cookies (ADR 007). `docs/development/browser-cookie-access.md` is
+  normative.
 - **Styling** — Tailwind CSS v4 is the only styling layer: no CSS Modules, no
   CSS-in-JS, no `tailwind.config.*`, no static `style=`. Each unit owns its
   own stylesheet and `@theme`; the engine runs via `@tailwindcss/vite` with no

@@ -1,8 +1,8 @@
 [
   {
-    "name": "client JavaScript (baseline 117.3 kB, budget = +10%)",
+    "name": "client JavaScript (baseline 117.3 kB, approved budget = 150 kB)",
     "path": "dist/client/assets/**/*.js",
     "gzip": true,
-    "limit": "129 kB"
+    "limit": "150 kB"
   }
 ]

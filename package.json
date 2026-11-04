@@ -31,7 +31,10 @@
     "deploy:edge:preview": "scripts/deploy-edge-preview",
     "knip": "pnpm -r --workspace-concurrency=1 run knip",
     "typecheck": "pnpm -r run typecheck",
-    "test": "pnpm -r run test && EDGE_TRACKED_FILES=\"$(git ls-files)\" vitest run --dir test",
+    "test": "pnpm -r --workspace-concurrency=4 run test && pnpm run test:repo",
+    "test:repo": "EDGE_TRACKED_FILES=\"$(git ls-files)\" vitest run --dir test",
+    "test:stress": "pnpm -r --workspace-concurrency=4 run test:stress && pnpm run test:repo:stress",
+    "test:repo:stress": "EDGE_TRACKED_FILES=\"$(git ls-files)\" vitest run --dir test --sequence.shuffle",
     "test:api": "pnpm -r run test:api",
     "test:e2e": "pnpm -r run test:e2e",
     "prepare": "lefthook install",
@@ -44,12 +47,13 @@
   },
   "devDependencies": {
     "@size-limit/file": "catalog:",
+    "@tanstack/intent": "catalog:",
     "@types/node": "catalog:",
     "cspell": "catalog:",
     "dependency-cruiser": "catalog:",
     "hono": "catalog:",
     "knip": "catalog:",
-    "lefthook": "^2.1.12",
+    "lefthook": "^2.2.2",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
@@ -62,13 +66,18 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "12.0.0",
+      "version": "12.11.2",
       "onFail": "download"
     },
     "runtime": {
       "name": "node",
-      "version": "24.20.0",
+      "version": "24.21.0",
       "onFail": "warn"
     }
+  },
+  "intent": {
+    "skills": [
+      "*"
+    ]
   }
 }

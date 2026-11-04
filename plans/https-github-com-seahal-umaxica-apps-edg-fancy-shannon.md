@@ -11,7 +11,7 @@ Hono ワーカーを復活させる。
 git 履歴の調査でかつての仕組みが判明した:
 
 - コミット `461d48c` (2026-05-28) 以前は、まさに `app/apex, com/apex, org/apex, net/apex,
-dev/apex` + `shared/apex/*` がこのリポジトリに存在し、`app/core` 等と**共存していた**
+  dev/apex` + `shared/apex/*` がこのリポジトリに存在し、`app/core` 等と**共存していた**
   (pnpm-workspace.yaml に apex と core が両方登録)。
 - ドメイン分担は「apex = ルートドメイン (`umaxica.app`)、core = 地域サブドメイン
   (`jp.umaxica.app` / `us.umaxica.app` へ 301 リダイレクト)」。ユーザー確認済み。

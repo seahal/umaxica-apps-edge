@@ -3,7 +3,6 @@ import { Outlet, createFileRoute } from '@tanstack/react-router';
 import { AppChrome } from '@/components/app-chrome';
 import { SiteFooter } from '@/components/site-footer';
 import { SkipLink } from '@/components/skip-link';
-import { defaultLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 
 const BRAND_NAME = 'UMAXICA';
@@ -35,7 +34,7 @@ const BRAND_NAME = 'UMAXICA';
  * layout did.
  */
 export const Route = createFileRoute('/_page')({
-  loader: () => getDictionary(defaultLocale),
+  loader: () => getDictionary(),
   component: PageLayout,
 });
 

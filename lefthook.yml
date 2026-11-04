@@ -16,7 +16,7 @@ pre-commit:
       glob: '*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,yaml,yml,md,css}'
       run: pnpm exec cspell lint --no-progress --no-must-find-files {staged_files}
     # Only fires when a manifest or the catalog is staged, which is the only way
-    # a version can drift. Reads all twenty-two manifests when it does, and is
+    # a version can drift. Reads every manifest when it does, and is
     # measured at well under a second — the whole check is JSON parsing.
     deps:
       glob: '{package.json,pnpm-workspace.yaml,*/*/package.json}'
@@ -51,7 +51,7 @@ pre-commit:
 # overlap, because the two slowest commands are the two least likely to fail.
 #
 # `check:size` is deliberately absent. It measures build OUTPUT, so it would
-# require building all twenty units before every push. That cost belongs in
+# require building all seventeen units before every push. That cost belongs in
 # CI, where the build matrix already exists and the measurement is free.
 # `priority` is not decoration. Lefthook orders commands ALPHABETICALLY unless
 # one is set, which put `lint-types` ahead of `spelling` here purely because "l"

@@ -15,7 +15,7 @@ findings:
   user said to leave it alone for now as long as the GitHub Actions YAML itself
   has no syntax/structural problems.
 - **`knip`**: user wants this one actually fixed — `RangeError: Array buffer
-allocation failed` inside `oxc-parser`, crashing the whole job.
+  allocation failed` inside `oxc-parser`, crashing the whole job.
 
 This plan only covers `format` and `knip`. The Cloudflare deploy-CLI work
 remains deferred to a separate session, as previously agreed.
@@ -27,7 +27,7 @@ remains deferred to a separate session, as previously agreed.
    `plans/next-js-typescript-composed-key.md`.
 
 2. **`knip` job fails** — crashes with `RangeError: Array buffer allocation
-failed` inside `oxc-parser`. `knip.json` has no unusual config, and no
+   failed` inside `oxc-parser`. `knip.json` has no unusual config, and no
    abnormally large source file was found in the repo (checked). The `knip`
    job runs on `runs-on: ubuntu-slim` (`.github/workflows/integration.yaml:44`)
    — a constrained runner — which is the most likely trigger: a memory-hungry

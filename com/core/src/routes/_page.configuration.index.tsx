@@ -2,9 +2,8 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { PageHeading } from '@/components/page-heading';
 import { PageMain } from '@/components/page-main';
-import { defaultLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
-import { pageTitles } from '@/lib/page-titles';
+import { pageTitle } from '@/lib/page-titles';
 
 /*
  * `_page.configuration.index.tsx`, not `_page.configuration.tsx`.
@@ -20,8 +19,8 @@ import { pageTitles } from '@/lib/page-titles';
  * and leaves the two routes as siblings.
  */
 export const Route = createFileRoute('/_page/configuration/')({
-  loader: () => getDictionary(defaultLocale),
-  head: () => ({ meta: [{ title: pageTitles.configuration }] }),
+  loader: () => getDictionary(),
+  head: () => ({ meta: [{ title: pageTitle('configuration') }] }),
   component: ConfigurationPage,
 });
 
