@@ -4,6 +4,9 @@
 shell for every Edge deployment unit that serves HTML. Read it against the unit
 you are editing before you change a shell file.
 
+Keyboard interaction must also follow the [keyboard guidelines](keyboard-guidelines.md),
+which adopt Apple's Human Interface Guidelines for the Edge web UI.
+
 It is prose on purpose. The Edge tier shares no UI code — every unit owns its own
 copy of its shell, stylesheet, theme and i18n config — so there is no
 module whose signature would break when two units disagree. What holds them

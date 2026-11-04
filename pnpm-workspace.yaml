@@ -167,7 +167,7 @@ catalog:
   # version-pinned one, so the two cannot disagree about which major is in play.
   vite: ^8.3.4
   # Exact, and equal to '@vitest/coverage-v8' above — see the note there.
-  vitest: 5.0.4
+  vitest: 5.0.5
   # Floor set by `@cloudflare/vite-plugin`'s peer range (^4.127.0), not chosen
   # independently. Bumping the plugin without bumping this is a resolution
   # failure rather than a subtle one.
