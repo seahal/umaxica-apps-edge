@@ -124,6 +124,8 @@ Tailwind CSS v4 is the only styling layer. No CSS Modules, no CSS-in-JS, no `tai
 
 YAGNI. Build only what is needed now; no speculative abstractions.
 
+When documentation and existing code conflict, follow the patterns in the existing code and list every discrepancy found in the final response.
+
 ## Review checklist
 
 - [ ] `pnpm install` after pulling, before starting.
