@@ -175,7 +175,19 @@ describe(`${FRAME} dispatchToRails request construction`, () => {
     ['IPv6', '2001:db8::1', '2001:db8::1'],
     ['an IPv4-mapped IPv6', '::ffff:203.0.113.10', '::ffff:203.0.113.10'],
     ['a malformed address', '203.0.113.999', null],
+    ['an uncompressed IPv6', '2001:db8:0:0:0:0:0:1', '2001:db8:0:0:0:0:0:1'],
     ['a comma separated list', '203.0.113.10, 198.51.100.7', null],
+    ['a comma separated list without spaces', '203.0.113.10,198.51.100.7', null],
+    ['an IPv6 with two compressions', '2001::db8::1', null],
+    ['an IPv6 with a triple colon', '2001:::1', null],
+    ['an IPv6 with a trailing empty group', '2001:db8::1:', null],
+    ['an IPv4-mapped IPv6 with a malformed IPv4', '::ffff:203.0.113.999', null],
+    [
+      'an uncompressed IPv4-mapped IPv6',
+      '0:0:0:0:0:ffff:203.0.113.10',
+      '0:0:0:0:0:ffff:203.0.113.10',
+    ],
+    ['a dotted quad before the compression', '203.0.113.10::1', null],
     ['an empty value', '', null],
     ['an arbitrary string', 'unknown', null],
   ])('forwards %s as %s', async (_label, header, expected) => {
@@ -380,6 +392,38 @@ describe(`${FRAME} dispatchToRails body ceiling`, () => {
     const response = await dispatch(post({ 'content-length': '10' }, chunked(MAX + 65_536)), fetch);
 
     expect(response.status).toBe(413);
+  });
+
+  it('answers 413, not 503, when fetch rejects after the body crossed the ceiling', async () => {
+    // workerd and undici wrap the errored relay differently; the flag decides.
+    const fetch = vi.fn().mockImplementation(async (railsRequest: Request) => {
+      await expect(railsRequest.arrayBuffer()).rejects.toBeInstanceOf(Error);
+      throw new TypeError('fetch failed');
+    });
+
+    const response = await dispatch(post({}, chunked(MAX + 65_536)), fetch);
+
+    expect(response.status).toBe(413);
+    await expect(response.text()).resolves.toBe('Payload Too Large\n');
+  });
+
+  it("still answers 413 when discarding Rails' reply to an oversized body fails", async () => {
+    let cancelAttempted = false;
+    const fetch = vi.fn().mockImplementation(async (railsRequest: Request) => {
+      await expect(railsRequest.arrayBuffer()).rejects.toBeInstanceOf(Error);
+      const reply = new ReadableStream<Uint8Array>({
+        cancel() {
+          cancelAttempted = true;
+          throw new Error('reply cannot be cancelled');
+        },
+      });
+      return new Response(reply, { status: 200 });
+    });
+
+    const response = await dispatch(post({}, chunked(MAX + 65_536)), fetch);
+
+    expect(response.status).toBe(413);
+    expect(cancelAttempted).toBe(true);
   });
 
   it('refuses an oversized body even when RAILS_ORIGIN is not configured', async () => {

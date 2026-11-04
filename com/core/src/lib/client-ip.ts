@@ -63,12 +63,14 @@ function isIpv4(value: string): boolean {
 
 function isIpv6(value: string): boolean {
   if (!value.includes(':')) return false;
-  const halves = value.split('::');
-  if (halves.length > 2) return false;
+  // At most one `::`. The second search starts past the first match, so `:::`
+  // is one `::` followed by an empty group, exactly as `split('::')` reads it.
+  const gap = value.indexOf('::');
+  const compressed = gap !== -1;
+  if (compressed && value.includes('::', gap + 2)) return false;
 
-  const compressed = halves.length === 2;
-  const head = halves[0] ?? '';
-  const tail = compressed ? (halves[1] ?? '') : '';
+  const head = compressed ? value.slice(0, gap) : value;
+  const tail = compressed ? value.slice(gap + 2) : '';
 
   const groups: string[] = [];
 
