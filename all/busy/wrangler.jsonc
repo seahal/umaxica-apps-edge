@@ -20,9 +20,12 @@
     "head_sampling_rate": 1,
     "logs": {
       "enabled": true,
-      "head_sampling_rate": 1,
+      "head_sampling_rate": 0.1,
       "persist": true,
-      "invocation_logs": true
+      "invocation_logs": false
+    },
+    "traces": {
+      "head_sampling_rate": 0.02
     }
   }
 }

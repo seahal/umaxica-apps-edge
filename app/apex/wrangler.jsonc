@@ -37,15 +37,14 @@
     },
     "logs": {
       "enabled": true,
-      "head_sampling_rate": 1,
+      "head_sampling_rate": 0.1,
       "persist": true,
       "invocation_logs": true
     },
-    // Logs are complete; traces are sampled at 20%. Identical in all seventeen
-    // units so the numbers are comparable — tools/check-workers.mjs enforces it.
+    // Sample logs at 10% and traces at 2% to reduce telemetry volume.
     "traces": {
       "enabled": true,
-      "head_sampling_rate": 0.2,
+      "head_sampling_rate": 0.02,
       "persist": true
     }
   },
